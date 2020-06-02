@@ -6,20 +6,13 @@ import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
-import org.apache.spark.unsafe.types.UTF8String
+import uk.co.gresearch.spark.dgraph.connector.encoder.TripleEncoder
 
 import scala.collection.JavaConverters._
 case class Nodes(nodes: Array[Map[String, Any]])
-case class Triple(s: String, p: String, o: String) {
-  def asInternalRow: InternalRow =
-    InternalRow(
-      UTF8String.fromString(s),
-      UTF8String.fromString(p),
-      UTF8String.fromString(o)
-    )
-}
+case class Triple(s: Long, p: String, o: String)
 
-class DGraphTriplePartitionReader(partition: DGraphPartition) extends PartitionReader[InternalRow] {
+class DGraphTriplePartitionReader(partition: DGraphPartition, encoder: TripleEncoder) extends PartitionReader[InternalRow] {
 
   val query: String =
     """{
@@ -43,13 +36,17 @@ class DGraphTriplePartitionReader(partition: DGraphPartition) extends PartitionR
       .flatMap(toTriples)
 
   private def toTriples(node: JsonObject): Iterator[Triple] = {
-    val uid = node.remove("uid").getAsString
+    val string = node.remove("uid").getAsString
+    if (!string.startsWith("0x")) {
+      throw new IllegalArgumentException("DGraph subject is not a long prefixed with '0x': " + string)
+    }
+    val uid = java.lang.Long.valueOf(string.substring(2), 16)
     node.entrySet().iterator().asScala.map(e => Triple(uid, e.getKey, e.getValue.getAsString))
   }
 
   def next: Boolean = triples.hasNext
 
-  def get: InternalRow = triples.next().asInternalRow
+  def get: InternalRow = encoder.asInternalRow(triples.next())
 
   def close(): Unit = channels.foreach(_.shutdown())
 

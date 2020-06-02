@@ -2,6 +2,7 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import uk.co.gresearch.spark.dgraph.connector.encoder.StringObjectTripleEncoder
 
 
 class DGraphTripleTableProvider() extends TableProviderBase {
@@ -10,7 +11,8 @@ class DGraphTripleTableProvider() extends TableProviderBase {
 
   def getTable(options: CaseInsensitiveStringMap): Table = {
     val targets: Seq[Target] = getTargets(options)
-    new DGraphTripleTable(targets)
+    val encoder = new StringObjectTripleEncoder
+    new DGraphTripleTable(targets, encoder)
   }
 
 }
