@@ -2,7 +2,7 @@ package uk.co.gresearch.spark
 
 import org.apache.spark.sql.SparkSession
 
-trait SparkTest {
+trait SparkTestSession {
 
   val spark: SparkSession = {
     SparkSession

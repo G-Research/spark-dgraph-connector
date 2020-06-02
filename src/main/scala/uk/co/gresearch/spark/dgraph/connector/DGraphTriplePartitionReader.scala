@@ -1,6 +1,6 @@
 package uk.co.gresearch.spark.dgraph.connector
 
-import com.google.gson.{Gson, JsonObject, JsonPrimitive}
+import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
@@ -18,7 +18,9 @@ class DGraphTriplePartitionReader(partition: DGraphPartition, encoder: TripleEnc
     """{
       |  nodes (func: has(dgraph.type)) {
       |    uid
-      |    expand(_all_)
+      |    expand(_all_) {
+      |      uid
+      |    }
       |  }
       |}""".stripMargin
 
@@ -35,13 +37,30 @@ class DGraphTriplePartitionReader(partition: DGraphPartition, encoder: TripleEnc
       .map(_.getAsJsonObject)
       .flatMap(toTriples)
 
+  private def getValues(value: JsonElement): Iterable[JsonElement] = value match {
+    case a: JsonArray => a.asScala
+    case _ => Seq(value)
+  }
+
+  private def getTriple(s: Long, p: String, o: JsonElement): Triple = {
+    val obj = o match {
+      case obj: JsonObject => uidStringToLong(obj.get("uid").getAsString).toString
+      case _ => o.getAsString
+    }
+    Triple(s, p, obj)
+  }
+
+  private def uidStringToLong(uid: String): Long =
+    Some(uid)
+      .filter(_.startsWith("0x"))
+      .map(uid => java.lang.Long.valueOf(uid.substring(2), 16))
+      .getOrElse(throw new IllegalArgumentException("DGraph uid is not a long prefixed with '0x': " + uid))
+
   private def toTriples(node: JsonObject): Iterator[Triple] = {
     val string = node.remove("uid").getAsString
-    if (!string.startsWith("0x")) {
-      throw new IllegalArgumentException("DGraph subject is not a long prefixed with '0x': " + string)
-    }
-    val uid = java.lang.Long.valueOf(string.substring(2), 16)
-    node.entrySet().iterator().asScala.map(e => Triple(uid, e.getKey, e.getValue.getAsString))
+    val uid = uidStringToLong(string)
+    node.entrySet().iterator().asScala
+      .flatMap(e => getValues(e.getValue).map(v => getTriple(uid, e.getKey, v)))
   }
 
   def next: Boolean = triples.hasNext
