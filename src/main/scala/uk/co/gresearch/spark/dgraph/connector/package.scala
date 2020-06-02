@@ -6,6 +6,8 @@ import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
 
 package object connector {
+  case class Triple(s: Long, p: String, o: String)
+
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"
 
