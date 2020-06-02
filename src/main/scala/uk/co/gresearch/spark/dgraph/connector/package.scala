@@ -6,7 +6,30 @@ import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
 
 package object connector {
-  case class Triple(s: Long, p: String, o: String)
+
+  case class Uid(uid: Long) {
+    override def toString: String = uid.toString
+  }
+
+  object Uid {
+    def apply(uid: String): Uid = Uid(toLong(uid))
+
+    private def toLong(uid: String): Long =
+      Some(uid)
+        .filter(_.startsWith("0x"))
+        .map(uid => java.lang.Long.valueOf(uid.substring(2), 16))
+        .getOrElse(throw new IllegalArgumentException("DGraph uid is not a long prefixed with '0x': " + uid))
+
+  }
+
+  case class Geo(geo: String) {
+    override def toString: String = geo
+  }
+  case class Password(password: String) {
+    override def toString: String = password
+  }
+
+  case class Triple(s: Uid, p: String, o: Any)
 
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"

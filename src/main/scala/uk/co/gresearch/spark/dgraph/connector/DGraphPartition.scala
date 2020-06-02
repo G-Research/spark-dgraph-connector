@@ -5,7 +5,7 @@ import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
 import org.apache.spark.sql.connector.read.InputPartition
 
-case class DGraphPartition(targets: Seq[Target]) extends InputPartition {
+case class DGraphPartition(targets: Seq[Target], schema: Option[Schema]) extends InputPartition {
 
   private val query: String =
     """{
@@ -30,7 +30,7 @@ case class DGraphPartition(targets: Seq[Target]) extends InputPartition {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8
-      TriplesFactory.fromJson(json)
+      TriplesFactory.fromJson(json, schema)
     } finally {
       channels.foreach(_.shutdown())
     }

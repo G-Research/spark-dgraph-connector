@@ -1,11 +1,20 @@
 package uk.co.gresearch.spark.dgraph.connector
 
+import java.sql.Timestamp
+
 import org.scalatest.FunSpec
 
 class TestTriplesFactory extends FunSpec {
 
   describe("TriplesFactory") {
     it("should parse JSON response") {
+      val schema = Schema(Map(
+        "release_date" -> "dateTime",
+        "revenue" -> "int",
+        "running_time" -> "int",
+        "director" -> "uid",
+        "starring" -> "uid",
+      ))
       val json =
         """
           |{
@@ -113,42 +122,42 @@ class TestTriplesFactory extends FunSpec {
           |    ]
           |  }""".stripMargin
 
-      val triples = TriplesFactory.fromJson(json).toSeq
+      val triples = TriplesFactory.fromJson(json, Some(schema)).toList
       assert(triples === Seq(
-        Triple(1, "name", "Star Wars: Episode IV - A New Hope"),
-        Triple(1, "release_date", "1977-05-25T00:00:00Z"),
-        Triple(1, "revenue", "775000000"),
-        Triple(1, "running_time", "121"),
-        Triple(1, "starring", "2"),
-        Triple(1, "starring", "3"),
-        Triple(1, "starring", "7"),
-        Triple(1, "director", "4"),
-        Triple(2, "name", "Luke Skywalker"),
-        Triple(3, "name", "Han Solo"),
-        Triple(4, "name", "George Lucas"),
-        Triple(5, "name", "Irvin Kernshner"),
-        Triple(6, "name", "Richard Marquand"),
-        Triple(7, "name", "Princess Leia"),
-        Triple(8, "name", "Star Wars: Episode V - The Empire Strikes Back"),
-        Triple(8, "release_date", "1980-05-21T00:00:00Z"),
-        Triple(8, "revenue", "534000000"),
-        Triple(8, "running_time", "124"),
-        Triple(8, "starring", "2"),
-        Triple(8, "starring", "3"),
-        Triple(8, "starring", "7"),
-        Triple(8, "director", "5"),
-        Triple(9, "name", "Star Wars: Episode VI - Return of the Jedi"),
-        Triple(9, "release_date", "1983-05-25T00:00:00Z"),
-        Triple(9, "revenue", "572000000"),
-        Triple(9, "running_time", "131"),
-        Triple(9, "starring", "2"),
-        Triple(9, "starring", "3"),
-        Triple(9, "starring", "7"),
-        Triple(9, "director", "6"),
-        Triple(10, "name", "Star Trek: The Motion Picture"),
-        Triple(10, "release_date", "1979-12-07T00:00:00Z"),
-        Triple(10, "revenue", "139000000"),
-        Triple(10, "running_time", "132"),
+        Triple(Uid(1), "name", "Star Wars: Episode IV - A New Hope"),
+        Triple(Uid(1), "release_date", Timestamp.valueOf("1977-05-25 00:00:00")),
+        Triple(Uid(1), "revenue", 775000000L),
+        Triple(Uid(1), "running_time", 121L),
+        Triple(Uid(1), "starring", Uid(2)),
+        Triple(Uid(1), "starring", Uid(3)),
+        Triple(Uid(1), "starring", Uid(7)),
+        Triple(Uid(1), "director", Uid(4)),
+        Triple(Uid(2), "name", "Luke Skywalker"),
+        Triple(Uid(3), "name", "Han Solo"),
+        Triple(Uid(4), "name", "George Lucas"),
+        Triple(Uid(5), "name", "Irvin Kernshner"),
+        Triple(Uid(6), "name", "Richard Marquand"),
+        Triple(Uid(7), "name", "Princess Leia"),
+        Triple(Uid(8), "name", "Star Wars: Episode V - The Empire Strikes Back"),
+        Triple(Uid(8), "release_date", Timestamp.valueOf("1980-05-21 00:00:00")),
+        Triple(Uid(8), "revenue", 534000000L),
+        Triple(Uid(8), "running_time", 124L),
+        Triple(Uid(8), "starring", Uid(2)),
+        Triple(Uid(8), "starring", Uid(3)),
+        Triple(Uid(8), "starring", Uid(7)),
+        Triple(Uid(8), "director", Uid(5)),
+        Triple(Uid(9), "name", "Star Wars: Episode VI - Return of the Jedi"),
+        Triple(Uid(9), "release_date", Timestamp.valueOf("1983-05-25 00:00:00")),
+        Triple(Uid(9), "revenue", 572000000L),
+        Triple(Uid(9), "running_time", 131L),
+        Triple(Uid(9), "starring", Uid(2)),
+        Triple(Uid(9), "starring", Uid(3)),
+        Triple(Uid(9), "starring", Uid(7)),
+        Triple(Uid(9), "director", Uid(6)),
+        Triple(Uid(10), "name", "Star Trek: The Motion Picture"),
+        Triple(Uid(10), "release_date", Timestamp.valueOf("1979-12-07 00:00:00")),
+        Triple(Uid(10), "revenue", 139000000L),
+        Triple(Uid(10), "running_time", 132L),
       ))
     }
   }
