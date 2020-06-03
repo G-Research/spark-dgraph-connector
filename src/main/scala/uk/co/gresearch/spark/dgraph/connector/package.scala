@@ -28,6 +28,19 @@ package object connector {
                                   objectPassword: String,
                                   objectType: String)
 
+  case class DGraphEdgeRow(subject: Long, predicate: String, objectUid: Long)
+
+  case class DGraphNodeRow(subject: Long,
+                           predicate: String,
+                           objectString: String,
+                           objectLong: Long,
+                           objectDouble: Double,
+                           objectTimestamp: Timestamp,
+                           objectBoolean: Boolean,
+                           objectGeo: String,
+                           objectPassword: String,
+                           objectType: String)
+
   case class Uid(uid: Long) {
     override def toString: String = uid.toString
   }
