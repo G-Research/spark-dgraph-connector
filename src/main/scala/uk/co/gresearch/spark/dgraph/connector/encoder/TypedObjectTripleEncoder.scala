@@ -1,7 +1,10 @@
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
+import java.sql.Timestamp
+
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import uk.co.gresearch.spark.dgraph.connector.{DGraphTypedObjectRow, Geo, Password, Triple, TriplesFactory, Uid}
@@ -40,7 +43,7 @@ class TypedObjectTripleEncoder extends TripleEncoder {
         case "string" => (3, UTF8String.fromString(triple.o.asInstanceOf[String]))
         case "long" => (4, triple.o)
         case "double" => (5, triple.o)
-        case "timestamp" => (6, triple.o)
+        case "timestamp" => (6, DateTimeUtils.fromJavaTimestamp(triple.o.asInstanceOf[Timestamp]))
         case "boolean" => (7, triple.o)
         case "geo" => (8, UTF8String.fromString(triple.o.asInstanceOf[Geo].geo))
         case "password" => (9, UTF8String.fromString(triple.o.asInstanceOf[Password].password))

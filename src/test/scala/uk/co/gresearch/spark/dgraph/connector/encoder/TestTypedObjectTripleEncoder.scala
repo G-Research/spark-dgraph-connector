@@ -2,6 +2,7 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import java.sql.Timestamp
 
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types.{StringType, TimestampType}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Triple, Uid}
@@ -35,7 +36,7 @@ class TestTypedObjectTripleEncoder extends FunSpec {
       if (encType == "string" || encType == "default") assert(row.getUTF8String(3).toString === value.toString) else assert(row.get(3, StringType) === null)
       if (encType == "long") assert(row.getLong(4) === value) else assert(row.get(4, StringType) === null)
       if (encType == "double") assert(row.getDouble(5) === value) else assert(row.get(5, StringType) === null)
-      if (encType == "timestamp") assert(row.get(6, TimestampType) === value) else assert(row.get(6, StringType) === null)
+      if (encType == "timestamp") assert(row.get(6, TimestampType) === DateTimeUtils.fromJavaTimestamp(value.asInstanceOf[Timestamp])) else assert(row.get(6, StringType) === null)
       if (encType == "boolean") assert(row.getBoolean(7) === value) else assert(row.get(7, StringType) === null)
       if (encType == "geo") assert(row.getUTF8String(8).toString === value.asInstanceOf[Geo].geo) else assert(row.get(8, StringType) === null)
       if (encType == "password") assert(row.getUTF8String(9).toString === value.asInstanceOf[Password].password) else assert(row.get(9, StringType) === null)

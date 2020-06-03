@@ -9,7 +9,7 @@ class TestTriplesFactory extends FunSpec {
   describe("TriplesFactory") {
     it("should parse JSON response") {
       val schema = Schema(Map(
-        "release_date" -> "dateTime",
+        "release_date" -> "datetime",
         "revenue" -> "int",
         "running_time" -> "int",
         "director" -> "uid",

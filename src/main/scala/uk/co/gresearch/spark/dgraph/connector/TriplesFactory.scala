@@ -45,7 +45,7 @@ private object TriplesFactory {
       case Some("string") => value.getAsString
       case Some("int") | Some("long") => value.getAsLong
       case Some("float") | Some("double") => value.getAsDouble
-      case Some("dateTime") | Some("timestamp") =>
+      case Some("datetime") | Some("timestamp") =>
         Timestamp.valueOf(ZonedDateTime.parse(value.getAsString, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime)
       case Some("bool") | Some("boolean") => value.getAsString == "true"
       case Some("uid") => Uid(value.getAsString)
