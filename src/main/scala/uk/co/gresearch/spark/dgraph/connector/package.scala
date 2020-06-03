@@ -2,14 +2,20 @@ package uk.co.gresearch.spark.dgraph
 
 import java.sql.Timestamp
 
-import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.dgraph.DgraphGrpc.DgraphStub
+import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
+import org.apache.spark.sql.{DataFrame, DataFrameReader}
 
 package object connector {
 
+  val TriplesSource: String = new triples.DefaultSource().getClass.getPackage.getName
+  val EdgesSource: String = new edges.DefaultSource().getClass.getPackage.getName
+  val NodesSource: String = new nodes.DefaultSource().getClass.getPackage.getName
+
   case class DGraphStringObjectRow(subject: Long, predicate: String, objectString: String, objectType: String)
+
   case class DGraphTypedObjectRow(subject: Long,
                                   predicate: String,
                                   objectUid: Long,
@@ -40,6 +46,7 @@ package object connector {
   case class Geo(geo: String) {
     override def toString: String = geo
   }
+
   case class Password(password: String) {
     override def toString: String = password
   }
@@ -58,12 +65,52 @@ package object connector {
 
   def toStub(target: Target): DgraphStub = toStub(toChannel(target))
 
-  def getClientFromStubs(stubs: Seq[DgraphStub]): DgraphClient = new DgraphClient(stubs:_*)
+  def getClientFromStubs(stubs: Seq[DgraphStub]): DgraphClient = new DgraphClient(stubs: _*)
 
   def getClientFromChannel(channels: Seq[ManagedChannel]): DgraphClient = getClientFromStubs(channels.map(toStub))
 
   def getClientFromTargets(targets: Seq[Target]): DgraphClient = getClientFromStubs(targets.map(toStub))
 
   def getClient(targets: Seq[Target]): DgraphClient = getClientFromTargets(targets)
+
+  implicit class DGraphDataFrameReader(reader: DataFrameReader) {
+
+    /**
+     * Loads all triples of a DGraph database into a DataFrame. Requires at least one target.
+     * Use dgraphTriples(targets.head, targets.tail: _*) if need to provide a Seq[String].
+     * @param target a target
+     * @param targets more targets
+     * @return triples DataFrame
+     */
+    def dgraphTriples(target: String, targets: String*): DataFrame =
+      reader
+        .format(TriplesSource)
+        .load(Seq(target) ++ targets: _*)
+
+    /**
+     * Loads all edges of a DGraph database into a DataFrame. Requires at least one target.
+     * Use dgraphEdges(targets.head, targets.tail: _*) if need to provide a Seq[String].
+     * @param target a target
+     * @param targets more targets
+     * @return triples DataFrame
+     */
+    def dgraphEdges(target: String, targets: String*): DataFrame =
+      reader
+        .format(EdgesSource)
+        .load(Seq(target) ++ targets: _*)
+
+    /**
+     * Loads all ndoes of a DGraph database into a DataFrame. Requires at least one target.
+     * Use dgraphNodes(targets.head, targets.tail: _*) if need to provide a Seq[String].
+     * @param target a target
+     * @param targets more targets
+     * @return triples DataFrame
+     */
+    def dgraphNodes(target: String, targets: String*): DataFrame =
+      reader
+        .format(NodesSource)
+        .load(Seq(target) ++ targets: _*)
+
+  }
 
 }
