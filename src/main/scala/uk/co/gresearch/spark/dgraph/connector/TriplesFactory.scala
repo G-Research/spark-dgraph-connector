@@ -10,9 +10,9 @@ import scala.collection.JavaConverters._
 
 private object TriplesFactory {
 
-  def fromJson(json: String, schema: Option[Schema] = None): Iterator[Triple] = {
+  def fromJson(json: String, member: String, schema: Option[Schema] = None): Iterator[Triple] = {
     new Gson().fromJson(json, classOf[JsonObject])
-      .getAsJsonArray("nodes")
+      .getAsJsonArray(member)
       .iterator()
       .asScala
       .map(_.getAsJsonObject)

@@ -18,7 +18,7 @@ class TestTriplesFactory extends FunSpec {
       val json =
         """
           |{
-          |    "nodes": [
+          |    "result": [
           |      {
           |        "uid": "0x1",
           |        "name": "Star Wars: Episode IV - A New Hope",
@@ -122,7 +122,7 @@ class TestTriplesFactory extends FunSpec {
           |    ]
           |  }""".stripMargin
 
-      val triples = TriplesFactory.fromJson(json, Some(schema)).toList
+      val triples = TriplesFactory.fromJson(json, "result", Some(schema)).toList
       assert(triples === Seq(
         Triple(Uid(1), "name", "Star Wars: Episode IV - A New Hope"),
         Triple(Uid(1), "release_date", Timestamp.valueOf("1977-05-25 00:00:00")),

@@ -5,17 +5,12 @@ import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
 import org.apache.spark.sql.connector.read.InputPartition
 
-case class DGraphPartition(targets: Seq[Target], schema: Option[Schema]) extends InputPartition {
-
-  private val query: String =
-    """{
-      |  nodes (func: has(dgraph.type)) {
-      |    uid
-      |    expand(_all_) {
-      |      uid
-      |    }
-      |  }
-      |}""".stripMargin
+/**
+ * Partition of DGraph data. Reads all triples with the given predicates.
+ * @param targets DGraph alpha servers
+ * @param schema schema to read
+ */
+case class DGraphPartition(targets: Seq[Target], schema: Schema) extends InputPartition {
 
   // TODO: use host names of DGraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
@@ -27,10 +22,11 @@ case class DGraphPartition(targets: Seq[Target], schema: Option[Schema]) extends
   def getTriples: Iterator[Triple] = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
+      val query = DGraphQuery.forAllPropertiesAndEdges("data", schema)
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8
-      TriplesFactory.fromJson(json, schema)
+      TriplesFactory.fromJson(json, "data", Some(schema))
     } finally {
       channels.foreach(_.shutdown())
     }

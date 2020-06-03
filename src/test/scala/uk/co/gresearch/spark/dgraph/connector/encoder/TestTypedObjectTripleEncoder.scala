@@ -3,7 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 import java.sql.Timestamp
 
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
-import org.apache.spark.sql.types.{StringType, TimestampType}
+import org.apache.spark.sql.types._
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Triple, Uid}
 
@@ -27,7 +27,6 @@ class TestTypedObjectTripleEncoder extends FunSpec {
       val encoder = new TypedObjectTripleEncoder()
       val triple = Triple(Uid(1), "predicate", value)
       val row = encoder.asInternalRow(triple)
-      println(row)
 
       assert(row.numFields === 11)
       assert(row.getLong(0) === 1)
@@ -44,4 +43,41 @@ class TestTypedObjectTripleEncoder extends FunSpec {
     }
 
   }
+
+  it("should provide the expected read schema") {
+    val encoder = new TypedObjectTripleEncoder()
+    val expected = StructType(Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("predicate", StringType),
+      StructField("objectUid", LongType, nullable = false),
+      StructField("objectString", StringType),
+      StructField("objectLong", LongType, nullable = false),
+      StructField("objectDouble", DoubleType, nullable = false),
+      StructField("objectTimestamp", TimestampType),
+      StructField("objectBoolean", BooleanType, nullable = false),
+      StructField("objectGeo", StringType),
+      StructField("objectPassword", StringType),
+      StructField("objectType", StringType)
+    ))
+    assert(encoder.readSchema() === expected)
+  }
+
+  it("should provide the expected schema") {
+    val encoder = new TypedObjectTripleEncoder()
+    val expected = StructType(Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("predicate", StringType),
+      StructField("objectUid", LongType, nullable = false),
+      StructField("objectString", StringType),
+      StructField("objectLong", LongType, nullable = false),
+      StructField("objectDouble", DoubleType, nullable = false),
+      StructField("objectTimestamp", TimestampType),
+      StructField("objectBoolean", BooleanType, nullable = false),
+      StructField("objectGeo", StringType),
+      StructField("objectPassword", StringType),
+      StructField("objectType", StringType)
+    ))
+    assert(encoder.schema() === expected)
+  }
+
 }

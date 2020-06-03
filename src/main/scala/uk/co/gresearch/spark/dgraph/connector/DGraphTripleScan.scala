@@ -24,7 +24,7 @@ class DGraphTripleScan(targets: Seq[Target], encoder: TripleEncoder) extends Sca
 
   private val query = "schema { predicate type }"
 
-  def getSchema: Option[Schema] = {
+  def getSchema: Schema = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
       val client: DgraphClient = getClientFromChannel(channels)
@@ -35,7 +35,7 @@ class DGraphTripleScan(targets: Seq[Target], encoder: TripleEncoder) extends Sca
         .map(_.getAsJsonObject)
         .map(o => o.get("predicate").getAsString -> o.get("type").getAsString)
         .toMap
-      Some(Schema(schema))
+      Schema(schema)
     } finally {
       channels.foreach(_.shutdown())
     }

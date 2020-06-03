@@ -2,6 +2,7 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import java.sql.Timestamp
 
+import org.apache.spark.sql.types._
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Triple, Uid}
 
@@ -34,4 +35,27 @@ class TestStringObjectTripleEncoder extends FunSpec {
     }
 
   }
+
+  it("should provide the expected read schema") {
+    val encoder = new StringObjectTripleEncoder()
+    val expected = StructType(Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("predicate", StringType),
+      StructField("objectString", StringType),
+      StructField("objectType", StringType)
+    ))
+    assert(encoder.readSchema() === expected)
+  }
+
+  it("should provide the expected schema") {
+    val encoder = new StringObjectTripleEncoder()
+    val expected = StructType(Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("predicate", StringType),
+      StructField("objectString", StringType),
+      StructField("objectType", StringType)
+    ))
+    assert(encoder.schema() === expected)
+  }
+
 }
