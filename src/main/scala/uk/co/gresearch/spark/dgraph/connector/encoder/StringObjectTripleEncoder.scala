@@ -1,23 +1,17 @@
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
+import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.types.{LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{Schema, Triple, TriplesFactory}
+import uk.co.gresearch.spark.dgraph.connector.{DGraphStringObjectRow, Triple, TriplesFactory}
 
 /**
  * Encodes Triple by representing objects as strings.
  **/
 class StringObjectTripleEncoder extends TripleEncoder {
 
-  override def schema(): StructType = StructType(
-    Array(
-      StructField("subject", LongType),          // subject
-      StructField("predicate", StringType),      // predicate
-      StructField("object-string", StringType),  // object as a string
-      StructField("object-type", StringType),    // object type
-    )
-  )
+  override def schema(): StructType = Encoders.product[DGraphStringObjectRow].schema
 
   override def readSchema(): StructType = schema()
 

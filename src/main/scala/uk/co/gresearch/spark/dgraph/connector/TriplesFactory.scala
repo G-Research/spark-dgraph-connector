@@ -30,14 +30,24 @@ private object TriplesFactory {
     case _ => Seq(value)
   }
 
+  /**
+   * Get the value of the given JsonElement in the given optional type.
+   * Types are interpreted as DGraph types (where int is Long), for non-DGraph types recognizes
+   * as respective Spark / Scala types.
+   *
+   * @param value JsonElement
+   * @param valueType optional type as string
+   * @return typed value
+   */
   def getValue(value: JsonElement, valueType: Option[String]): Any =
     valueType match {
       // https://dgraph.io/docs/query-language/#schema-types
       case Some("string") => value.getAsString
-      case Some("int") => value.getAsLong
-      case Some("float") => value.getAsDouble
-      case Some("dateTime") => Timestamp.valueOf(ZonedDateTime.parse(value.getAsString, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime)
-      case Some("bool") => value.getAsString == "true"
+      case Some("int") | Some("long") => value.getAsLong
+      case Some("float") | Some("double") => value.getAsDouble
+      case Some("dateTime") | Some("timestamp") =>
+        Timestamp.valueOf(ZonedDateTime.parse(value.getAsString, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime)
+      case Some("bool") | Some("boolean") => value.getAsString == "true"
       case Some("uid") => Uid(value.getAsString)
       case Some("geo") => Geo(value.getAsString)
       case Some("password") => Password(value.getAsString)
@@ -45,15 +55,19 @@ private object TriplesFactory {
       case _ => value.getAsString
     }
 
+  /**
+   * Get the type of the given value as a string. Only supports DGraph types (no Integer or Float),
+   * returns Spark / Scala type string, not DGraph (where int refers to Long).
+   * @param value value
+   * @return value's type
+   */
   def getType(value: Any): String =
     value match {
       case _: String => "string"
-      case _: Int => "int"
-      case _: Long => "int"
-      case _: Float => "float"
-      case _: Double => "float"
-      case _: java.sql.Timestamp => "dateTime"
-      case _: Boolean => "bool"
+      case _: Long => "long"
+      case _: Double => "double"
+      case _: java.sql.Timestamp => "timestamp"
+      case _: Boolean => "boolean"
       case _: Uid => "uid"
       case _: Geo => "geo"
       case _: Password => "password"

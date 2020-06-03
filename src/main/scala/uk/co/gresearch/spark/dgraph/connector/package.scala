@@ -1,11 +1,26 @@
 package uk.co.gresearch.spark.dgraph
 
+import java.sql.Timestamp
+
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
 
 package object connector {
+
+  case class DGraphStringObjectRow(subject: Long, predicate: String, objectString: String, objectType: String)
+  case class DGraphTypedObjectRow(subject: Long,
+                                  predicate: String,
+                                  objectUid: Long,
+                                  objectString: String,
+                                  objectLong: Long,
+                                  objectDouble: Double,
+                                  objectTimestamp: Timestamp,
+                                  objectBoolean: Boolean,
+                                  objectGeo: String,
+                                  objectPassword: String,
+                                  objectType: String)
 
   case class Uid(uid: Long) {
     override def toString: String = uid.toString
@@ -33,6 +48,9 @@ package object connector {
 
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"
+  val TriplesModeOption: String = "triples.mode"
+  val TriplesModeStringObjectsOption: String = "string objects"
+  val TriplesModeTypedObjectsOption: String = "typed objects"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 
