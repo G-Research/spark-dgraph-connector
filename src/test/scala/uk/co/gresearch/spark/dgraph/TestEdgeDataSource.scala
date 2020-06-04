@@ -58,13 +58,13 @@ class TestEdgeDataSource extends FunSpec with SparkTestSession {
         .show(100, false)
     }
 
-    it("should encode DGraphEdgeRow") {
+    it("should encode Edge") {
       val rows =
         spark
           .read
           .format(EdgesSource)
           .load("localhost:9080")
-          .as[DGraphEdgeRow]
+          .as[Edge]
           .collectAsList()
       rows.forEach(println)
     }

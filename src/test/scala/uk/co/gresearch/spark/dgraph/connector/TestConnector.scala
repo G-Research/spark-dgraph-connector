@@ -4,7 +4,7 @@ import org.scalatest.FunSpec
 
 class TestConnector extends FunSpec {
 
-  describe("DGraph Connector") {
+  describe("Connector") {
 
     Map(
       TriplesSource -> "triples",

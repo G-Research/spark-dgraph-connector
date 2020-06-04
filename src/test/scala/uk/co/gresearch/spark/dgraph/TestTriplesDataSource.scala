@@ -61,7 +61,7 @@ class TestTriplesDataSource extends FunSpec with SparkTestSession {
     it("should load string-object triples") {
       spark
         .read
-        .option(TriplesModeOption, TriplesModeStringObjectsOption)
+        .option(TriplesModeOption, TriplesModeStringOption)
         .dgraphTriples("localhost:9080")
         .show(100, false)
     }
@@ -69,29 +69,29 @@ class TestTriplesDataSource extends FunSpec with SparkTestSession {
     it("should load typed-object triples") {
       spark
         .read
-        .option(TriplesModeOption, TriplesModeTypedObjectsOption)
+        .option(TriplesModeOption, TriplesModeTypedOption)
         .dgraphTriples("localhost:9080")
         .show(100, false)
     }
 
-    it("should encode DGraphStringObjectRow") {
+    it("should encode StringTriple") {
       val rows =
         spark
           .read
-          .option(TriplesModeOption, TriplesModeStringObjectsOption)
+          .option(TriplesModeOption, TriplesModeStringOption)
           .dgraphTriples("localhost:9080")
-          .as[DGraphStringObjectRow]
+          .as[StringTriple]
           .collectAsList()
       rows.forEach(println)
     }
 
-    it("should encode DGraphTypedObjectRow") {
+    it("should encode TypedTriple") {
       val rows =
         spark
           .read
-          .option(TriplesModeOption, TriplesModeTypedObjectsOption)
+          .option(TriplesModeOption, TriplesModeTypedOption)
           .dgraphTriples("localhost:9080")
-          .as[DGraphTypedObjectRow]
+          .as[TypedTriple]
           .collectAsList()
       rows.forEach(println)
     }

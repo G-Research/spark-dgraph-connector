@@ -58,13 +58,13 @@ class TestNodeDataSource extends FunSpec with SparkTestSession {
         .show(100, false)
     }
 
-    it("should encode DGraphNodeRow") {
+    it("should encode TypedNode") {
       val rows =
         spark
           .read
           .format(NodesSource)
           .load("localhost:9080")
-          .as[DGraphNodeRow]
+          .as[TypedNode]
           .collectAsList()
       rows.forEach(println)
     }

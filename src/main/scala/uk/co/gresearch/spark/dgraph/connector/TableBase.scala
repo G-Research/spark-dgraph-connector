@@ -5,7 +5,7 @@ import java.util
 import org.apache.spark.sql.connector.catalog.{SupportsRead, Table, TableCapability}
 import scala.collection.JavaConverters._
 
-trait DGraphTableBase extends Table with SupportsRead{
+trait TableBase extends Table with SupportsRead{
 
   val targets: Seq[Target]
 

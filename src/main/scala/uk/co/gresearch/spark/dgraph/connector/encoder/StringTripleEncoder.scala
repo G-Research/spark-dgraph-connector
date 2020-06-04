@@ -4,19 +4,19 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{DGraphStringObjectRow, Triple, TriplesFactory}
+import uk.co.gresearch.spark.dgraph.connector.{StringTriple, Triple, TriplesFactory}
 
 /**
  * Encodes Triple by representing objects as strings.
  **/
-class StringObjectTripleEncoder extends TripleEncoder {
+class StringTripleEncoder extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[DGraphStringObjectRow].schema
+  override def schema(): StructType = Encoders.product[StringTriple].schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical

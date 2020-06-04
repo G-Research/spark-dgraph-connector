@@ -14,32 +14,32 @@ package object connector {
   val EdgesSource: String = new edges.DefaultSource().getClass.getPackage.getName
   val NodesSource: String = new nodes.DefaultSource().getClass.getPackage.getName
 
-  case class DGraphStringObjectRow(subject: Long, predicate: String, objectString: String, objectType: String)
+  case class StringTriple(subject: Long, predicate: String, objectString: String, objectType: String)
 
-  case class DGraphTypedObjectRow(subject: Long,
-                                  predicate: String,
-                                  objectUid: Option[Long],
-                                  objectString: Option[String],
-                                  objectLong: Option[Long],
-                                  objectDouble: Option[Double],
-                                  objectTimestamp: Option[Timestamp],
-                                  objectBoolean: Option[Boolean],
-                                  objectGeo: Option[String],
-                                  objectPassword: Option[String],
-                                  objectType: String)
+  case class TypedTriple(subject: Long,
+                         predicate: String,
+                         objectUid: Option[Long],
+                         objectString: Option[String],
+                         objectLong: Option[Long],
+                         objectDouble: Option[Double],
+                         objectTimestamp: Option[Timestamp],
+                         objectBoolean: Option[Boolean],
+                         objectGeo: Option[String],
+                         objectPassword: Option[String],
+                         objectType: String)
 
-  case class DGraphEdgeRow(subject: Long, predicate: String, objectUid: Long)
+  case class Edge(subject: Long, predicate: String, objectUid: Long)
 
-  case class DGraphNodeRow(subject: Long,
-                           predicate: String,
-                           objectString: Option[String],
-                           objectLong: Option[Long],
-                           objectDouble: Option[Double],
-                           objectTimestamp: Option[Timestamp],
-                           objectBoolean: Option[Boolean],
-                           objectGeo: Option[String],
-                           objectPassword: Option[String],
-                           objectType: String)
+  case class TypedNode(subject: Long,
+                       predicate: String,
+                       objectString: Option[String],
+                       objectLong: Option[Long],
+                       objectDouble: Option[Double],
+                       objectTimestamp: Option[Timestamp],
+                       objectBoolean: Option[Boolean],
+                       objectGeo: Option[String],
+                       objectPassword: Option[String],
+                       objectType: String)
 
   case class Uid(uid: Long) {
     override def toString: String = uid.toString
@@ -69,8 +69,8 @@ package object connector {
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"
   val TriplesModeOption: String = "triples.mode"
-  val TriplesModeStringObjectsOption: String = "string objects"
-  val TriplesModeTypedObjectsOption: String = "typed objects"
+  val TriplesModeStringOption: String = "string"
+  val TriplesModeTypedOption: String = "typed"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 
@@ -88,9 +88,9 @@ package object connector {
 
   implicit class DGraphDataFrameReader(reader: DataFrameReader) {
 
-    val tripleEncoder: Encoder[DGraphTypedObjectRow] = Encoders.product[DGraphTypedObjectRow]
-    val edgeEncoder: Encoder[DGraphEdgeRow] = Encoders.product[DGraphEdgeRow]
-    val nodeEncoder: Encoder[DGraphNodeRow] = Encoders.product[DGraphNodeRow]
+    val tripleEncoder: Encoder[TypedTriple] = Encoders.product[TypedTriple]
+    val edgeEncoder: Encoder[Edge] = Encoders.product[Edge]
+    val nodeEncoder: Encoder[TypedNode] = Encoders.product[TypedNode]
 
     /**
      * Loads all triples of a DGraph database into a DataFrame. Requires at least one target.
@@ -111,11 +111,11 @@ package object connector {
      * @param targets more targets
      * @return triples DataFrame
      */
-    def dgraphEdges(target: String, targets: String*): Dataset[DGraphEdgeRow] =
+    def dgraphEdges(target: String, targets: String*): Dataset[Edge] =
       reader
         .format(EdgesSource)
         .load(Seq(target) ++ targets: _*)
-        .as[DGraphEdgeRow](edgeEncoder)
+        .as[Edge](edgeEncoder)
 
     /**
      * Loads all ndoes of a DGraph database into a DataFrame. Requires at least one target.
@@ -124,11 +124,11 @@ package object connector {
      * @param targets more targets
      * @return triples DataFrame
      */
-    def dgraphNodes(target: String, targets: String*): Dataset[DGraphNodeRow] =
+    def dgraphNodes(target: String, targets: String*): Dataset[TypedNode] =
       reader
         .format(NodesSource)
         .load(Seq(target) ++ targets: _*)
-        .as[DGraphNodeRow](nodeEncoder)
+        .as[TypedNode](nodeEncoder)
 
   }
 

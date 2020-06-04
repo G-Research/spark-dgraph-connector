@@ -4,16 +4,16 @@ import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionRead
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.TripleEncoder
 
-class DGraphTripleScan(targets: Seq[Target], schema: Schema, encoder: TripleEncoder) extends Scan with Batch {
+class TripleScan(targets: Seq[Target], schema: Schema, encoder: TripleEncoder) extends Scan with Batch {
 
   override def readSchema(): StructType = encoder.readSchema()
 
   override def toBatch: Batch = this
 
   override def planInputPartitions(): Array[InputPartition] = {
-    Array(DGraphPartition(targets, schema))
+    Array(Partition(targets, schema))
   }
 
-  override def createReaderFactory(): PartitionReaderFactory = new DGraphTriplePartitionReaderFactory(encoder)
+  override def createReaderFactory(): PartitionReaderFactory = new TriplePartitionReaderFactory(encoder)
 
 }

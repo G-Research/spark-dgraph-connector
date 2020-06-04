@@ -7,19 +7,19 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{DGraphTypedObjectRow, Geo, Password, Triple, TriplesFactory, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{TypedTriple, Geo, Password, Triple, TriplesFactory, Uid}
 
 /**
  * Encodes Triple by representing objects in multiple typed columns.
  **/
-class TypedObjectTripleEncoder extends TripleEncoder {
+class TypedTripleEncoder extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[DGraphTypedObjectRow].schema
+  override def schema(): StructType = Encoders.product[TypedTriple].schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -37,7 +37,7 @@ class TypedObjectTripleEncoder extends TripleEncoder {
   override def asInternalRow(triple: Triple): InternalRow = {
     val objectType = TriplesFactory.getType(triple.o)
 
-    // order has to align with DGraphTypedObjectRow
+    // order has to align with TypedTriple
     val valuesWithoutObject = Seq(
       triple.s.uid,
       UTF8String.fromString(triple.p),
@@ -52,7 +52,7 @@ class TypedObjectTripleEncoder extends TripleEncoder {
       UTF8String.fromString(objectType)
     )
 
-    // order has to align with DGraphTypedObjectRow
+    // order has to align with TypedTriple
     val (objectValueIndex, objectValue) =
       objectType match {
         case "uid" => (2, triple.o.asInstanceOf[Uid].uid)

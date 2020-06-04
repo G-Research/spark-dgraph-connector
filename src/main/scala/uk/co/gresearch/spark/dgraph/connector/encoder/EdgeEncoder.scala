@@ -4,7 +4,7 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{DGraphEdgeRow, Triple, TriplesFactory, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Edge, Triple, TriplesFactory, Uid}
 
 /**
  * Encodes only triples that represent edges, i.e. object is a uid.
@@ -16,7 +16,7 @@ class EdgeEncoder extends TripleEncoder {
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[DGraphEdgeRow].schema
+  override def schema(): StructType = Encoders.product[Edge].schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical

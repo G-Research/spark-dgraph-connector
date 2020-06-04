@@ -1,6 +1,6 @@
 package uk.co.gresearch.spark.dgraph.connector
 
-object DGraphQuery {
+object Query {
 
   def forAllPropertiesAndEdges(resultName: String): String =
     s"""{

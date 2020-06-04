@@ -2,9 +2,9 @@ package uk.co.gresearch.spark.dgraph
 
 import java.sql.Timestamp
 
-import org.apache.spark.graphx.{Edge, Graph, VertexId}
+import org.apache.spark.graphx.{Graph, VertexId, Edge => GraphxEdge}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrameReader, Dataset, Encoder, Encoders, SparkSession}
+import org.apache.spark.sql.{DataFrameReader, Encoder, Encoders, SparkSession}
 import uk.co.gresearch.spark.dgraph.connector._
 
 package object graphx extends TargetsConfigParser {
@@ -20,8 +20,8 @@ package object graphx extends TargetsConfigParser {
 
   case class EdgeProperty(property: String)
 
-  val edgeEncoder: Encoder[DGraphEdgeRow] = Encoders.product[DGraphEdgeRow]
-  val nodeEncoder: Encoder[DGraphNodeRow] = Encoders.product[DGraphNodeRow]
+  val edgeEncoder: Encoder[Edge] = Encoders.product[Edge]
+  val nodeEncoder: Encoder[TypedNode] = Encoders.product[TypedNode]
 
   def loadGraph(targets: String*)(implicit session: SparkSession): Graph[VertexProperty, EdgeProperty] =
     loadGraph(session.read, targets.map(Target): _*)
@@ -36,28 +36,28 @@ package object graphx extends TargetsConfigParser {
     reader
       .format(NodesSource)
       .load(targets.map(_.target): _*)
-      .as[DGraphNodeRow](nodeEncoder)
+      .as[TypedNode](nodeEncoder)
       .rdd
       .map(toVertex)
 
-  def loadEdges(targets: String*)(implicit session: SparkSession): RDD[Edge[EdgeProperty]] =
+  def loadEdges(targets: String*)(implicit session: SparkSession): RDD[GraphxEdge[EdgeProperty]] =
     loadEdges(session.read, targets.map(Target): _*)
 
-  def loadEdges(reader: DataFrameReader, targets: Target*): RDD[Edge[EdgeProperty]] =
+  def loadEdges(reader: DataFrameReader, targets: Target*): RDD[GraphxEdge[EdgeProperty]] =
     reader
       .format(EdgesSource)
       .load(targets.map(_.target): _*)
-      .as[DGraphEdgeRow](edgeEncoder)
+      .as[Edge](edgeEncoder)
       .rdd
       .map(toEdge)
 
-  def toVertex(row: DGraphNodeRow): (VertexId, VertexProperty) =
+  def toVertex(row: TypedNode): (VertexId, VertexProperty) =
     (row.subject, toVertexProperty(row))
 
-  def toEdge(row: DGraphEdgeRow): Edge[EdgeProperty] =
-    Edge(row.subject, row.objectUid, EdgeProperty(row.predicate))
+  def toEdge(row: Edge): GraphxEdge[EdgeProperty] =
+    GraphxEdge(row.subject, row.objectUid, EdgeProperty(row.predicate))
   
-  def toVertexProperty(row: DGraphNodeRow): VertexProperty = row.objectType match {
+  def toVertexProperty(row: TypedNode): VertexProperty = row.objectType match {
     case "string" => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
     case "long" => row.objectLong.map(LongVertexProperty(row.predicate, _)).orNull
     case "double" => row.objectDouble.map(DoubleVertexProperty(row.predicate, _)).orNull
@@ -78,7 +78,7 @@ package object graphx extends TargetsConfigParser {
     def dgraphVertices(targets: String*): RDD[(VertexId, VertexProperty)] =
       graphx.loadVertices(reader, targets.map(Target): _*)
 
-    def dgraphEdges(targets: String*): RDD[Edge[EdgeProperty]] =
+    def dgraphEdges(targets: String*): RDD[GraphxEdge[EdgeProperty]] =
       graphx.loadEdges(reader, targets.map(Target): _*)
 
   }

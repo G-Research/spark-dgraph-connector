@@ -7,19 +7,19 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{DGraphNodeRow, Geo, Password, Triple, TriplesFactory}
+import uk.co.gresearch.spark.dgraph.connector.{TypedNode, Geo, Password, Triple, TriplesFactory}
 
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
-class NodeEncoder extends TripleEncoder {
+class TypedNodeEncoder extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[DGraphNodeRow].schema
+  override def schema(): StructType = Encoders.product[TypedNode].schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -46,7 +46,7 @@ class NodeEncoder extends TripleEncoder {
         s")"
       )
 
-    // order has to align with DGraphNodeRow
+    // order has to align with TypedNode case class
     val valuesWithoutObject = Seq(
       triple.s.uid,
       UTF8String.fromString(triple.p),
@@ -60,7 +60,7 @@ class NodeEncoder extends TripleEncoder {
       UTF8String.fromString(objectType)
     )
 
-    // order has to align with DGraphTypedObjectRow
+    // order has to align with TypedNode case class
     val (objectValueIndex, objectValue) =
       objectType match {
         case "string" => (2, UTF8String.fromString(triple.o.asInstanceOf[String]))

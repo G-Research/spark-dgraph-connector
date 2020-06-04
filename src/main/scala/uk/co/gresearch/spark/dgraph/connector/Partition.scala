@@ -10,7 +10,7 @@ import org.apache.spark.sql.connector.read.InputPartition
  * @param targets DGraph alpha servers
  * @param schema schema to read
  */
-case class DGraphPartition(targets: Seq[Target], schema: Schema) extends InputPartition {
+case class Partition(targets: Seq[Target], schema: Schema) extends InputPartition {
 
   // TODO: use host names of DGraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
@@ -22,7 +22,7 @@ case class DGraphPartition(targets: Seq[Target], schema: Schema) extends InputPa
   def getTriples: Iterator[Triple] = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
-      val query = DGraphQuery.forAllPropertiesAndEdges("data", schema)
+      val query = Query.forAllPropertiesAndEdges("data", schema)
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8

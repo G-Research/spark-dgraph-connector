@@ -14,8 +14,8 @@ Now, you can do things like:
 
     import uk.co.gresearch.spark.dgraph.connector._
     val triples: DataFrame = spark.read.dgraphTriples(target)
-    val edges: Dataset[DGraphEdgeRow] = spark.read.dgraphEdges(target)
-    val nodes: Dataset[DGraphNodeRow] = spark.read.dgraphNodes(target)
+    val edges: Dataset[Edge] = spark.read.dgraphEdges(target)
+    val nodes: Dataset[TypedNode] = spark.read.dgraphNodes(target)
 
 ## Using Spark DGraph Connector
 
@@ -121,7 +121,7 @@ The triples can also be loaded in an un-typed narrow form:
 
     spark
       .read
-      .option(TriplesModeOption, TriplesModeStringObjectsOption)
+      .option(TriplesModeOption, TriplesModeStringOption)
       .dgraphTriples("localhost:9080").show
 
 The returned `DataFrame` has the following schema:
