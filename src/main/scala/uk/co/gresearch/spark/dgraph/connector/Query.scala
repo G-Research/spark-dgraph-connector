@@ -14,10 +14,16 @@ object Query {
 
   def forAllPropertiesAndEdges(resultName: String, predicates: Option[Set[Predicate]]): String = {
     val filter =
-      predicates
-        .filter(_.nonEmpty)
-        .map(_.map(p => s"has(${p.predicateName})").mkString(" OR "))
-        .getOrElse("eq(true, false")
+      if (predicates.isDefined) {
+        predicates
+          .filter(_.nonEmpty)
+          .map(_.map(p => s"has(${p.predicateName})").mkString(" OR "))
+          .orElse(Some("eq(true, false)"))
+          .map(filter => s"@filter(${filter})")
+          .get
+      } else {
+        ""
+      }
 
     val predicatesPaths =
       predicates
@@ -30,7 +36,7 @@ object Query {
         ).getOrElse("")
 
     s"""{
-       |  ${resultName} (func: has(dgraph.type)) @filter(${filter}) {
+       |  ${resultName} (func: has(dgraph.type)) ${filter} {
        |    uid
        |${predicatesPaths}  }
        |}""".stripMargin

@@ -44,7 +44,17 @@ class TestQuery extends FunSpec {
       val query = Query.forAllPropertiesAndEdges("result", Some(predicates))
       assert(query ===
         """{
-          |  result (func: has(dgraph.type)) @filter(eq(true, false) {
+          |  result (func: has(dgraph.type)) @filter(eq(true, false)) {
+          |    uid
+          |  }
+          |}""".stripMargin)
+    }
+
+    it("should provide query for all properties and edges when no schema given") {
+      val query = Query.forAllPropertiesAndEdges("result", None)
+      assert(query ===
+        """{
+          |  result (func: has(dgraph.type))  {
           |    uid
           |  }
           |}""".stripMargin)
