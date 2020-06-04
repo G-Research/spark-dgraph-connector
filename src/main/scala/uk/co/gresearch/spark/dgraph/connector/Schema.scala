@@ -1,6 +1,11 @@
 package uk.co.gresearch.spark.dgraph.connector
 
-case class Schema(predicatesTypes: Map[String, String]) {
-  def getObjectType(predicate: String): Option[String] = predicatesTypes.get(predicate)
-  def filter(condition: ((String, String)) => Boolean): Schema = Schema(predicatesTypes.filter(condition))
+case class Schema(predicates: Set[Predicate]) {
+
+  val predicateMap: Map[String, Predicate] = predicates.map(p => p.predicateName -> p).toMap
+
+  def getObjectType(predicateName: String): Option[String] = predicateMap.get(predicateName).map(_.typeName)
+
+  def filter(condition: (Predicate) => Boolean): Schema = Schema(predicates.filter(condition))
+
 }

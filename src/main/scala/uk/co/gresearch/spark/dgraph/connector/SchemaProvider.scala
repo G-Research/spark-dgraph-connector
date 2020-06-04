@@ -20,8 +20,8 @@ trait SchemaProvider {
       val schema = new Gson().fromJson(json, classOf[JsonObject])
         .get("schema").getAsJsonArray.asScala
         .map(_.getAsJsonObject)
-        .map(o => o.get("predicate").getAsString -> o.get("type").getAsString)
-        .toMap
+        .map(o => Predicate(o.get("predicate").getAsString, o.get("type").getAsString))
+        .toSet
       Schema(schema)
     } finally {
       channels.foreach(_.shutdown())

@@ -20,7 +20,12 @@ class TestQuery extends FunSpec {
     }
 
     it("should provide query for all properties and edges in given schema") {
-      val schema = Schema(Map("prop1" -> "string", "prop2" -> "long", "edge1" -> "uid", "edge2" -> "uid"))
+      val schema = Schema(Set(
+        Predicate("prop1", "string"),
+        Predicate("prop2", "long"),
+        Predicate("edge1", "uid"),
+        Predicate("edge2", "uid")
+      ))
       val query = Query.forAllPropertiesAndEdges("result", schema)
       assert(query ===
         """{
@@ -35,7 +40,7 @@ class TestQuery extends FunSpec {
     }
 
     it("should provide query for all properties and edges in given empty schema") {
-      val schema = Schema(Map())
+      val schema = Schema(Set.empty)
       val query = Query.forAllPropertiesAndEdges("result", schema)
       assert(query ===
         """{

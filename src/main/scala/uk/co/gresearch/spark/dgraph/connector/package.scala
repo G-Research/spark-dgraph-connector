@@ -66,6 +66,8 @@ package object connector {
 
   case class Triple(s: Uid, p: String, o: Any)
 
+  case class Predicate(predicateName: String, typeName: String)
+
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"
   val TriplesModeOption: String = "triples.mode"

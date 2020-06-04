@@ -8,13 +8,14 @@ class TestTriplesFactory extends FunSpec {
 
   describe("TriplesFactory") {
     it("should parse JSON response") {
-      val schema = Schema(Map(
-        "release_date" -> "datetime",
-        "revenue" -> "int",
-        "running_time" -> "int",
-        "director" -> "uid",
-        "starring" -> "uid",
+      val schema = Schema(Set(
+        Predicate("release_date", "datetime"),
+        Predicate("revenue", "int"),
+        Predicate("running_time", "int"),
+        Predicate("director", "uid"),
+        Predicate("starring", "uid")
       ))
+
       val json =
         """
           |{

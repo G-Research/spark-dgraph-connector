@@ -14,18 +14,18 @@ object Query {
 
   def forAllPropertiesAndEdges(resultName: String, schema: Schema): String = {
     val filter =
-      Option(schema.predicatesTypes)
+      Option(schema.predicates)
         .filter(_.nonEmpty)
-        .map(_.keys.map(p => s"has($p)").mkString(" OR "))
+        .map(_.map(p => s"has(${p.predicateName})").mkString(" OR "))
         .getOrElse("eq(true, false")
 
     val predicates =
-      Option(schema.predicatesTypes)
+      Option(schema.predicates)
         .filter(_.nonEmpty)
         .map(t =>
           t.map {
-            case (predicate, "uid") => s"    $predicate { uid }"
-            case (predicate, _____) => s"    $predicate"
+            case Predicate(predicate, "uid") => s"    $predicate { uid }"
+            case Predicate(predicate, _____) => s"    $predicate"
           }.mkString("\n") + "\n"
         ).getOrElse("")
 

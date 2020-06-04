@@ -11,7 +11,7 @@ class NodeSource() extends TableProviderBase with SchemaProvider {
 
   def getTable(options: CaseInsensitiveStringMap): Table = {
     val targets = getTargets(options)
-    val schema = getSchema(targets).filter(_._2 != "uid")
+    val schema = getSchema(targets).filter(_.typeName != "uid")
     val encoder = new TypedNodeEncoder()
     new TripleTable(targets, schema, encoder)
   }
