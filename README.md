@@ -113,7 +113,7 @@ The `objectType` column provides the type of the object. Here is an example:
 |      5|        name|     null|     Irvin Kernshner|      null|        null|               null|         null|     null|          null|    string|
 |      5| dgraph.type|     null|              Person|      null|        null|               null|         null|     null|          null|    string|
 
-This model allows to store the triples fully typed in the `DataFrame`.
+This model allows to store the triples fully typed in a `DataFrame`.
 
 The triples can also be loaded in an un-typed narrow form:
 
