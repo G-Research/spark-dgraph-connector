@@ -11,7 +11,7 @@ class TripleScan(targets: Seq[Target], schema: Schema, encoder: TripleEncoder) e
   override def toBatch: Batch = this
 
   override def planInputPartitions(): Array[InputPartition] = {
-    Array(Partition(targets, schema))
+    Array(Partition(targets, Some(schema.predicates)))
   }
 
   override def createReaderFactory(): PartitionReaderFactory = new TriplePartitionReaderFactory(encoder)

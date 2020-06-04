@@ -10,19 +10,20 @@ import scala.collection.JavaConverters._
 
 private object TriplesFactory {
 
-  def fromJson(json: String, member: String, schema: Option[Schema] = None): Iterator[Triple] = {
+  def fromJson(json: String, member: String, predicates: Option[Set[Predicate]] = None): Iterator[Triple] = {
+    val predicateMap = predicates.map(_.map(p => p.predicateName -> p).toMap)
     new Gson().fromJson(json, classOf[JsonObject])
       .getAsJsonArray(member)
       .iterator()
       .asScala
       .map(_.getAsJsonObject)
-      .flatMap(toTriples(schema))
+      .flatMap(toTriples(predicateMap))
   }
 
-  def toTriples(schema: Option[Schema])(node: JsonObject): Iterator[Triple] = {
+  def toTriples(predicates: Option[Map[String, Predicate]])(node: JsonObject): Iterator[Triple] = {
     val uid = node.remove("uid").getAsString
     node.entrySet().iterator().asScala
-      .flatMap(e => getValues(e.getValue).map(v => getTriple(schema)(uid, e.getKey, v)))
+      .flatMap(e => getValues(e.getValue).map(v => getTriple(predicates)(uid, e.getKey, v)))
   }
 
   def getValues(value: JsonElement): Iterable[JsonElement] = value match {
@@ -74,11 +75,11 @@ private object TriplesFactory {
       case _ => "default"
     }
 
-  def getTriple(schema: Option[Schema])(s: String, p: String, o: JsonElement): Triple = {
+  def getTriple(predicates: Option[Map[String, Predicate]])(s: String, p: String, o: JsonElement): Triple = {
     val uid = Uid(s)
     val obj = o match {
       case obj: JsonObject => Uid(obj.get("uid").getAsString)
-      case _ => getValue(o, schema.flatMap(_.getObjectType(p)))
+      case _ => getValue(o, predicates.flatMap(_.get(p)).map(_.typeName))
     }
     Triple(uid, p, obj)
   }

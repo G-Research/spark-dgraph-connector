@@ -18,7 +18,7 @@ class TestPartition extends FunSpec with SchemaProvider {
             Predicate(s"predicate$pred", if (pred % 2 == 0) "string" else "uid")
           ).toSet
         val schema = Schema(syntheticPredicates ++ existingPredicates)
-        val partition = Partition(targets, schema)
+        val partition = Partition(targets, Option(schema.predicates))
         println(partition.getTriples.length)
       }
 

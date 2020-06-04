@@ -20,13 +20,13 @@ class TestQuery extends FunSpec {
     }
 
     it("should provide query for all properties and edges in given schema") {
-      val schema = Schema(Set(
+      val predicates = Set(
         Predicate("prop1", "string"),
         Predicate("prop2", "long"),
         Predicate("edge1", "uid"),
         Predicate("edge2", "uid")
-      ))
-      val query = Query.forAllPropertiesAndEdges("result", schema)
+      )
+      val query = Query.forAllPropertiesAndEdges("result", Some(predicates))
       assert(query ===
         """{
           |  result (func: has(dgraph.type)) @filter(has(prop1) OR has(prop2) OR has(edge1) OR has(edge2)) {
@@ -40,8 +40,8 @@ class TestQuery extends FunSpec {
     }
 
     it("should provide query for all properties and edges in given empty schema") {
-      val schema = Schema(Set.empty)
-      val query = Query.forAllPropertiesAndEdges("result", schema)
+      val predicates = Set.empty[Predicate]
+      val query = Query.forAllPropertiesAndEdges("result", Some(predicates))
       assert(query ===
         """{
           |  result (func: has(dgraph.type)) @filter(eq(true, false) {
