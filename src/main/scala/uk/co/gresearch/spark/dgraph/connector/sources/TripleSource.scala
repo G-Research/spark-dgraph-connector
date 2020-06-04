@@ -20,7 +20,7 @@ class TripleSource() extends TableProviderBase with SchemaProvider {
       case Some(TriplesModeStringObjectsOption) => new StringObjectTripleEncoder
       case Some(TriplesModeTypedObjectsOption) => new TypedObjectTripleEncoder
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => new StringObjectTripleEncoder
+      case None => new TypedObjectTripleEncoder
     }
     new DGraphTripleTable(targets, schema, encoder)
   }

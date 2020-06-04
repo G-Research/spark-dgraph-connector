@@ -14,4 +14,6 @@ trait SparkTestSession {
       .getOrCreate()
   }
 
+  implicit val session: SparkSession = spark
+
 }

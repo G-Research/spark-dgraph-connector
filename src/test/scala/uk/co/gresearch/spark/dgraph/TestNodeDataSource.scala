@@ -62,7 +62,8 @@ class TestNodeDataSource extends FunSpec with SparkTestSession {
       val rows =
         spark
           .read
-          .dgraphNodes("localhost:9080")
+          .format(NodesSource)
+          .load("localhost:9080")
           .as[DGraphNodeRow]
           .collectAsList()
       rows.forEach(println)

@@ -6,7 +6,7 @@ import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
-import org.apache.spark.sql.{DataFrame, DataFrameReader}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, Encoder, Encoders}
 
 package object connector {
 
@@ -88,6 +88,10 @@ package object connector {
 
   implicit class DGraphDataFrameReader(reader: DataFrameReader) {
 
+    val tripleEncoder: Encoder[DGraphTypedObjectRow] = Encoders.product[DGraphTypedObjectRow]
+    val edgeEncoder: Encoder[DGraphEdgeRow] = Encoders.product[DGraphEdgeRow]
+    val nodeEncoder: Encoder[DGraphNodeRow] = Encoders.product[DGraphNodeRow]
+
     /**
      * Loads all triples of a DGraph database into a DataFrame. Requires at least one target.
      * Use dgraphTriples(targets.head, targets.tail: _*) if need to provide a Seq[String].
@@ -107,10 +111,11 @@ package object connector {
      * @param targets more targets
      * @return triples DataFrame
      */
-    def dgraphEdges(target: String, targets: String*): DataFrame =
+    def dgraphEdges(target: String, targets: String*): Dataset[DGraphEdgeRow] =
       reader
         .format(EdgesSource)
         .load(Seq(target) ++ targets: _*)
+        .as[DGraphEdgeRow](edgeEncoder)
 
     /**
      * Loads all ndoes of a DGraph database into a DataFrame. Requires at least one target.
@@ -119,10 +124,11 @@ package object connector {
      * @param targets more targets
      * @return triples DataFrame
      */
-    def dgraphNodes(target: String, targets: String*): DataFrame =
+    def dgraphNodes(target: String, targets: String*): Dataset[DGraphNodeRow] =
       reader
         .format(NodesSource)
         .load(Seq(target) ++ targets: _*)
+        .as[DGraphNodeRow](nodeEncoder)
 
   }
 

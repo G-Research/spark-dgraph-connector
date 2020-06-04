@@ -1,29 +1,50 @@
 package uk.co.gresearch.spark.dgraph.graphx
 
-import org.apache.spark.sql.SparkSession
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.connector.Target
+import uk.co.gresearch.spark.dgraph.graphx._
 
 class TestGraphX extends FunSpec with SparkTestSession {
 
-  implicit val session: SparkSession = spark
-
   describe("GraphX") {
 
-    it("should load dgraph") {
-      val graph = loadGraph(Target("localhost:9080"))
-      graph.pageRank(0.0001).vertices.foreach(println)
-    }
+    Seq(
+      ("target", Seq("localhost:9080")),
+      ("targets", Seq("localhost:9080", "127.0.0.1:9080"))
+    ).foreach{case (test, targets) =>
 
-    it("should load vertices") {
-      val vertices = loadVertices(Target("localhost:9080"))
-      vertices.foreach(println)
-    }
+      it(s"should load dgraph from $test via implicit session") {
+        val graph = loadGraph(targets: _*)
+        val pageRank = graph.pageRank(0.0001)
+        pageRank.vertices.foreach(println)
+      }
 
-    it("should load edges") {
-      val edges = loadEdges(Target("localhost:9080"))
-      edges.foreach(println)
+      it(s"should load dgraph from $test via reader") {
+        val graph = spark.read.dgraph(targets: _*)
+        val pageRank = graph.pageRank(0.0001)
+        pageRank.vertices.foreach(println)
+      }
+
+      it(s"should load vertices from $test via implicit session") {
+        val vertices = loadVertices(targets: _*)
+        vertices.foreach(println)
+      }
+
+      it(s"should load vertices from $test via reader") {
+        val vertices = spark.read.dgraphVertices(targets: _*)
+        vertices.foreach(println)
+      }
+
+      it(s"should load edges from $test via implicit session") {
+        val edges = loadEdges(targets: _*)
+        edges.foreach(println)
+      }
+
+      it(s"should load edges from $test via reader") {
+        val edges = spark.read.dgraphEdges(targets: _*)
+        edges.foreach(println)
+      }
+
     }
 
   }

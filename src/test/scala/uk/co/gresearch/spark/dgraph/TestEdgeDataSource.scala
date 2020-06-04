@@ -62,7 +62,8 @@ class TestEdgeDataSource extends FunSpec with SparkTestSession {
       val rows =
         spark
           .read
-          .dgraphEdges("localhost:9080")
+          .format(EdgesSource)
+          .load("localhost:9080")
           .as[DGraphEdgeRow]
           .collectAsList()
       rows.forEach(println)

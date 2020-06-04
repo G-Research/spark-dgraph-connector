@@ -20,31 +20,36 @@ package object graphx extends TargetsConfigParser {
 
   case class EdgeProperty(property: String)
 
-  def loadGraph(targets: Target*)(implicit session: SparkSession): Graph[VertexProperty, EdgeProperty] = {
-    Graph(loadVertices(targets: _*), loadEdges(targets: _*))
-  }
+  val edgeEncoder: Encoder[DGraphEdgeRow] = Encoders.product[DGraphEdgeRow]
+  val nodeEncoder: Encoder[DGraphNodeRow] = Encoders.product[DGraphNodeRow]
 
-  def loadVertices(targets: Target*)(implicit session: SparkSession): RDD[(VertexId, VertexProperty)] = {
-    import session.implicits._
-    session
-      .read
+  def loadGraph(targets: String*)(implicit session: SparkSession): Graph[VertexProperty, EdgeProperty] =
+    loadGraph(session.read, targets.map(Target): _*)
+
+  def loadGraph(reader: DataFrameReader, targets: Target*): Graph[VertexProperty, EdgeProperty] =
+    Graph(loadVertices(reader, targets: _*), loadEdges(reader, targets: _*))
+
+  def loadVertices(targets: String*)(implicit session: SparkSession): RDD[(VertexId, VertexProperty)] =
+    loadVertices(session.read, targets.map(Target): _*)
+
+  def loadVertices(reader: DataFrameReader, targets: Target*): RDD[(VertexId, VertexProperty)] =
+    reader
       .format(NodesSource)
       .load(targets.map(_.target): _*)
-      .as[DGraphNodeRow]
+      .as[DGraphNodeRow](nodeEncoder)
       .rdd
       .map(toVertex)
-  }
 
-  def loadEdges(targets: Target*)(implicit session: SparkSession): RDD[Edge[EdgeProperty]] = {
-    import session.implicits._
-    session
-      .read
+  def loadEdges(targets: String*)(implicit session: SparkSession): RDD[Edge[EdgeProperty]] =
+    loadEdges(session.read, targets.map(Target): _*)
+
+  def loadEdges(reader: DataFrameReader, targets: Target*): RDD[Edge[EdgeProperty]] =
+    reader
       .format(EdgesSource)
       .load(targets.map(_.target): _*)
-      .as[DGraphEdgeRow]
+      .as[DGraphEdgeRow](edgeEncoder)
       .rdd
       .map(toEdge)
-  }
 
   def toVertex(row: DGraphNodeRow): (VertexId, VertexProperty) =
     (row.subject, toVertexProperty(row))
@@ -65,12 +70,17 @@ package object graphx extends TargetsConfigParser {
       throw new IllegalArgumentException(s"Unsupported object type ${row.objectType} in node row: $row")
   }
 
-  implicit class GraphSparkSession(session: SparkSession) {
+  implicit class DgraphDataFrameReader(reader: DataFrameReader) {
 
-    implicit val spark: SparkSession = session
+    def dgraph(targets: String*): Graph[VertexProperty, EdgeProperty] =
+      graphx.loadGraph(reader, targets.map(Target): _*)
 
-    def loadGraph(targets: Seq[Target]): Graph[VertexProperty, EdgeProperty] =
-      graphx.loadGraph(targets: _*)
+    def dgraphVertices(targets: String*): RDD[(VertexId, VertexProperty)] =
+      graphx.loadVertices(reader, targets.map(Target): _*)
+
+    def dgraphEdges(targets: String*): RDD[Edge[EdgeProperty]] =
+      graphx.loadEdges(reader, targets.map(Target): _*)
+
   }
 
 }
