@@ -32,7 +32,7 @@ private object TriplesFactory {
 
   /**
    * Get the value of the given JsonElement in the given optional type.
-   * Types are interpreted as DGraph types (where int is Long), for non-DGraph types recognizes
+   * Types are interpreted as Dgraph types (where int is Long), for non-Dgraph types recognizes
    * as respective Spark / Scala types.
    *
    * @param value JsonElement
@@ -56,8 +56,8 @@ private object TriplesFactory {
     }
 
   /**
-   * Get the type of the given value as a string. Only supports DGraph types (no Integer or Float),
-   * returns Spark / Scala type string, not DGraph (where int refers to Long).
+   * Get the type of the given value as a string. Only supports Dgraph types (no Integer or Float),
+   * returns Spark / Scala type string, not Dgraph (where int refers to Long).
    * @param value value
    * @return value's type
    */

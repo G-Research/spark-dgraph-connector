@@ -3,8 +3,8 @@
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector</artifactId>
   <version>1.0.0-SNAPSHOT</version>
-  <name>Spark DGraph Connector</name>
-  <description>A Spark connector to DGraph</description>
+  <name>Spark Dgraph Connector</name>
+  <description>A Spark connector for Dgraph databases</description>
   <inceptionYear>2020</inceptionYear>
   <url>https://github.com/G-Research</url>
   <licenses>

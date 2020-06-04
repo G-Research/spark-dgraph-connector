@@ -52,7 +52,7 @@ package object connector {
       Some(uid)
         .filter(_.startsWith("0x"))
         .map(uid => java.lang.Long.valueOf(uid.substring(2), 16))
-        .getOrElse(throw new IllegalArgumentException("DGraph uid is not a long prefixed with '0x': " + uid))
+        .getOrElse(throw new IllegalArgumentException("Dgraph uid is not a long prefixed with '0x': " + uid))
 
   }
 
@@ -86,14 +86,14 @@ package object connector {
 
   def getClient(targets: Seq[Target]): DgraphClient = getClientFromTargets(targets)
 
-  implicit class DGraphDataFrameReader(reader: DataFrameReader) {
+  implicit class DgraphDataFrameReader(reader: DataFrameReader) {
 
     val tripleEncoder: Encoder[TypedTriple] = Encoders.product[TypedTriple]
     val edgeEncoder: Encoder[Edge] = Encoders.product[Edge]
     val nodeEncoder: Encoder[TypedNode] = Encoders.product[TypedNode]
 
     /**
-     * Loads all triples of a DGraph database into a DataFrame. Requires at least one target.
+     * Loads all triples of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphTriples(targets.head, targets.tail: _*) if need to provide a Seq[String].
      * @param target a target
      * @param targets more targets
@@ -105,7 +105,7 @@ package object connector {
         .load(Seq(target) ++ targets: _*)
 
     /**
-     * Loads all edges of a DGraph database into a DataFrame. Requires at least one target.
+     * Loads all edges of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphEdges(targets.head, targets.tail: _*) if need to provide a Seq[String].
      * @param target a target
      * @param targets more targets
@@ -118,7 +118,7 @@ package object connector {
         .as[Edge](edgeEncoder)
 
     /**
-     * Loads all ndoes of a DGraph database into a DataFrame. Requires at least one target.
+     * Loads all ndoes of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphNodes(targets.head, targets.tail: _*) if need to provide a Seq[String].
      * @param target a target
      * @param targets more targets

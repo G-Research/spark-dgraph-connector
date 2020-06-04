@@ -1,7 +1,7 @@
-# Spark DGraph Connector
+# Spark Dgraph Connector
 
 This projects provides an [Apache Spark](https://spark.apache.org/) connector
-for [DGraph databases](https://dgraph.io/).
+for [Dgraph databases](https://dgraph.io/).
 It brings various [Spark Data Sources](https://spark.apache.org/docs/latest/sql-data-sources.html)
 to read graphs from Dgraph directly into `DataFrame`s or GraphX `Graph`s.
 
@@ -17,7 +17,7 @@ Now, you can do things like:
     val edges: Dataset[Edge] = spark.read.dgraphEdges(target)
     val nodes: Dataset[TypedNode] = spark.read.dgraphNodes(target)
 
-## Using Spark DGraph Connector
+## Using Spark Dgraph Connector
 
 ### SBT
 
@@ -41,7 +41,7 @@ Add this dependency to your `pom.xml` file to use the latest version:
 
 ## Examples
 
-The following examples use a local DGraph instance setup as described in the
+The following examples use a local Dgraph instance setup as described in the
 [Dgraph Quickstart Guide](https://dgraph.io/docs/get-started).
 Run [Step 1](https://dgraph.io/docs/get-started/#step-1-run-dgraph) to start an instance and
 [Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data.

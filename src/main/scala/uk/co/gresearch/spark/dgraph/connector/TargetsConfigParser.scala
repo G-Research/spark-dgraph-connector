@@ -19,7 +19,7 @@ trait TargetsConfigParser {
 
     val allTargets = fromTargets ++ fromTarget
     if (allTargets.isEmpty)
-      throw new IllegalArgumentException("No DGraph servers provided, provide targets via " +
+      throw new IllegalArgumentException("No Dgraph servers provided, provide targets via " +
         "DataFrameReader.load(…) or DataFrameReader.option(TargetOption, …)"
       )
 

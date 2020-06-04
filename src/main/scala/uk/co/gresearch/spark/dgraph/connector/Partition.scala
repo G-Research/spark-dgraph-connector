@@ -6,13 +6,13 @@ import io.grpc.ManagedChannel
 import org.apache.spark.sql.connector.read.InputPartition
 
 /**
- * Partition of DGraph data. Reads all triples with the given predicates.
- * @param targets DGraph alpha servers
+ * Partition of Dgraph data. Reads all triples with the given predicates.
+ * @param targets Dgraph alpha servers
  * @param schema schema to read
  */
 case class Partition(targets: Seq[Target], schema: Schema) extends InputPartition {
 
-  // TODO: use host names of DGraph alphas to co-locate partitions
+  // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
 
   /**
