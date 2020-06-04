@@ -7,7 +7,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{DGraphEdgeRow, DGraphNodeRow, Geo, Password, Triple, TriplesFactory, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{DGraphNodeRow, Geo, Password, Triple, TriplesFactory}
 
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.

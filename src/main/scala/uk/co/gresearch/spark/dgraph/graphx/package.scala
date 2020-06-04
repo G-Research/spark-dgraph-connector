@@ -4,7 +4,7 @@ import java.sql.Timestamp
 
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrameReader, Row, SparkSession}
+import org.apache.spark.sql.{DataFrameReader, Dataset, Encoder, Encoders, SparkSession}
 import uk.co.gresearch.spark.dgraph.connector._
 
 package object graphx extends TargetsConfigParser {
@@ -53,14 +53,14 @@ package object graphx extends TargetsConfigParser {
     Edge(row.subject, row.objectUid, EdgeProperty(row.predicate))
   
   def toVertexProperty(row: DGraphNodeRow): VertexProperty = row.objectType match {
-    case "string" => StringVertexProperty(row.predicate, row.objectString)
-    case "long" => LongVertexProperty(row.predicate, row.objectLong)
-    case "double" => DoubleVertexProperty(row.predicate, row.objectDouble)
-    case "timestamp" => TimestampVertexProperty(row.predicate, row.objectTimestamp)
-    case "boolean" => BooleanVertexProperty(row.predicate, row.objectBoolean)
-    case "geo" => GeoVertexProperty(row.predicate, Geo(row.objectGeo))
-    case "password" => PasswordVertexProperty(row.predicate, Password(row.objectPassword))
-    case "default" => StringVertexProperty(row.predicate, row.objectString)
+    case "string" => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
+    case "long" => row.objectLong.map(LongVertexProperty(row.predicate, _)).orNull
+    case "double" => row.objectDouble.map(DoubleVertexProperty(row.predicate, _)).orNull
+    case "timestamp" => row.objectTimestamp.map(TimestampVertexProperty(row.predicate, _)).orNull
+    case "boolean" => row.objectBoolean.map(BooleanVertexProperty(row.predicate, _)).orNull
+    case "geo" => row.objectGeo.map(o => GeoVertexProperty(row.predicate, Geo(o))).orNull
+    case "password" => row.objectPassword.map(o => PasswordVertexProperty(row.predicate, Password(o))).orNull
+    case "default" => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
     case _ =>
       throw new IllegalArgumentException(s"Unsupported object type ${row.objectType} in node row: $row")
   }

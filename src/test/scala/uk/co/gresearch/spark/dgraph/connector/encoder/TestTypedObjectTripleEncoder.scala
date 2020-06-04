@@ -49,12 +49,12 @@ class TestTypedObjectTripleEncoder extends FunSpec {
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),
-      StructField("objectUid", LongType, nullable = false),
+      StructField("objectUid", LongType),
       StructField("objectString", StringType),
-      StructField("objectLong", LongType, nullable = false),
-      StructField("objectDouble", DoubleType, nullable = false),
+      StructField("objectLong", LongType),
+      StructField("objectDouble", DoubleType),
       StructField("objectTimestamp", TimestampType),
-      StructField("objectBoolean", BooleanType, nullable = false),
+      StructField("objectBoolean", BooleanType),
       StructField("objectGeo", StringType),
       StructField("objectPassword", StringType),
       StructField("objectType", StringType)
@@ -67,12 +67,12 @@ class TestTypedObjectTripleEncoder extends FunSpec {
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),
-      StructField("objectUid", LongType, nullable = false),
+      StructField("objectUid", LongType),
       StructField("objectString", StringType),
-      StructField("objectLong", LongType, nullable = false),
-      StructField("objectDouble", DoubleType, nullable = false),
+      StructField("objectLong", LongType),
+      StructField("objectDouble", DoubleType),
       StructField("objectTimestamp", TimestampType),
-      StructField("objectBoolean", BooleanType, nullable = false),
+      StructField("objectBoolean", BooleanType),
       StructField("objectGeo", StringType),
       StructField("objectPassword", StringType),
       StructField("objectType", StringType)

@@ -18,27 +18,27 @@ package object connector {
 
   case class DGraphTypedObjectRow(subject: Long,
                                   predicate: String,
-                                  objectUid: Long,
-                                  objectString: String,
-                                  objectLong: Long,
-                                  objectDouble: Double,
-                                  objectTimestamp: Timestamp,
-                                  objectBoolean: Boolean,
-                                  objectGeo: String,
-                                  objectPassword: String,
+                                  objectUid: Option[Long],
+                                  objectString: Option[String],
+                                  objectLong: Option[Long],
+                                  objectDouble: Option[Double],
+                                  objectTimestamp: Option[Timestamp],
+                                  objectBoolean: Option[Boolean],
+                                  objectGeo: Option[String],
+                                  objectPassword: Option[String],
                                   objectType: String)
 
   case class DGraphEdgeRow(subject: Long, predicate: String, objectUid: Long)
 
   case class DGraphNodeRow(subject: Long,
                            predicate: String,
-                           objectString: String,
-                           objectLong: Long,
-                           objectDouble: Double,
-                           objectTimestamp: Timestamp,
-                           objectBoolean: Boolean,
-                           objectGeo: String,
-                           objectPassword: String,
+                           objectString: Option[String],
+                           objectLong: Option[Long],
+                           objectDouble: Option[Double],
+                           objectTimestamp: Option[Timestamp],
+                           objectBoolean: Option[Boolean],
+                           objectGeo: Option[String],
+                           objectPassword: Option[String],
                            objectType: String)
 
   case class Uid(uid: Long) {
