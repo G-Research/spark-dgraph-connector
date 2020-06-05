@@ -73,6 +73,8 @@ package object connector {
   val TriplesModeOption: String = "triples.mode"
   val TriplesModeStringOption: String = "string"
   val TriplesModeTypedOption: String = "typed"
+  val PartitionerOption: String = "partitioner"
+  val SingletonPartitionerOption: String = "singleton"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 

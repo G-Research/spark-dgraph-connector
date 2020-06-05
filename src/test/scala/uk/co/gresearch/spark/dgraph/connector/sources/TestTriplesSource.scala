@@ -3,6 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
+import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 
 class TestTriplesSource extends FunSpec with SparkTestSession {
 
@@ -97,7 +98,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
     }
 
     it("should fail without target") {
-      assertThrows[IllegalArgumentException]{
+      assertThrows[IllegalArgumentException] {
         spark
           .read
           .format(TriplesSource)
@@ -106,13 +107,30 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
     }
 
     it("should fail with unknown triple mode") {
-      assertThrows[IllegalArgumentException]{
+      assertThrows[IllegalArgumentException] {
         spark
           .read
           .format(TriplesSource)
           .option(TriplesModeOption, "unknown")
           .load()
       }
+    }
+
+    it("should load as a single partition") {
+      val target = "localhost:9080"
+      val targets = Seq(Target(target))
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, SingletonPartitionerOption)
+          .dgraphTriples(target)
+          .rdd
+          .partitions.map {
+            case p: DataSourceRDDPartition => Some(p.inputPartition)
+            case _ => None
+          }
+      assert(partitions.length === 1)
+      assert(partitions === Seq(Some(Partition(targets, None))))
     }
 
   }

@@ -1,5 +1,6 @@
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
@@ -76,6 +77,23 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
           .format(EdgesSource)
           .load()
       }
+    }
+
+    it("should load as a single partition") {
+      val target = "localhost:9080"
+      val targets = Seq(Target(target))
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, SingletonPartitionerOption)
+          .dgraphEdges(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+      assert(partitions.length === 1)
+      assert(partitions === Seq(Some(Partition(targets, None))))
     }
 
   }

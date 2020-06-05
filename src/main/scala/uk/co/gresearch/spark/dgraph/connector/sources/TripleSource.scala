@@ -3,7 +3,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, PartitionerProvider, SchemaProvider, TableProviderBase, Target, TargetsConfigParser, TripleTable, TriplesModeOption, TriplesModeStringOption, TriplesModeTypedOption}
+import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable, TriplesModeOption, TriplesModeStringOption, TriplesModeTypedOption}
 
 class TripleSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider

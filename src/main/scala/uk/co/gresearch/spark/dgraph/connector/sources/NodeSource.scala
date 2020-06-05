@@ -3,7 +3,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, PartitionerProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable}
+import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable}
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
