@@ -73,8 +73,18 @@ package object connector {
   val TriplesModeOption: String = "triples.mode"
   val TriplesModeStringOption: String = "string"
   val TriplesModeTypedOption: String = "typed"
+
   val PartitionerOption: String = "partitioner"
   val SingletonPartitionerOption: String = "singleton"
+  val GroupPartitionerOption: String = "group"
+  val AlphaPartitionerOption: String = "alpha"
+  val PredicatePartitionerOption: String = "predicate"
+
+  val AlphaPartitionerPartitionsOption: String = "partitioner.alpha.partitionsPerAlpha"
+  val AlphaPartitionerPartitionsDefault: Int = 1
+  val PredicatePartitionerPredicatesOption: String = "partitioner.predicate.predicatesPerPartition"
+  val PredicatePartitionerPredicatesDefault: Int = 1000
+
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 

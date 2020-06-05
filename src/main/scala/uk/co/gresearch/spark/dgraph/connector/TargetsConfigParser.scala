@@ -3,19 +3,17 @@ package uk.co.gresearch.spark.dgraph.connector
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-trait TargetsConfigParser {
+trait TargetsConfigParser extends ConfigParser {
 
-  protected def getTargets(map: CaseInsensitiveStringMap): Seq[Target] = {
+  protected def getTargets(options: CaseInsensitiveStringMap): Seq[Target] = {
     val objectMapper = new ObjectMapper()
     val fromTargets = Seq(TargetsOption, "paths").flatMap(option =>
-      Option(map.get(option)).map { pathStr =>
+      getStringOption(option, options).map { pathStr =>
         objectMapper.readValue(pathStr, classOf[Array[String]]).toSeq
       }.getOrElse(Seq.empty[String])
     )
 
-    val fromTarget = Seq(TargetOption, "path").flatMap(option =>
-      Option(map.get(option))
-    )
+    val fromTarget = Seq(TargetOption, "path").flatMap(getStringOption(_, options))
 
     val allTargets = fromTargets ++ fromTarget
     if (allTargets.isEmpty)
@@ -25,4 +23,5 @@ trait TargetsConfigParser {
 
     allTargets.map(Target)
   }
+
 }

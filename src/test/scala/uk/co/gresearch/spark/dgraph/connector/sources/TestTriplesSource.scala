@@ -133,6 +133,24 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
       assert(partitions === Seq(Some(Partition(targets, None))))
     }
 
+    it("should load as a predicate partitions") {
+      val target = "localhost:9080"
+      val targets = Seq(Target(target))
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraphTriples(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+      assert(partitions.length === 1)
+      assert(partitions === Seq(Some(Partition(targets, None))))
+    }
+
   }
 
 }

@@ -7,6 +7,7 @@ trait PartitionerProvider {
 
   val partitionerOptions = Seq(
     new ConfigPartitionerOption(),
+    new PredicatePartitionerOption(),
     new DefaultPartitionerOption()
   )
 

@@ -12,8 +12,8 @@ class TripleSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-triples"
 
-  def getTripleMode(map: CaseInsensitiveStringMap): Option[String] =
-    Option(map.get(TriplesModeOption))
+  def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
+    getStringOption(TriplesModeOption, options)
 
   def getTable(options: CaseInsensitiveStringMap): Table = {
     val targets = getTargets(options)
