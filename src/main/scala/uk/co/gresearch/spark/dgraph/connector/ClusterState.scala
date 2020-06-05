@@ -22,7 +22,8 @@ object ClusterState {
         .map(e => e.getKey -> e.getValue.getAsJsonObject)
         .toMap
 
-    val groupMembers = groupMap.mapValues(getMembersFromGroup).mapValues(_.map(Target))
+    val groupMembers = groupMap.mapValues(getMembersFromGroup)
+      .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
     val maxLeaseId = root.getAsJsonPrimitive("maxLeaseId").getAsLong
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)

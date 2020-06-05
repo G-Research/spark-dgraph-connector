@@ -99,8 +99,8 @@ class TestClusterState extends FunSpec {
       val state = ClusterState.fromJson(json)
 
       assert(state.groupMembers === Map(
-        "1" -> Set(Target("localhost:7080"), Target("localhost:7081")),
-        "2" -> Set(Target("127.0.0.1:7080"), Target("127.0.0.1:7081"))
+        "1" -> Set(Target("localhost:9080"), Target("localhost:9081")),
+        "2" -> Set(Target("127.0.0.1:9080"), Target("127.0.0.1:9081"))
       ))
       assert(state.groupPredicates === Map(
         "1" -> Set("dgraph.graphql.schema", "dgraph.type", "director"),

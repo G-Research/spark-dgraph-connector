@@ -17,6 +17,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParse
       case PredicatePartitionerOption =>
         Some(new PredicatePartitioner(schema, clusterState,
           getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault)))
+      case unknown => throw new IllegalArgumentException(s"Unknown partitioner: $unknown")
       case _ => None
     }
 

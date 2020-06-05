@@ -71,7 +71,7 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
     }
 
     it("should fail without target") {
-      assertThrows[IllegalArgumentException]{
+      assertThrows[IllegalArgumentException] {
         spark
           .read
           .format(EdgesSource)
@@ -94,6 +94,26 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
         }
       assert(partitions.length === 1)
       assert(partitions === Seq(Some(Partition(targets, None))))
+    }
+
+    it("should load as a predicate partitions") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraphEdges(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+      assert(partitions.length === 2)
+      assert(partitions === Seq(
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))))),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid")))))
+      ))
     }
 
   }

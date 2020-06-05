@@ -26,13 +26,20 @@ class TestPartitionerProvider extends FunSpec {
       ("group", (p: Partitioner) => p.isInstanceOf[GroupPartitioner]),
       ("alpha", (p: Partitioner) => p.isInstanceOf[AlphaPartitioner]),
       ("predicate", (p: Partitioner) => p.isInstanceOf[PredicatePartitioner]),
-      ("unknown", (p: Partitioner) => p.isInstanceOf[SingletonPartitioner]),
     ).foreach{ case (partOption, test) =>
       it(s"should provide $partOption partitioner via option") {
         val provider = new PartitionerProvider {}
         val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> partOption).asJava)
         val partitioner = provider.getPartitioner(target, schema, state, options)
         assert(test(partitioner))
+      }
+    }
+
+    it("should fail on unknown partitioner option") {
+      val provider = new PartitionerProvider {}
+      val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "unknown").asJava)
+      assertThrows[IllegalArgumentException] {
+        provider.getPartitioner(target, schema, state, options)
       }
     }
 

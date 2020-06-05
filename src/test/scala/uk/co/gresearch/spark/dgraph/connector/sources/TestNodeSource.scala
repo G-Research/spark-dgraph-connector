@@ -71,7 +71,7 @@ class TestNodeSource extends FunSpec with SparkTestSession {
     }
 
     it("should fail without target") {
-      assertThrows[IllegalArgumentException]{
+      assertThrows[IllegalArgumentException] {
         spark
           .read
           .format(NodesSource)
@@ -94,6 +94,28 @@ class TestNodeSource extends FunSpec with SparkTestSession {
         }
       assert(partitions.length === 1)
       assert(partitions === Seq(Some(Partition(targets, None))))
+    }
+
+    it("should load as a predicate partitions") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraphNodes(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+      assert(partitions.length === 4)
+      assert(partitions === Seq(
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))))),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))))),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))))),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))))))
+      )
     }
 
   }
