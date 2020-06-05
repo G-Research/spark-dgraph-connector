@@ -1,10 +1,10 @@
-package uk.co.gresearch.spark.dgraph
+package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
 
-class TestTriplesDataSource extends FunSpec with SparkTestSession {
+class TestTriplesSource extends FunSpec with SparkTestSession {
 
   import spark.implicits._
 
