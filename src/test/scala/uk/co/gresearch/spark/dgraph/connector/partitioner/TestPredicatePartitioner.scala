@@ -3,8 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target}
-import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner._
+import uk.co.gresearch.spark.dgraph.connector._
 
 class TestPredicatePartitioner extends FunSpec {
 
@@ -80,62 +79,62 @@ class TestPredicatePartitioner extends FunSpec {
     )
 
     it("should partition with 1 predicates per partition") {
-      val partitioner = new PredicatePartitioner(schema, clusterState, 1)
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 6)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1")))),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3")))),
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2")))),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"))), None),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"))), None),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"))), None),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5")))),
-        Partition(Seq(Target("host5:9080"), Target("host4:9080")), Some(Set(Predicate("pred4", "type4")))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None),
+        Partition(Seq(Target("host5:9080"), Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None),
 
-        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6")))),
+        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None),
       ))
     }
 
     it("should partition with 2 predicates per partition") {
-      val partitioner = new PredicatePartitioner(schema, clusterState, 2)
+      val partitioner = PredicatePartitioner(schema, clusterState, 2)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 4)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2")))),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3")))),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"))), None),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"))), None),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"), Predicate("pred4", "type4")))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"), Predicate("pred4", "type4"))), None),
 
-        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))))
+        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None)
       ))
     }
 
     Seq(3, 4, 7).foreach(predsPerPart =>
       it(s"should partition with $predsPerPart predicates per partition") {
-        val partitioner = new PredicatePartitioner(schema, clusterState, predsPerPart)
+        val partitioner = PredicatePartitioner(schema, clusterState, predsPerPart)
         val partitions = partitioner.getPartitions
 
         assert(partitions.length === 3)
         assert(partitions === Seq(
           // predicates are shuffled within group, targets are not rotated since there is only the first partition per group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred3", "type3"), Predicate("pred2", "type2")))),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred3", "type3"), Predicate("pred2", "type2"))), None),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"), Predicate("pred4", "type4")))),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"), Predicate("pred4", "type4"))), None),
 
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))))
+          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None)
         ))
       }
     )
 
     it("should fail with negative or zero predsPerPart") {
       assertThrows[IllegalArgumentException] {
-        new PredicatePartitioner(schema, clusterState, -1)
+        PredicatePartitioner(schema, clusterState, -1)
       }
       assertThrows[IllegalArgumentException] {
-        new PredicatePartitioner(schema, clusterState, 0)
+        PredicatePartitioner(schema, clusterState, 0)
       }
     }
 

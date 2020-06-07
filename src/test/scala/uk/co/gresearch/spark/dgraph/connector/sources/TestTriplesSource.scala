@@ -130,10 +130,10 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None))))
     }
 
-    it("should load as a predicate partitions") {
+    it("should load as predicate partitions") {
       val target = "localhost:9080"
       val partitions =
         spark
@@ -148,11 +148,39 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))))))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None))
+      ))
+    }
+
+    it("should load as predicate uid-range partitions") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, s"$PredicatePartitionerOption+$UidRangePartitionerOption")
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .option(UidRangePartitionerFactorOption, "2")
+          .dgraphTriples(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+
+      val expected = Seq(0, 5000).flatMap( first =>
+        Seq(
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)))),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)))),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)))),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000))))
+        )
       )
+
+      assert(partitions.length === expected.size)
+      assert(partitions === expected)
     }
 
   }

@@ -16,7 +16,7 @@ class TestClusterStateProvider extends FunSpec {
         Map("1"-> Set(Target("localhost:9080"))),
         Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
-        UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980")
+        state.get.cid
       ))
     }
 
@@ -27,7 +27,7 @@ class TestClusterStateProvider extends FunSpec {
         Map("1" -> Set(Target("localhost:9080"))),
         Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
-        UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980")
+        state.cid
       ))
     }
 

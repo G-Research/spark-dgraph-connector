@@ -2,7 +2,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
 
-class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitionsPerAlpha: Int)
+case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitionsPerAlpha: Int)
   extends Partitioner with ClusterStateHelper {
 
   if (partitionsPerAlpha <= 0)

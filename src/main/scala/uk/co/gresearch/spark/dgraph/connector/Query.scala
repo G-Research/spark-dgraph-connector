@@ -12,14 +12,17 @@ object Query {
        |  }
        |}""".stripMargin
 
-  def forAllPropertiesAndEdges(resultName: String, predicates: Option[Set[Predicate]]): String = {
+  def forAllPropertiesAndEdges(resultName: String, predicates: Option[Set[Predicate]], uids: Option[UidRange]): String = {
+    val pagination =
+      uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
+
     val filter =
       if (predicates.isDefined) {
         predicates
           .filter(_.nonEmpty)
           .map(_.map(p => s"has(${p.predicateName})").mkString(" OR "))
           .orElse(Some("eq(true, false)"))
-          .map(filter => s"@filter(${filter})")
+          .map(filter => s"@filter(${filter}) ")
           .get
       } else {
         ""
@@ -36,7 +39,7 @@ object Query {
         ).getOrElse("")
 
     s"""{
-       |  ${resultName} (func: has(dgraph.type)) ${filter} {
+       |  ${resultName} (func: has(dgraph.type)${pagination}) ${filter}{
        |    uid
        |${predicatesPaths}  }
        |}""".stripMargin

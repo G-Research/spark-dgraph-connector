@@ -67,6 +67,10 @@ package object connector {
   case class Triple(s: Uid, p: String, o: Any)
 
   case class Predicate(predicateName: String, typeName: String)
+  case class UidRange(first: Long, length: Long) {
+    if (first < 0 || length <= 0)
+      throw new IllegalArgumentException(s"UidRange first must be positive (is $first), length must be larger than zero (is $length)")
+  }
 
   val TargetOption: String = "target"
   val TargetsOption: String = "targets"
@@ -79,12 +83,14 @@ package object connector {
   val GroupPartitionerOption: String = "group"
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
+  val UidRangePartitionerOption: String = "uid-range"
 
   val AlphaPartitionerPartitionsOption: String = "partitioner.alpha.partitionsPerAlpha"
   val AlphaPartitionerPartitionsDefault: Int = 1
   val PredicatePartitionerPredicatesOption: String = "partitioner.predicate.predicatesPerPartition"
   val PredicatePartitionerPredicatesDefault: Int = 1000
-
+  val UidRangePartitionerFactorOption: String = "partitioner.uidRange.partitioningFactor"
+  val UidRangePartitionerFactorDefault: Int = 10
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 
@@ -144,6 +150,17 @@ package object connector {
         .load(Seq(target) ++ targets: _*)
         .as[TypedNode](nodeEncoder)
 
+  }
+
+  implicit class RotatingSeq[T](seq: Seq[T]) {
+    @scala.annotation.tailrec
+    final def rotate(i: Int): Seq[T] =
+      if (seq.isEmpty)
+        seq
+      else if (i >= 0 && i < seq.size)
+        seq.drop(i) ++ seq.take(i)
+      else
+        rotate(if (i < 0) i + seq.size else i - seq.size)
   }
 
 }

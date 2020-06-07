@@ -11,7 +11,7 @@ import org.apache.spark.sql.connector.read.InputPartition
  * @param targets Dgraph alpha nodes
  * @param predicates optional predicates to read
  */
-case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]]) extends InputPartition {
+case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange]) extends InputPartition {
 
   // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
@@ -23,7 +23,7 @@ case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]]) e
   def getTriples: Iterator[Triple] = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
-      val query = Query.forAllPropertiesAndEdges("data", predicates)
+      val query = Query.forAllPropertiesAndEdges("data", predicates, uids)
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8

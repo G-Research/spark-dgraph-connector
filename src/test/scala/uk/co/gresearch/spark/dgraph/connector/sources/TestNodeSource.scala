@@ -93,7 +93,7 @@ class TestNodeSource extends FunSpec with SparkTestSession {
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None))))
     }
 
     it("should load as a predicate partitions") {
@@ -111,11 +111,11 @@ class TestNodeSource extends FunSpec with SparkTestSession {
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))))))
-      )
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))), None))
+      ))
     }
 
   }

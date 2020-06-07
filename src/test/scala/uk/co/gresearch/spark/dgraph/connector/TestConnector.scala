@@ -17,6 +17,12 @@ class TestConnector extends FunSpec {
         }
     }
 
+    it("should validate UidRange") {
+      assertThrows[IllegalArgumentException]{ UidRange(-1, 1000) }
+      assertThrows[IllegalArgumentException]{ UidRange(0, 0) }
+      assertThrows[IllegalArgumentException]{ UidRange(0, -1) }
+    }
+
   }
 
 }

@@ -93,7 +93,7 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None))))
     }
 
     it("should load as a predicate partitions") {
@@ -111,8 +111,8 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
         }
       assert(partitions.length === 2)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))))),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid")))))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))), None)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid"))), None))
       ))
     }
 

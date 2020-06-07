@@ -12,11 +12,11 @@ class TestSingletonPartitioner extends FunSpec {
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
 
     it("should partition") {
-      val partitioner = new SingletonPartitioner(targets)
+      val partitioner = SingletonPartitioner(targets)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets, None)))
+      assert(partitions.toSet === Set(Partition(targets, None, None)))
     }
 
   }

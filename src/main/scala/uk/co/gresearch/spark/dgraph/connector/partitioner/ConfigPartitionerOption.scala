@@ -8,17 +8,32 @@ class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParse
                               schema: Schema,
                               clusterState: ClusterState,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Option(options.get(PartitionerOption)).flatMap {
-      case SingletonPartitionerOption => Some(new SingletonPartitioner(targets))
-      case GroupPartitionerOption => Some(new GroupPartitioner(schema, clusterState))
+    getStringOption(PartitionerOption, options)
+      .map(getPartitioner(_, targets, schema, clusterState, options))
+
+  private def getPartitioner(partitionerName: String,
+                             targets: Seq[Target],
+                             schema: Schema,
+                             clusterState: ClusterState,
+                             options: CaseInsensitiveStringMap): Partitioner =
+    partitionerName match {
+      case SingletonPartitionerOption => SingletonPartitioner(targets)
+      case GroupPartitionerOption => GroupPartitioner(schema, clusterState)
       case AlphaPartitionerOption =>
-        Some(new AlphaPartitioner(schema, clusterState,
-          getIntOption(AlphaPartitionerPartitionsOption, options, AlphaPartitionerPartitionsDefault)))
+        AlphaPartitioner(schema, clusterState,
+          getIntOption(AlphaPartitionerPartitionsOption, options, AlphaPartitionerPartitionsDefault))
       case PredicatePartitionerOption =>
-        Some(new PredicatePartitioner(schema, clusterState,
-          getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault)))
+        PredicatePartitioner(schema, clusterState,
+          getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault))
+      case UidRangePartitionerOption =>
+        val factor = getIntOption(UidRangePartitionerFactorOption, options, UidRangePartitionerFactorDefault)
+        UidRangePartitioner(GroupPartitioner(schema, clusterState), factor, clusterState.maxLeaseId)
+      case option if option.endsWith(s"+${UidRangePartitionerOption}") =>
+        val name = option.substring(0, option.indexOf('+'))
+        val partitioner = getPartitioner(name, targets, schema, clusterState, options)
+        getPartitioner(UidRangePartitionerOption, targets, schema, clusterState, options)
+          .asInstanceOf[UidRangePartitioner].copy(partitioner = partitioner)
       case unknown => throw new IllegalArgumentException(s"Unknown partitioner: $unknown")
-      case _ => None
     }
 
 }

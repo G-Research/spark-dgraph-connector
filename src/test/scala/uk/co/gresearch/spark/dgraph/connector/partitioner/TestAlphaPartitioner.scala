@@ -29,45 +29,45 @@ class TestAlphaPartitioner extends FunSpec {
     )
 
     it("should partition with 1 partition per alpha") {
-      val partitioner = new AlphaPartitioner(schema, clusterState, 1)
+      val partitioner = AlphaPartitioner(schema, clusterState, 1)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 4)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2")))),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"), Predicate("pred4", "type4")))),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"))), None),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"), Predicate("pred4", "type4"))), None),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5")))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None),
 
-        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"), Predicate("pred6", "type6"))))
+        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"), Predicate("pred6", "type6"))), None)
       ))
     }
 
     Seq(2, 3, 7).foreach(partsPerAlpha =>
       it(s"should partition with $partsPerAlpha partitions per alpha") {
-        val partitioner = new AlphaPartitioner(schema, clusterState, 2)
+        val partitioner = AlphaPartitioner(schema, clusterState, 2)
         val partitions = partitioner.getPartitions
 
         assert(partitions.length === 7)
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1")))),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2")))),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3")))),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred4", "type4")))),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"))), None),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"))), None),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"))), None),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred4", "type4"))), None),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5")))),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None),
 
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6")))),
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"))))
+          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None),
+          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"))), None)
         ))
       }
     )
 
     it("should fail with negative or zero partsPerAlpha") {
-      assertThrows[IllegalArgumentException]{ new AlphaPartitioner(schema, clusterState, -1) }
-      assertThrows[IllegalArgumentException]{ new AlphaPartitioner(schema, clusterState, 0) }
+      assertThrows[IllegalArgumentException]{ AlphaPartitioner(schema, clusterState, -1) }
+      assertThrows[IllegalArgumentException]{ AlphaPartitioner(schema, clusterState, 0) }
     }
 
   }

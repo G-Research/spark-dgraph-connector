@@ -8,5 +8,5 @@ class DefaultPartitionerOption extends PartitionerProviderOption {
                               schema: Schema,
                               clusterState: ClusterState,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Some(new SingletonPartitioner(targets))
+    Some(SingletonPartitioner(targets))
 }

@@ -8,6 +8,6 @@ class PredicatePartitionerOption extends PartitionerProviderOption with ConfigPa
                               schema: Schema,
                               clusterState: ClusterState,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Some(new PredicatePartitioner(schema, clusterState,
+    Some(PredicatePartitioner(schema, clusterState,
       getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault)))
 }

@@ -26,13 +26,13 @@ class TestGroupPartitioner extends FunSpec {
     )
 
     it("should partition") {
-      val partitioner = new GroupPartitioner(schema, clusterState)
+      val partitioner = GroupPartitioner(schema, clusterState)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 2)
       assert(partitions.toSet === Set(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3")))),
-        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None),
+        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None)
       ))
     }
 

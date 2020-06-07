@@ -7,7 +7,7 @@ import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicat
 
 import scala.language.implicitConversions
 
-class PredicatePartitioner(schema: Schema, clusterState: ClusterState, predicatesPerPartition: Int)
+case class PredicatePartitioner(schema: Schema, clusterState: ClusterState, predicatesPerPartition: Int)
   extends Partitioner {
 
   if (predicatesPerPartition <= 0)
@@ -75,25 +75,14 @@ object PredicatePartitioner extends ClusterStateHelper {
 
   def getPartitions(schema: Schema, clusterState: ClusterState, partitionsInGroup: (String) => Int): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
-      val targets = getGroupTargets(clusterState, group).toSeq
+      val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
       val predicatesPartitions = partition(groupPredicates, partitions)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotate(index), Some(predicatesPartitions(index)))
+        Partition(targets.rotate(index), Some(predicatesPartitions(index)), None)
       }
     }.toSeq
-
-  implicit class RotatingSeq[T](seq: Seq[T]) {
-    @scala.annotation.tailrec
-    final def rotate(i: Int): Seq[T] =
-      if (seq.isEmpty)
-        seq
-      else if (i >= 0 && i < seq.size)
-        seq.drop(i) ++ seq.take(i)
-      else
-        rotate(if (i < 0) i + seq.size else i - seq.size)
-  }
 
 }
