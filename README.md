@@ -44,7 +44,11 @@ Add this dependency to your `pom.xml` file to use the latest version:
 The following examples use a local Dgraph instance setup as described in the
 [Dgraph Quickstart Guide](https://dgraph.io/docs/get-started).
 Run [Step 1](https://dgraph.io/docs/get-started/#step-1-run-dgraph) to start an instance and
-[Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data.
+[Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data and schema:
+
+    ./dgraph-instance.start.sh
+    ./dgraph-instance.insert.sh
+    ./dgraph-instance.schema.sh
 
 The connection to the Dgraph can be established via a `target`, which is the [hostname and gRPC port of a
 Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `"hostname:port"`. With our example instance started above,
