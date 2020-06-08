@@ -36,20 +36,18 @@ class TestUidRangePartitioner extends FunSpec {
         (pred, "predicates"),
       )
 
-    val testRanges =
-      Seq(
-        Seq(UidRange(0, 5000), UidRange(5000, 5000)),
-        Seq(UidRange(0, 2000), UidRange(2000, 2000), UidRange(4000, 2000), UidRange(6000, 2000), UidRange(8000, 2000)),
-      )
+    val testSizes = Seq(2000, 5000)
 
     testPartitioners.foreach { case (partitioner, label) =>
-      testRanges.foreach(ranges =>
+      testSizes.foreach { size =>
 
-        it(s"should decorate $label partitioner with factor ${ranges.length}") {
-          val uidPartitioner = UidRangePartitioner(partitioner, ranges.length, clusterState.maxLeaseId)
+        it(s"should decorate $label partitioner with ${size} uids per partition") {
+          val uidPartitioner = UidRangePartitioner(partitioner, size, clusterState.maxLeaseId)
           val partitions = partitioner.getPartitions
           val uidPartitions = uidPartitioner.getPartitions
           println(uidPartitions)
+
+          val ranges = (0 until (10000 / size)).map(idx => UidRange(idx * size, size))
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = ranges.zipWithIndex.flatMap { case (range, idx) =>
             partitions.map(partition => Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range)))
@@ -57,13 +55,13 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions === expectedPartitions)
         }
 
-      )
+      }
     }
 
     testPartitioners.foreach{ case (partitioner, label) =>
 
-      it(s"should noop $label partitioner with partitioning factor one") {
-        val uidPartitioner = UidRangePartitioner(partitioner, 1, clusterState.maxLeaseId)
+      it(s"should noop $label partitioner with too large uidsPerPartition") {
+        val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.toInt, clusterState.maxLeaseId)
         assert(uidPartitioner.getPartitions === partitioner.getPartitions)
       }
 
@@ -75,7 +73,7 @@ class TestUidRangePartitioner extends FunSpec {
       }
     }
 
-    it("should fail on negative or zero partitioning factor") {
+    it("should fail on negative or zero uidsPerPartition") {
       assertThrows[IllegalArgumentException] {
         UidRangePartitioner(singleton, -1, 1000)
       }

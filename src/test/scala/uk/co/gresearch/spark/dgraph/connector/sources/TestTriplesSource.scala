@@ -162,7 +162,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .read
           .option(PartitionerOption, s"$PredicatePartitionerOption+$UidRangePartitionerOption")
           .option(PredicatePartitionerPredicatesOption, "2")
-          .option(UidRangePartitionerFactorOption, "2")
+          .option(UidRangePartitionerUidsPerPartOption, "5000")
           .dgraphTriples(target)
           .rdd
           .partitions.map {

@@ -89,8 +89,8 @@ package object connector {
   val AlphaPartitionerPartitionsDefault: Int = 1
   val PredicatePartitionerPredicatesOption: String = "partitioner.predicate.predicatesPerPartition"
   val PredicatePartitionerPredicatesDefault: Int = 1000
-  val UidRangePartitionerFactorOption: String = "partitioner.uidRange.partitioningFactor"
-  val UidRangePartitionerFactorDefault: Int = 10
+  val UidRangePartitionerUidsPerPartOption: String = "partitioner.uidRange.uidsPerPartition"
+  val UidRangePartitionerUidsPerPartDefault: Int = 1000
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 
