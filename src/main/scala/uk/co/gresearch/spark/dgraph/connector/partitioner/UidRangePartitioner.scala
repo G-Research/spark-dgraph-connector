@@ -25,7 +25,7 @@ case class UidRangePartitioner(partitioner: Partitioner, partitioningFactor: Int
       (0 until factor).map(idx => idx -> UidRange(idx*uidRangeSize, uidRangeSize)).flatMap {
         case (idx, range) =>
           partitions.map(partition =>
-            Partition(partition.targets.rotate(idx), partition.predicates, Some(range))
+            Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range))
           )
       }
     } else {

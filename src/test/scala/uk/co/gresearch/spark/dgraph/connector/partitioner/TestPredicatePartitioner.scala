@@ -42,24 +42,6 @@ class TestPredicatePartitioner extends FunSpec {
 
     }
 
-    it("should rotate Seq") {
-      val seq = 0 until 5
-      assert(seq.rotate(-2) === (3 until 5) ++ (0 until 3))
-      assert(seq.rotate(-1) === (4 until 5) ++ (0 until 4))
-      assert(seq.rotate(0) === (0 until 5))
-      assert(seq.rotate(1) === (1 until 5) ++ (0 until 1))
-      assert(seq.rotate(2) === (2 until 5) ++ (0 until 2))
-      assert(seq.rotate(3) === (3 until 5) ++ (0 until 3))
-      assert(seq.rotate(4) === (4 until 5) ++ (0 until 4))
-      assert(seq.rotate(5) === (0 until 5))
-      assert(seq.rotate(6) === (1 until 5) ++ (0 until 1))
-      assert(seq.rotate(7) === (2 until 5) ++ (0 until 2))
-    }
-
-    it("should rotate empty Seq") {
-      (-2 to +2).foreach(i => assert(Seq.empty.rotate(i) === Seq.empty))
-    }
-
     val schema = Schema((1 to 6).map(i => Predicate(s"pred$i", s"type$i")).toSet)
     val clusterState = ClusterState(
       Map(

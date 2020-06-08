@@ -153,14 +153,29 @@ package object connector {
   }
 
   implicit class RotatingSeq[T](seq: Seq[T]) {
+
     @scala.annotation.tailrec
-    final def rotate(i: Int): Seq[T] =
+    final def rotateLeft(i: Int): Seq[T] =
       if (seq.isEmpty)
         seq
-      else if (i >= 0 && i < seq.size)
-        seq.drop(i) ++ seq.take(i)
+      else if (i < 0)
+        rotateRight(-(i % seq.length))
+      else if (i >= seq.length)
+        rotateLeft(i % seq.length)
       else
-        rotate(if (i < 0) i + seq.size else i - seq.size)
+        seq.drop(i) ++ seq.take(i)
+
+    @scala.annotation.tailrec
+    final def rotateRight(i: Int): Seq[T] =
+      if (seq.isEmpty)
+        seq
+      else if (i < 0)
+        rotateLeft(-(i % seq.length))
+      else if (i >= seq.length)
+        rotateRight(i % seq.length)
+      else
+        seq.drop(seq.length - i) ++ seq.take(seq.length - i)
+
   }
 
 }
