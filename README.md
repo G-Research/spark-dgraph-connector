@@ -200,3 +200,61 @@ partitions in ascending order. If vertice size is skewed and a function of `uid`
 The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
 Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
 locally to the alpha nodes and induce no Dgraph cluster internal communication.
+
+## Dependencies
+
+The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the
+
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>[20.0-jre,)</version>
+    </dependency>
+
+in the `pom.xml`file. Otherwise, we would see this error:
+
+      java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
+      at io.grpc.Metadata$Key.validateName(Metadata.java:629)
+      at io.grpc.Metadata$Key.<init>(Metadata.java:637)
+      at io.grpc.Metadata$Key.<init>(Metadata.java:567)
+      at io.grpc.Metadata$AsciiKey.<init>(Metadata.java:742)
+      at io.grpc.Metadata$AsciiKey.<init>(Metadata.java:737)
+      at io.grpc.Metadata$Key.of(Metadata.java:593)
+      at io.grpc.Metadata$Key.of(Metadata.java:589)
+      at io.grpc.internal.GrpcUtil.<clinit>(GrpcUtil.java:79)
+      at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
+      at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
+
+Further, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
+
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>[3,]</version>
+    </dependency>
+
+to get rid of this error
+
+      java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
+      at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+      at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
+      at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:174)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:800)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
+      at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
+      at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
+      at io.dgraph.AsyncTransaction.<init>(AsyncTransaction.java:48)
+      ...
+      Cause: java.lang.ClassNotFoundException: com.google.protobuf.GeneratedMessageV3
+      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:581)
+      at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
+      at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
+      at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+      at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
+      at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:174)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:800)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
+      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
