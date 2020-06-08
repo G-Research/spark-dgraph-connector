@@ -72,24 +72,25 @@ package object connector {
       throw new IllegalArgumentException(s"UidRange first must be positive (is $first), length must be larger than zero (is $length)")
   }
 
-  val TargetOption: String = "target"
-  val TargetsOption: String = "targets"
-  val TriplesModeOption: String = "triples.mode"
+  val TargetOption: String = "dgraph.target"
+  val TargetsOption: String = "dgraph.targets"
+  val TriplesModeOption: String = "dgraph.triples.mode"
   val TriplesModeStringOption: String = "string"
   val TriplesModeTypedOption: String = "typed"
 
-  val PartitionerOption: String = "partitioner"
+  val PartitionerOption: String = "dgraph.partitioner"
   val SingletonPartitionerOption: String = "singleton"
   val GroupPartitionerOption: String = "group"
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
   val UidRangePartitionerOption: String = "uid-range"
+  val PartitionerDefault: String = UidRangePartitionerOption
 
-  val AlphaPartitionerPartitionsOption: String = "partitioner.alpha.partitionsPerAlpha"
+  val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
   val AlphaPartitionerPartitionsDefault: Int = 1
-  val PredicatePartitionerPredicatesOption: String = "partitioner.predicate.predicatesPerPartition"
+  val PredicatePartitionerPredicatesOption: String = "dgraph.partitioner.predicate.predicatesPerPartition"
   val PredicatePartitionerPredicatesDefault: Int = 1000
-  val UidRangePartitionerUidsPerPartOption: String = "partitioner.uidRange.uidsPerPartition"
+  val UidRangePartitionerUidsPerPartOption: String = "dgraph.partitioner.uidRange.uidsPerPartition"
   val UidRangePartitionerUidsPerPartDefault: Int = 1000
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()

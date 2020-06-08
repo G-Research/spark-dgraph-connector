@@ -158,3 +158,45 @@ with the actual type of the object. Here is an example:
 |      4| dgraph.type|              Person|    string|
 |      5|        name|     Irvin Kernshner|    string|
 |      5| dgraph.type|              Person|    string|
+
+## Partitioning
+
+Partitioning the Dgraph is essential to be able to load large quantities of graph data into Spark.
+Spark splits data into partitions, where ideally all partitions have the same size and are of decent size.
+Partitions that are too large will kill your Spark executor as they won't fit into memory. When partitions
+are too small your Spark jobs becomes inefficient and slow, but will not fail.
+
+Each partition connects to the Dgraph cluster and reads a specific sub-graph. Partitions are non-overlapping.
+
+This connector provides various ways to partition your graph. When the default partitioning does not work for your
+specific use case, try a more appropriate partitioning scheme.
+
+### Partitioner
+
+The following `Partitioner` implementations are availabe:
+
+| Partitioner             | partition by | Description | Use Case |
+|:-----------------------:|:------------:|-------------|----------|
+| Singleton               | _nothing_    | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
+| Uid Range _(default)_   | uids         | Each partition has at most `N` uids. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces Dgraph cluster internal communication across groups. |
+| Predicate               | predicate    | Provides multiple partitions with at most `P` predicates per partition. Partitions by group first (see "Group" partitioner). | Graphs with a large number of different predicates. Each predicate should fit into one partition. Skewness of predicates reflects skewness of partitions. |
+| Group                   | predicate    | Provides a single partition for each [Dgraph cluster group](https://dgraph.io/docs/design-concepts/#group). A partition contains only predicates of that group. | Dgraph cluster with multiple groups where number of predicates per group is < 1000. Not very useful on its own but can be combined with `uid` partitioners to avoid Dgraph internal communication. |
+| Alpha                   | predicate    | Provides `N` partitions for each [Dgraph cluster alpha](https://dgraph.io/docs/deploy/#cluster-setup). A partition contains a subset of predicates of the alpha's group only. | Like "Predicate" partitioner but scales with the number of alphas, not predicates. Graphs with a large number of different predicates. |
+
+
+#### Partitioning by Uids
+
+A `uid` represents a node or vertice in Dgraph terminology. A "Uid Range" partitioning splits
+the graph by the subject of the graph triples. This can be combined with predicates partitioning,
+which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
+induces Dgraph cluster internal communication across the groups.
+
+The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000`
+and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
+partitions in ascending order. If vertice size is skewed and a function of `uid`, then partitions will be skewed as well.
+
+#### Partitioning by Predicates
+
+The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
+Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
+locally to the alpha nodes and induce no Dgraph cluster internal communication.
