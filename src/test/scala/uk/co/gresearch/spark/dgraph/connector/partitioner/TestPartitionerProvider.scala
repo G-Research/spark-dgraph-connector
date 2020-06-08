@@ -43,17 +43,31 @@ class TestPartitionerProvider extends FunSpec {
       it(s"should provide $partOption partitioner via option") {
         val provider = new PartitionerProvider {}
         val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> partOption).asJava)
-        val partitioner = provider.getPartitioner(target, schema, state, options)
+        val partitioner = provider.getPartitioner(schema, state, options)
         assert(partitioner === expected)
       }
 
+    }
+
+    it("should provide default partitioner") {
+      val provider = new PartitionerProvider {}
+      val options = CaseInsensitiveStringMap.empty()
+      val partitioner = provider.getPartitioner(schema, state, options)
+      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), UidRangePartitionerUidsPerPartDefault, state.maxLeaseId))
+    }
+
+    it("should provide configurable default partitioner") {
+      val provider = new PartitionerProvider {}
+      val options = new CaseInsensitiveStringMap(Map(UidRangePartitionerUidsPerPartOption -> "1").asJava)
+      val partitioner = provider.getPartitioner(schema, state, options)
+      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), 1, state.maxLeaseId))
     }
 
     it("should fail on unknown partitioner option") {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "unknown").asJava)
       assertThrows[IllegalArgumentException] {
-        provider.getPartitioner(target, schema, state, options)
+        provider.getPartitioner(schema, state, options)
       }
     }
 
@@ -61,28 +75,28 @@ class TestPartitionerProvider extends FunSpec {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "unknown+uid-range").asJava)
       assertThrows[IllegalArgumentException] {
-        provider.getPartitioner(target, schema, state, options)
+        provider.getPartitioner(schema, state, options)
       }
     }
 
     it(s"should provide alpha partitioner with non-default partsPerAlpha via option") {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "alpha", AlphaPartitionerPartitionsOption -> "2").asJava)
-      val partitioner = provider.getPartitioner(target, schema, state, options)
+      val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === alpha.copy(partitionsPerAlpha = 2))
     }
 
     it(s"should provide predicate partitioner with non-default predsPerPart via option") {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "predicate", PredicatePartitionerPredicatesOption -> "2").asJava)
-      val partitioner = provider.getPartitioner(target, schema, state, options)
+      val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === pred.copy(predicatesPerPartition = 2))
     }
 
     it(s"should provide uid-range partitioner with non-default factor via option") {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "uid-range", UidRangePartitionerUidsPerPartOption -> "2").asJava)
-      val partitioner = provider.getPartitioner(target, schema, state, options)
+      val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === uidRange.copy(uidsPerPartition = 2))
     }
 
@@ -93,7 +107,7 @@ class TestPartitionerProvider extends FunSpec {
         AlphaPartitionerPartitionsOption -> "2",
         UidRangePartitionerUidsPerPartOption -> "2",
       ).asJava)
-      val partitioner = provider.getPartitioner(target, schema, state, options)
+      val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === uidRange.copy(partitioner = alpha.copy(partitionsPerAlpha = 2), uidsPerPartition = 2))
     }
 
@@ -104,7 +118,7 @@ class TestPartitionerProvider extends FunSpec {
         PredicatePartitionerPredicatesOption -> "2",
         UidRangePartitionerUidsPerPartOption -> "2",
       ).asJava)
-      val partitioner = provider.getPartitioner(target, schema, state, options)
+      val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === uidRange.copy(partitioner = pred.copy(predicatesPerPartition = 2), uidsPerPartition = 2))
     }
 

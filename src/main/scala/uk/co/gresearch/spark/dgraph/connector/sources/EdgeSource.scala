@@ -16,7 +16,7 @@ class EdgeSource() extends TableProviderBase
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName == "uid")
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(targets, schema, clusterState, options)
+    val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = new EdgeEncoder()
     new TripleTable(partitioner, encoder, clusterState.cid)
   }
