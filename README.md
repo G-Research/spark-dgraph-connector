@@ -24,7 +24,7 @@ Now, you can do things like:
 Add this line to your `build.sbt` file to use the latest version:
 
 ```sbt
-libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "[1.0.0,)"
+libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "[0.1.0,)"
 ```
 
 ### Maven
@@ -35,7 +35,7 @@ Add this dependency to your `pom.xml` file to use the latest version:
 <dependency>
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector_2.12</artifactId>
-  <version>[1.0.0,)</version>
+  <version>[0.1.0,)</version>
 </dependency>
 ```
 
