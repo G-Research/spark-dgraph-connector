@@ -12,7 +12,7 @@ import uk.co.gresearch.spark.dgraph.connector.{TypedTriple, Geo, Password, Tripl
 /**
  * Encodes Triple by representing objects in multiple typed columns.
  **/
-class TypedTripleEncoder extends TripleEncoder {
+case class TypedTripleEncoder() extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

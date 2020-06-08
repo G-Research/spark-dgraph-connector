@@ -8,7 +8,7 @@ class TestEdgeEncoder extends FunSpec {
   describe("EdgeEncoder") {
 
     it("should encode edges") {
-      val encoder = new EdgeEncoder()
+      val encoder = EdgeEncoder()
       val edge = Triple(Uid(1), "predicate", Uid(2))
       val row = encoder.asInternalRow(edge)
 
@@ -19,7 +19,7 @@ class TestEdgeEncoder extends FunSpec {
     }
 
     it("should fail on node properties") {
-      val encoder = new EdgeEncoder()
+      val encoder = EdgeEncoder()
       val edge = Triple(Uid(1), "predicate", 2L)
       assertThrows[IllegalArgumentException]{ encoder.asInternalRow(edge) }
     }

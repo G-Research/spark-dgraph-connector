@@ -23,7 +23,7 @@ class TestStringTripleTripleEncoder extends FunSpec {
   ).foreach { case (value, encoded, encType, test) =>
 
     it(s"should encode $test to internalrow") {
-      val encoder = new StringTripleEncoder()
+      val encoder = StringTripleEncoder()
       val triple = Triple(Uid(1), "predicate", value)
       val row = encoder.asInternalRow(triple)
 
@@ -37,7 +37,7 @@ class TestStringTripleTripleEncoder extends FunSpec {
   }
 
   it("should provide the expected read schema") {
-    val encoder = new StringTripleEncoder()
+    val encoder = StringTripleEncoder()
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),
@@ -48,7 +48,7 @@ class TestStringTripleTripleEncoder extends FunSpec {
   }
 
   it("should provide the expected schema") {
-    val encoder = new StringTripleEncoder()
+    val encoder = StringTripleEncoder()
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),

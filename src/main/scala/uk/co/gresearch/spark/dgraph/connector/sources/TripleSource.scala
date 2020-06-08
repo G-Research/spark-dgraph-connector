@@ -22,10 +22,10 @@ class TripleSource() extends TableProviderBase
     val partitioner = getPartitioner(schema, clusterState, options)
     val tripleMode = getTripleMode(options)
     val encoder = tripleMode match {
-      case Some(TriplesModeStringOption) => new StringTripleEncoder
-      case Some(TriplesModeTypedOption) => new TypedTripleEncoder
+      case Some(TriplesModeStringOption) => StringTripleEncoder()
+      case Some(TriplesModeTypedOption) => TypedTripleEncoder()
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => new TypedTripleEncoder
+      case None => TypedTripleEncoder()
     }
     new TripleTable(partitioner, encoder, clusterState.cid)
   }

@@ -9,7 +9,7 @@ import uk.co.gresearch.spark.dgraph.connector.{StringTriple, Triple, TriplesFact
 /**
  * Encodes Triple by representing objects as strings.
  **/
-class StringTripleEncoder extends TripleEncoder {
+case class StringTripleEncoder() extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

@@ -12,7 +12,7 @@ import uk.co.gresearch.spark.dgraph.connector.{TypedNode, Geo, Password, Triple,
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
-class TypedNodeEncoder extends TripleEncoder {
+case class TypedNodeEncoder() extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

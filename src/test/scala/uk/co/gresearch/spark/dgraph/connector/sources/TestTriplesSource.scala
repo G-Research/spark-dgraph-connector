@@ -84,6 +84,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .as[StringTriple]
           .collectAsList()
       rows.forEach(println)
+      assert(rows.size() == 34)
     }
 
     it("should encode TypedTriple") {
@@ -95,6 +96,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .as[TypedTriple]
           .collectAsList()
       rows.forEach(println)
+      assert(rows.size() == 34)
     }
 
     it("should fail without target") {
@@ -155,6 +157,28 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
       ))
     }
 
+    it("should load as uid-range partitions") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .option(PartitionerOption, s"$UidRangePartitionerOption")
+          .option(UidRangePartitionerUidsPerPartOption, "5000")
+          .dgraphTriples(target)
+          .rdd
+          .partitions.map {
+          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case _ => None
+        }
+
+      val expected = (0 to 1).map(idx =>
+        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(idx * 5000, 5000))))
+      )
+
+      assert(partitions.length === expected.size)
+      assert(partitions === expected)
+    }
+
     it("should load as predicate uid-range partitions") {
       val target = "localhost:9080"
       val partitions =
@@ -181,6 +205,18 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
 
       assert(partitions.length === expected.size)
       assert(partitions === expected)
+    }
+
+    it("should partition data") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .dgraphTriples(target)
+          .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
+          .collect()
+      assert(partitions.length === 10)
+      assert(partitions === Seq((1 to 10).toSet) ++ (1 to 9).map(_ => Set.empty[Long]))
     }
 
   }

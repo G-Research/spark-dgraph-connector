@@ -9,7 +9,7 @@ import uk.co.gresearch.spark.dgraph.connector.{Edge, Triple, TriplesFactory, Uid
 /**
  * Encodes only triples that represent edges, i.e. object is a uid.
  */
-class EdgeEncoder extends TripleEncoder {
+case class EdgeEncoder() extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

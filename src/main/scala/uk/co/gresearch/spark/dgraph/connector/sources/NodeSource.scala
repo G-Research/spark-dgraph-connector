@@ -17,7 +17,7 @@ class NodeSource() extends TableProviderBase
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
-    val encoder = new TypedNodeEncoder()
+    val encoder = TypedNodeEncoder()
     new TripleTable(partitioner, encoder, clusterState.cid)
   }
 
