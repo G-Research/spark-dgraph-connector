@@ -11,7 +11,7 @@ Follow this procedure to release a new version:
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.0`. Do not push to github yet.
 - Tag that commit with a tag message like `Release v1.1.0`. Do not push to github yet.
 - Release the version with `mvn clean deploy`. This will be put into a staging repository and not automatically released (due to `<autoReleaseAfterClose>false</autoReleaseAfterClose>` in your [`pom.xml`](pom.xml) file).
-- Inspect and test the staged version. Use `spark-dgraph-example` for that. If you are happy with everything:
+- Inspect and test the staged version. Use `spark-examples` for that. If you are happy with everything:
   - Push the commit and tag to origin.
   - Release the package with `mvn nexus-staging:release`
   - Bump the version to the next [minor version](https://semver.org/) in `pom.xml` and append the `-SNAPSHOT` suffix again, e.g. `1.1.0` → `1.2.0-SNAPSHOT`.
@@ -44,7 +44,7 @@ but the version increment occurs on [patch level](https://semver.org/):
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.1`. Do not push to github yet.
 - Tag that commit with a tag message like `Release v1.1.1`. Do not push to github yet.
 - Release the version with `mvn clean deploy`. This will be put into a staging repository and not automatically released (due to `<autoReleaseAfterClose>false</autoReleaseAfterClose>` in your [`pom.xml`](pom.xml) file).
-- Inspect and test the staged version. Use `spark-dgraph-example` for that. If you are happy with everything:
+- Inspect and test the staged version. Use `spark-examples` for that. If you are happy with everything:
   - Push the commit and tag to origin.
   - Release the package with `mvn nexus-staging:release`
   - Bump the version to the next [patch version](https://semver.org/) in `pom.xml` and append the `-SNAPSHOT` suffix again, e.g. `1.1.1` → `1.1.2-SNAPSHOT`.
