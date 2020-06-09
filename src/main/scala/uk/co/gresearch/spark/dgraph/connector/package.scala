@@ -94,9 +94,14 @@ package object connector {
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"
+
   val TriplesModeOption: String = "dgraph.triples.mode"
   val TriplesModeStringOption: String = "string"
   val TriplesModeTypedOption: String = "typed"
+
+  val NodesModeOption: String = "dgraph.nodes.mode"
+  val NodesModeTypedOption: String = "typed"
+  val NodesModeWideOption: String = "wide"
 
   val PartitionerOption: String = "dgraph.partitioner"
   val SingletonPartitionerOption: String = "singleton"
@@ -152,13 +157,12 @@ package object connector {
      *
      * @param target  a target
      * @param targets more targets
-     * @return triples DataFrame
+     * @return edges DataFrame
      */
-    def dgraphEdges(target: String, targets: String*): Dataset[Edge] =
+    def dgraphEdges(target: String, targets: String*): DataFrame =
       reader
         .format(EdgesSource)
         .load(Seq(target) ++ targets: _*)
-        .as[Edge](edgeEncoder)
 
     /**
      * Loads all ndoes of a Dgraph database into a DataFrame. Requires at least one target.
@@ -166,13 +170,12 @@ package object connector {
      *
      * @param target  a target
      * @param targets more targets
-     * @return triples DataFrame
+     * @return nodes DataFrame
      */
-    def dgraphNodes(target: String, targets: String*): Dataset[TypedNode] =
+    def dgraphNodes(target: String, targets: String*): DataFrame =
       reader
         .format(NodesSource)
         .load(Seq(target) ++ targets: _*)
-        .as[TypedNode](nodeEncoder)
 
   }
 

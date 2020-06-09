@@ -5,8 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
-### Changed
-- Removed internal triples representation to improve result streaming performance.
+### Added
+- Load nodes from Dgraph cluster as wide nodes (fully typed property columns).
+- Added `dgraph.type` and `dgraph.graphql.schema` predicates to be loaded from Dgraph cluster.
 
 ## [0.1.0] - 2020-06-09
 

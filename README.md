@@ -14,8 +14,8 @@ Now, you can do things like:
 
     import uk.co.gresearch.spark.dgraph.connector._
     val triples: DataFrame = spark.read.dgraphTriples(target)
-    val edges: Dataset[Edge] = spark.read.dgraphEdges(target)
-    val nodes: Dataset[TypedNode] = spark.read.dgraphNodes(target)
+    val edges: DataFrame = spark.read.dgraphEdges(target)
+    val nodes: DataFrame = spark.read.dgraphNodes(target)
 
 ## Using Spark Dgraph Connector
 
@@ -73,10 +73,11 @@ computation on this graph to test the connector:
     val pageRank = graph.pageRank(0.0001)
     pageRank.vertices.foreach(println)
 
-
 ### Dataset
 
-You can load the entire Dgraph database as triples into a [Apache Spark Dataset]().
+#### Typed Triples
+
+You can load the entire Dgraph database as triples into a [Apache Spark Dataset]():
 
     import uk.co.gresearch.spark.dgraph.connector._
 
@@ -100,27 +101,21 @@ The returned `DataFrame` has the following schema:
 The object value gets stored in exactly one of the `object*` (except `objectType`) columns, depending on the type of the value.
 The `objectType` column provides the type of the object. Here is an example:
 
-|subject|   predicate|objectUid|        objectString|objectLong|objectDouble|    objectTimestamp|objectBoolean|objectGeo|objectPassword|objectType|
-|:-----:|:----------:|:-------:|:------------------:|:--------:|:----------:|:-----------------:|:-----------:|:-------:|:------------:|:--------:|
-|      1|        name|     null|Star Wars: Episod...|      null|        null|               null|         null|     null|          null|    string|
-|      1|    starring|        2|                null|      null|        null|               null|         null|     null|          null|       uid|
-|      1|    starring|        3|                null|      null|        null|               null|         null|     null|          null|       uid|
-|      1|    starring|        7|                null|      null|        null|               null|         null|     null|          null|       uid|
-|      1|running_time|     null|                null|       121|        null|               null|         null|     null|          null|      long|
-|      1|release_date|     null|                null|      null|        null|1977-05-25 00:00:00|         null|     null|          null| timestamp|
-|      1|    director|        4|                null|      null|        null|               null|         null|     null|          null|       uid|
-|      1|     revenue|     null|                null|      null|      7.75E8|               null|         null|     null|          null|    double|
-|      1| dgraph.type|     null|                Film|      null|        null|               null|         null|     null|          null|    string|
-|      2|        name|     null|      Luke Skywalker|      null|        null|               null|         null|     null|          null|    string|
-|      2| dgraph.type|     null|              Person|      null|        null|               null|         null|     null|          null|    string|
-|      3|        name|     null|            Han Solo|      null|        null|               null|         null|     null|          null|    string|
-|      3| dgraph.type|     null|              Person|      null|        null|               null|         null|     null|          null|    string|
-|      4|        name|     null|        George Lucas|      null|        null|               null|         null|     null|          null|    string|
-|      4| dgraph.type|     null|              Person|      null|        null|               null|         null|     null|          null|    string|
-|      5|        name|     null|     Irvin Kernshner|      null|        null|               null|         null|     null|          null|    string|
-|      5| dgraph.type|     null|              Person|      null|        null|               null|         null|     null|          null|    string|
+|subject|predicate   |objectString                                  |objectLong|objectDouble|objectTimestamp    |objectBoolean|objectGeo|objectPassword|objectType|
+|:-----:|:----------:|:--------------------------------------------:|:--------:|:----------:|:-----------------:|:-----------:|:-------:|:------------:|:--------:|
+|1      |dgraph.type |Person                                        |null      |null        |null               |null         |null     |null          |string    |
+|1      |name        |Luke Skywalker                                |null      |null        |null               |null         |null     |null          |string    |
+|2      |dgraph.type |Person                                        |null      |null        |null               |null         |null     |null          |string    |
+|2      |name        |Princess Leia                                 |null      |null        |null               |null         |null     |null          |string    |
+|3      |dgraph.type |Film                                          |null      |null        |null               |null         |null     |null          |string    |
+|3      |name        |Star Wars: Episode IV - A New Hope            |null      |null        |null               |null         |null     |null          |string    |
+|3      |release_date|null                                          |null      |null        |1977-05-25 00:00:00|null         |null     |null          |timestamp |
+|3      |revenue     |null                                          |null      |7.75E8      |null               |null         |null     |null          |double    |
+|3      |running_time|null                                          |121       |null        |null               |null         |null     |null          |long      |
 
 This model allows to store the triples fully typed in a `DataFrame`.
+
+#### String Triples
 
 The triples can also be loaded in an un-typed narrow form:
 
@@ -142,25 +137,126 @@ The returned `DataFrame` has the following schema:
 The object value gets stored as a string in `objectString` and `objectType` provides you
 with the actual type of the object. Here is an example:
 
-|subject|   predicate|        objectString|objectType|
-|:-----:|:----------:|:------------------:|:--------:|
-|      1|        name|Star Wars: Episod...|    string|
-|      1|    starring|                   2|       uid|
-|      1|    starring|                   3|       uid|
-|      1|    starring|                   7|       uid|
-|      1|running_time|                 121|      long|
-|      1|release_date|1977-05-25 00:00:...| timestamp|
-|      1|    director|                   4|       uid|
-|      1|     revenue|              7.75E8|    double|
-|      1| dgraph.type|                Film|    string|
-|      2|        name|      Luke Skywalker|    string|
-|      2| dgraph.type|              Person|    string|
-|      3|        name|            Han Solo|    string|
-|      3| dgraph.type|              Person|    string|
-|      4|        name|        George Lucas|    string|
-|      4| dgraph.type|              Person|    string|
-|      5|        name|     Irvin Kernshner|    string|
-|      5| dgraph.type|              Person|    string|
+|subject|predicate   |objectString                                  |objectType|
+|:-----:|:----------:|:--------------------------------------------:|:--------:|
+|1      |dgraph.type |Person                                        |string    |
+|1      |name        |Luke Skywalker                                |string    |
+|2      |dgraph.type |Person                                        |string    |
+|2      |name        |Princess Leia                                 |string    |
+|3      |dgraph.type |Film                                          |string    |
+|3      |revenue     |7.75E8                                        |double    |
+|3      |running_time|121                                           |long      |
+|3      |starring    |1                                             |uid       |
+|3      |starring    |2                                             |uid       |
+|3      |starring    |6                                             |uid       |
+|3      |director    |7                                             |uid       |
+|3      |name        |Star Wars: Episode IV - A New Hope            |string    |
+|3      |release_date|1977-05-25 00:00:00.0                         |timestamp |
+
+#### Typed Nodes
+
+You can load all nodes into a `DataFrame` in a fully typed form. This contains all nodes' properties but no edges to other nodes:
+
+    spark
+      .read
+      .option(NodesModeOption, NodesModeTypedOption)
+      .dgraphNodes("localhost:9080")
+
+The returned `DataFrame` has the following schema:
+
+    root
+     |-- subject: long (nullable = false)
+     |-- predicate: string (nullable = true)
+     |-- objectString: string (nullable = true)
+     |-- objectLong: long (nullable = true)
+     |-- objectDouble: double (nullable = true)
+     |-- objectTimestamp: timestamp (nullable = true)
+     |-- objectBoolean: boolean (nullable = true)
+     |-- objectGeo: string (nullable = true)
+     |-- objectPassword: string (nullable = true)
+     |-- objectType: string (nullable = true)
+
+The schema of the returned `DataFrame` is very similar to the typed triples schema, except there is no `objectUid` column linking to other nodes. Here is an example:
+
+|subject|predicate   |objectString                                  |objectLong|objectDouble|objectTimestamp    |objectBoolean|objectGeo|objectPassword|objectType|
+|:-----:|:----------:|:--------------------------------------------:|:--------:|:----------:|:-----------------:|:-----------:|:-------:|:------------:|:--------:|
+|1      |dgraph.type |Person                                        |null      |null        |null               |null         |null     |null          |string    |
+|1      |name        |Luke Skywalker                                |null      |null        |null               |null         |null     |null          |string    |
+|2      |dgraph.type |Person                                        |null      |null        |null               |null         |null     |null          |string    |
+|2      |name        |Princess Leia                                 |null      |null        |null               |null         |null     |null          |string    |
+|3      |dgraph.type |Film                                          |null      |null        |null               |null         |null     |null          |string    |
+|3      |revenue     |null                                          |null      |7.75E8      |null               |null         |null     |null          |double    |
+|3      |running_time|null                                          |121       |null        |null               |null         |null     |null          |long      |
+|3      |name        |Star Wars: Episode IV - A New Hope            |null      |null        |null               |null         |null     |null          |string    |
+|3      |release_date|null                                          |null      |null        |1977-05-25 00:00:00|null         |null     |null          |timestamp |
+
+#### Wide Nodes
+
+Nodes can also be loaded in a wide fully typed format:
+
+    spark
+      .read
+      .option(NodesModeOption, NodesModeTypedOption)
+      .dgraphNodes("localhost:9080")
+
+The returned `DataFrame` has the following schema (depends on the schema of the Dgraph database). Node properties get stored in typed columns:
+
+    root
+     |-- subject: long (nullable = false)
+     |-- dgraph.graphql.schema: string (nullable = true)
+     |-- dgraph.type: string (nullable = true)
+     |-- name: string (nullable = true)
+     |-- release_date: timestamp (nullable = true)
+     |-- revenue: double (nullable = true)
+     |-- running_time: long (nullable = true)
+
+Note: The graph schema could become very large and therefore the `DataFrame` could become prohibitively wide.
+
+|subject|dgraph.graphql.schema|dgraph.type|name                                          |release_date       |revenue|running_time|
+|:-----:|:-------------------:|:---------:|:--------------------------------------------:|:-----------------:|:-----:|:----------:|
+|1      |null                 |Person     |Luke Skywalker                                |null               |null   |null        |
+|2      |null                 |Person     |Princess Leia                                 |null               |null   |null        |
+|3      |null                 |Film       |Star Wars: Episode IV - A New Hope            |1977-05-25 00:00:00|7.75E8 |121         |
+|4      |null                 |Film       |Star Wars: Episode VI - Return of the Jedi    |1983-05-25 00:00:00|5.72E8 |131         |
+|5      |null                 |Film       |Star Trek: The Motion Picture                 |1979-12-07 00:00:00|1.39E8 |132         |
+|6      |null                 |Person     |Han Solo                                      |null               |null   |null        |
+|7      |null                 |Person     |George Lucas                                  |null               |null   |null        |
+|8      |null                 |Person     |Irvin Kernshner                               |null               |null   |null        |
+|9      |null                 |Person     |Richard Marquand                              |null               |null   |null        |
+|10     |null                 |Film       |Star Wars: Episode V - The Empire Strikes Back|1980-05-21 00:00:00|5.34E8 |124         |
+
+#### Edges
+
+Edges can be loaded in the following way:
+
+    spark
+      .read
+      .format(EdgesSource)
+      .load("localhost:9080")
+
+The returned `DataFrame` has the following simple schema:
+
+    root
+     |-- subject: long (nullable = false)
+     |-- predicate: string (nullable = true)
+     |-- objectUid: long (nullable = false)
+
+Though there is only asingle `object` column for the destination node, it is called `objectUid` to align with the `DataFrame` schemata above.
+
+|subject|predicate|objectUid|
+|:-----:|:-------:|:-------:|
+|3      |starring |1        |
+|3      |starring |2        |
+|3      |starring |6        |
+|3      |director |7        |
+|4      |starring |1        |
+|4      |starring |2        |
+|4      |starring |6        |
+|4      |director |9        |
+|10     |starring |1        |
+|10     |starring |2        |
+|10     |starring |6        |
+|10     |director |8        |
 
 ## Partitioning
 

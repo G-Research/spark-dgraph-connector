@@ -36,6 +36,8 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type)) {
           |    uid
+          |    dgraph.graphql.schema
+          |    dgraph.type
           |    expand(_all_)
           |  }
           |}""".stripMargin)
@@ -62,6 +64,8 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
+          |    dgraph.graphql.schema
+          |    dgraph.type
           |    expand(_all_)
           |  }
           |}""".stripMargin)
@@ -73,6 +77,8 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type)) {
           |    uid
+          |    dgraph.graphql.schema
+          |    dgraph.type
           |    expand(_all_) {
           |      uid
           |    }
@@ -87,6 +93,8 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
+          |    dgraph.graphql.schema
+          |    dgraph.type
           |    expand(_all_) {
           |      uid
           |    }

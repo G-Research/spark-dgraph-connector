@@ -20,10 +20,10 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
+import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleScan}
+import uk.co.gresearch.spark.dgraph.connector._
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -31,12 +31,21 @@ class NodeSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-nodes"
 
+  def getNodeMode(options: DataSourceOptions): Option[String] =
+    getStringOption(NodesModeOption, options)
+
   override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
-    val encoder = TypedNodeEncoder(schema.predicateMap)
+    val nodeMode = getNodeMode(options)
+    val encoder = nodeMode match {
+      case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
+      case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicateMap)
+      case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
+      case None => TypedNodeEncoder(schema.predicateMap)
+    }
     val model = NodeTableModel(encoder)
     new TripleScan(partitioner, model)
   }

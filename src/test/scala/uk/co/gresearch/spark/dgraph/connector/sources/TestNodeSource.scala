@@ -21,8 +21,8 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, TypedTripleEncoder}
-import uk.co.gresearch.spark.dgraph.connector.model.{NodeTableModel, TripleTableModel}
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 
 class TestNodeSource extends FunSpec with SparkTestSession {
 
@@ -78,6 +78,22 @@ class TestNodeSource extends FunSpec with SparkTestSession {
         .show(100, false)
     }
 
+    it("should load typed nodes") {
+      spark
+        .read
+        .option(NodesModeOption, NodesModeTypedOption)
+        .dgraphNodes("localhost:9080")
+        .show(100, false)
+    }
+
+    it("should load wide nodes") {
+      spark
+        .read
+        .option(NodesModeOption, NodesModeWideOption)
+        .dgraphNodes("localhost:9080")
+        .show(100, false)
+    }
+
     it("should encode TypedNode") {
       val rows =
         spark
@@ -94,6 +110,16 @@ class TestNodeSource extends FunSpec with SparkTestSession {
         spark
           .read
           .format(NodesSource)
+          .load()
+      }
+    }
+
+    it("should fail with unknown mode") {
+      assertThrows[IllegalArgumentException] {
+        spark
+          .read
+          .format(NodesSource)
+          .option(NodesModeOption, "unknown")
           .load()
       }
     }
@@ -154,7 +180,7 @@ class TestNodeSource extends FunSpec with SparkTestSession {
         spark
           .read
           .dgraphNodes(target)
-          .mapPartitions(part => Iterator(part.map(_.subject).toSet))
+          .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
       assert(partitions.length === 10)
       assert(partitions === Seq((1 to 10).toSet) ++ (1 to 9).map(_ => Set.empty[Long]))
