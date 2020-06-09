@@ -27,7 +27,7 @@ class TestTriplesFactory extends FunSpec {
     it("should parse JSON response") {
       val schema = Schema(Set(
         Predicate("release_date", "datetime"),
-        Predicate("revenue", "int"),
+        Predicate("revenue", "float"),
         Predicate("running_time", "int"),
         Predicate("director", "uid"),
         Predicate("starring", "uid")
@@ -159,7 +159,7 @@ class TestTriplesFactory extends FunSpec {
         Triple(Uid(7), "name", "Princess Leia"),
         Triple(Uid(8), "name", "Star Wars: Episode V - The Empire Strikes Back"),
         Triple(Uid(8), "release_date", Timestamp.valueOf("1980-05-21 00:00:00")),
-        Triple(Uid(8), "revenue", 534000000L),
+        Triple(Uid(8), "revenue", 534000000.0),
         Triple(Uid(8), "running_time", 124L),
         Triple(Uid(8), "starring", Uid(2)),
         Triple(Uid(8), "starring", Uid(3)),
@@ -167,7 +167,7 @@ class TestTriplesFactory extends FunSpec {
         Triple(Uid(8), "director", Uid(5)),
         Triple(Uid(9), "name", "Star Wars: Episode VI - Return of the Jedi"),
         Triple(Uid(9), "release_date", Timestamp.valueOf("1983-05-25 00:00:00")),
-        Triple(Uid(9), "revenue", 572000000L),
+        Triple(Uid(9), "revenue", 572000000.0),
         Triple(Uid(9), "running_time", 131L),
         Triple(Uid(9), "starring", Uid(2)),
         Triple(Uid(9), "starring", Uid(3)),
@@ -175,7 +175,7 @@ class TestTriplesFactory extends FunSpec {
         Triple(Uid(9), "director", Uid(6)),
         Triple(Uid(10), "name", "Star Trek: The Motion Picture"),
         Triple(Uid(10), "release_date", Timestamp.valueOf("1979-12-07 00:00:00")),
-        Triple(Uid(10), "revenue", 139000000L),
+        Triple(Uid(10), "revenue", 139000000.0),
         Triple(Uid(10), "running_time", 132L),
       ))
     }

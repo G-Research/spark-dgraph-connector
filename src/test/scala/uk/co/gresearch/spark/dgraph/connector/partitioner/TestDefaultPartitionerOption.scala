@@ -23,8 +23,6 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Predicate, Schema, Target}
 
-import scala.collection.JavaConverters._
-
 class TestDefaultPartitionerOption extends FunSpec {
 
   describe("DefaultPartitionerOption") {
@@ -36,7 +34,7 @@ class TestDefaultPartitionerOption extends FunSpec {
       10000,
       UUID.randomUUID()
     )
-    val options = new CaseInsensitiveStringMap(Map.empty[String, String].asJava)
+    val options = CaseInsensitiveStringMap.empty()
 
     it(s"should provide a partitioner") {
       new DefaultPartitionerOption().getPartitioner(schema, state, options)

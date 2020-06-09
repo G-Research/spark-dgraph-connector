@@ -43,8 +43,8 @@ trait ClusterStateProvider {
         None
       }
     } catch {
-      case _: Throwable =>
-        println(s"retrieving state from $url failed")
+      case t: Throwable =>
+        println(s"retrieving state from $url failed: ${t.getMessage}")
         None
     }
   }

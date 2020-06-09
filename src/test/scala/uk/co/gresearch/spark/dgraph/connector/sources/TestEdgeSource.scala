@@ -133,6 +133,18 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
       ))
     }
 
+    it("should partition data") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .dgraphEdges(target)
+          .mapPartitions(part => Iterator(part.map(_.subject).toSet))
+          .collect()
+      assert(partitions.length === 10)
+      assert(partitions === Seq(Set(3, 4, 10)) ++ (1 to 9).map(_ => Set.empty[Long]))
+    }
+
   }
 
 }

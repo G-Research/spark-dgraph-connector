@@ -135,6 +135,18 @@ class TestNodeSource extends FunSpec with SparkTestSession {
       ))
     }
 
+    it("should partition data") {
+      val target = "localhost:9080"
+      val partitions =
+        spark
+          .read
+          .dgraphNodes(target)
+          .mapPartitions(part => Iterator(part.map(_.subject).toSet))
+          .collect()
+      assert(partitions.length === 10)
+      assert(partitions === Seq((1 to 10).toSet) ++ (1 to 9).map(_ => Set.empty[Long]))
+    }
+
   }
 
 }
