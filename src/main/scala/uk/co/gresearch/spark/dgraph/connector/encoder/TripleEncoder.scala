@@ -19,9 +19,12 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.Triple
+import uk.co.gresearch.spark.dgraph.connector.{Triple, TriplesFactory}
 
 trait TripleEncoder extends Serializable {
+
+  // TODO: remove intermediate triples representation, encode Json into Iterator[InternalRow]
+  val triplesFactory: TriplesFactory
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

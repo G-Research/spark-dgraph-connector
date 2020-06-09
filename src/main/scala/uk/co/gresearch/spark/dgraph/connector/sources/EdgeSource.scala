@@ -21,7 +21,7 @@ import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable, TriplesFactory}
 
 class EdgeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -34,7 +34,7 @@ class EdgeSource() extends TableProviderBase
     val schema = getSchema(targets).filter(_.typeName == "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
-    val encoder = EdgeEncoder()
+    val encoder = EdgeEncoder(TriplesFactory(schema))
     new TripleTable(partitioner, encoder, clusterState.cid)
   }
 

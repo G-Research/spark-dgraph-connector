@@ -25,9 +25,9 @@ class TriplePartitionReader(partition: Partition, encoder: TripleEncoder) extend
 
   lazy val triples: Iterator[Triple] =
     encoder match {
-      case _: EdgeEncoder => partition.getEdgeTriples
-      case _: TypedNodeEncoder => partition.getNodeTriples
-      case _ => partition.getTriples
+      case _: EdgeEncoder => partition.getEdgeTriples(encoder.triplesFactory)
+      case _: TypedNodeEncoder => partition.getNodeTriples(encoder.triplesFactory)
+      case _ => partition.getTriples(encoder.triplesFactory)
     }
 
   def next: Boolean = triples.hasNext

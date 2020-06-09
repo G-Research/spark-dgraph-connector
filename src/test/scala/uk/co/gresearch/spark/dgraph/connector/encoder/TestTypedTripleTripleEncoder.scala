@@ -22,7 +22,7 @@ import java.sql.Timestamp
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Triple, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Schema, Triple, TriplesFactory, Uid}
 
 class TestTypedTripleTripleEncoder extends FunSpec {
 
@@ -41,7 +41,9 @@ class TestTypedTripleTripleEncoder extends FunSpec {
   ).foreach { case (value, encoded, encType, test) =>
 
     it(s"should encode $test to internalrow") {
-      val encoder = TypedTripleEncoder()
+      val schema = Schema(Set(Predicate("predicate", encType)))
+      val triplesFactory = TriplesFactory(schema)
+      val encoder = TypedTripleEncoder(triplesFactory)
       val triple = Triple(Uid(1), "predicate", value)
       val row = encoder.asInternalRow(triple)
 
@@ -62,7 +64,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
   }
 
   it("should provide the expected read schema") {
-    val encoder = TypedTripleEncoder()
+    val encoder = TypedTripleEncoder(TriplesFactory(Schema(Set.empty)))
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),
@@ -80,7 +82,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
   }
 
   it("should provide the expected schema") {
-    val encoder = TypedTripleEncoder()
+    val encoder = TypedTripleEncoder(TriplesFactory(Schema(Set.empty)))
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("predicate", StringType),

@@ -29,5 +29,4 @@ class TriplePartitionReaderFactory(encoder: TripleEncoder) extends PartitionRead
         s"Expected ${Partition.getClass.getSimpleName}, not ${partition.getClass.getSimpleName}"
       )
     }
-
 }

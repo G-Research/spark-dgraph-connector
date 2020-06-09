@@ -29,7 +29,7 @@ import uk.co.gresearch.spark.dgraph.connector.{TypedTriple, Geo, Password, Tripl
 /**
  * Encodes Triple by representing objects in multiple typed columns.
  **/
-case class TypedTripleEncoder() extends TripleEncoder {
+case class TypedTripleEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -52,7 +52,7 @@ case class TypedTripleEncoder() extends TripleEncoder {
    * @return an InternalRow
    */
   override def asInternalRow(triple: Triple): InternalRow = {
-    val objectType = TriplesFactory.getType(triple.o)
+    val objectType = triplesFactory.getType(triple.o)
 
     // order has to align with TypedTriple
     val valuesWithoutObject = Seq(

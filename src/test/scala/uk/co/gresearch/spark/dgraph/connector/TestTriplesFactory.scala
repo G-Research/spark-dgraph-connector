@@ -25,13 +25,13 @@ class TestTriplesFactory extends FunSpec {
 
   describe("TriplesFactory") {
     it("should parse JSON response") {
-      val predicates = Set(
+      val schema = Schema(Set(
         Predicate("release_date", "datetime"),
         Predicate("revenue", "int"),
         Predicate("running_time", "int"),
         Predicate("director", "uid"),
         Predicate("starring", "uid")
-      )
+      ))
 
       val json =
         """
@@ -140,7 +140,8 @@ class TestTriplesFactory extends FunSpec {
           |    ]
           |  }""".stripMargin
 
-      val triples = TriplesFactory.fromJson(json, "result", Some(predicates)).toList
+      val triplesFactory = TriplesFactory(schema)
+      val triples = triplesFactory.fromJson(json, "result").toList
       assert(triples === Seq(
         Triple(Uid(1), "name", "Star Wars: Episode IV - A New Hope"),
         Triple(Uid(1), "release_date", Timestamp.valueOf("1977-05-25 00:00:00")),

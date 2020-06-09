@@ -36,7 +36,8 @@ class TestPartition extends FunSpec with SchemaProvider {
           ).toSet
         val schema = Schema(syntheticPredicates ++ existingPredicates)
         val partition = Partition(targets, Option(schema.predicates), None)
-        println(partition.getTriples.length)
+        val triplesFactory = TriplesFactory(schema)
+        println(partition.getTriples(triplesFactory).length)
       }
 
     }

@@ -18,14 +18,17 @@
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Triple, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Predicate, Schema, Triple, TriplesFactory, Uid}
 
 class TestEdgeEncoder extends FunSpec {
 
   describe("EdgeEncoder") {
 
+    val schema = Schema(Set(Predicate("predicate", "uid")))
+    val triplesFactory = TriplesFactory(schema)
+
     it("should encode edges") {
-      val encoder = EdgeEncoder()
+      val encoder = EdgeEncoder(triplesFactory)
       val edge = Triple(Uid(1), "predicate", Uid(2))
       val row = encoder.asInternalRow(edge)
 
@@ -36,7 +39,7 @@ class TestEdgeEncoder extends FunSpec {
     }
 
     it("should fail on node properties") {
-      val encoder = EdgeEncoder()
+      val encoder = EdgeEncoder(triplesFactory)
       val edge = Triple(Uid(1), "predicate", 2L)
       assertThrows[IllegalArgumentException]{ encoder.asInternalRow(edge) }
     }

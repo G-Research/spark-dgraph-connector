@@ -26,7 +26,7 @@ import uk.co.gresearch.spark.dgraph.connector.{StringTriple, Triple, TriplesFact
 /**
  * Encodes Triple by representing objects as strings.
  **/
-case class StringTripleEncoder() extends TripleEncoder {
+case class StringTripleEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -53,7 +53,7 @@ case class StringTripleEncoder() extends TripleEncoder {
       triple.s.uid,
       UTF8String.fromString(triple.p),
       UTF8String.fromString(triple.o.toString),
-      UTF8String.fromString(TriplesFactory.getType(triple.o)),
+      UTF8String.fromString(triplesFactory.getType(triple.o)),
     )
 
 }

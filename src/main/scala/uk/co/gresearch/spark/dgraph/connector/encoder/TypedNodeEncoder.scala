@@ -29,7 +29,7 @@ import uk.co.gresearch.spark.dgraph.connector.{TypedNode, Geo, Password, Triple,
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
-case class TypedNodeEncoder() extends TripleEncoder {
+case class TypedNodeEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -52,14 +52,14 @@ case class TypedNodeEncoder() extends TripleEncoder {
    * @return an InternalRow
    */
   override def asInternalRow(triple: Triple): InternalRow = {
-    val objectType = TriplesFactory.getType(triple.o)
+    val objectType = triplesFactory.getType(triple.o)
 
     if (objectType == "uid")
       throw new IllegalArgumentException(s"Node triple expected with object not being a uid: " +
         s"Triple(" +
-        s"${triple.s}: ${TriplesFactory.getType(triple.s)}, " +
-        s"${triple.p}: ${TriplesFactory.getType(triple.p)}, " +
-        s"${triple.o}: ${TriplesFactory.getType(triple.o)}" +
+        s"${triple.s}: ${triplesFactory.getType(triple.s)}, " +
+        s"${triple.p}: ${triplesFactory.getType(triple.p)}, " +
+        s"${triple.o}: ${triplesFactory.getType(triple.o)}" +
         s")"
       )
 

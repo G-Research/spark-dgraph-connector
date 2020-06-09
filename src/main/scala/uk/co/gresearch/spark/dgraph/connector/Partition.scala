@@ -37,23 +37,25 @@ case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], u
   /**
    * Reads the entire partition and returns all triples.
    *
+   * @param triplesFactory: triples factory
    * @return triples
    */
-  def getTriples: Iterator[Triple] = {
+  def getTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
     val query =
       predicates
         .map(Query.forPropertiesAndEdges("data", _, uids))
         .getOrElse(Query.forAllPropertiesAndEdges("data", uids))
 
-    readTriples(query, None)
+    readTriples(query, None, triplesFactory)
   }
 
   /**
    * Reads the entire partition and returns all edge triples.
    *
+   * @param triplesFactory: triples factory
    * @return triples
    */
-  def getEdgeTriples: Iterator[Triple] = {
+  def getEdgeTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
     val query =
       predicates
         // returns only edges due to schema
@@ -68,20 +70,21 @@ case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], u
         // filter for true edges
         .getOrElse(Some((t: Triple) => t.o.isInstanceOf[Uid]))
 
-    readTriples(query, nodeTriplesFilter)
+    readTriples(query, nodeTriplesFilter, triplesFactory)
   }
 
   /**
    * Reads the entire partition and returns all node triples.
    *
+   * @param triplesFactory: triples factory
    * @return triples
    */
-  def getNodeTriples: Iterator[Triple] = {
+  def getNodeTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
     val query =
       predicates
         .map(Query.forPropertiesAndEdges("data", _, uids))
         .getOrElse(Query.forAllProperties("data", uids))
-    readTriples(query, None)
+    readTriples(query, None, triplesFactory)
   }
 
   /**
@@ -90,13 +93,13 @@ case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], u
    * @param triplesFilter optional filter for triples
    * @return triples
    */
-  private def readTriples(query: String, triplesFilter: Option[Triple => Boolean]): Iterator[Triple] = {
+  private def readTriples(query: String, triplesFilter: Option[Triple => Boolean], triplesFactory: TriplesFactory): Iterator[Triple] = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8
-      val triples = TriplesFactory.fromJson(json, "data", predicates)
+      val triples = triplesFactory.fromJson(json, "data")
       triplesFilter.map(triples.filter).getOrElse(triples)
     } finally {
       channels.foreach(_.shutdown())

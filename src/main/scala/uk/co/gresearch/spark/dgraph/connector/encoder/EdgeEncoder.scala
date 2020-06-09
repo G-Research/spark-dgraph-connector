@@ -26,7 +26,7 @@ import uk.co.gresearch.spark.dgraph.connector.{Edge, Triple, TriplesFactory, Uid
 /**
  * Encodes only triples that represent edges, i.e. object is a uid.
  */
-case class EdgeEncoder() extends TripleEncoder {
+case class EdgeEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -52,9 +52,9 @@ case class EdgeEncoder() extends TripleEncoder {
     case Triple(s: Uid, p: String, o: Uid) => InternalRow(s.uid, UTF8String.fromString(p), o.uid)
     case _ => throw new IllegalArgumentException(s"Edge triple expected with object being a uid: " +
       s"Triple(" +
-      s"${triple.s}: ${TriplesFactory.getType(triple.s)}, " +
-      s"${triple.p}: ${TriplesFactory.getType(triple.p)}, " +
-      s"${triple.o}: ${TriplesFactory.getType(triple.o)}" +
+      s"${triple.s}: ${triplesFactory.getType(triple.s)}, " +
+      s"${triple.p}: ${triplesFactory.getType(triple.p)}, " +
+      s"${triple.o}: ${triplesFactory.getType(triple.o)}" +
       s")"
     )
   }
