@@ -33,7 +33,7 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
         .read
         .format(EdgesSource)
         .load("localhost:9080")
-        .show(100, false)
+        .printSchema()
     }
 
     it("should load edges via paths") {
@@ -139,7 +139,7 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
         spark
           .read
           .dgraphEdges(target)
-          .mapPartitions(part => Iterator(part.map(_.subject).toSet))
+          .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
       assert(partitions.length === 10)
       assert(partitions === Seq(Set(3, 4, 10)) ++ (1 to 9).map(_ => Set.empty[Long]))

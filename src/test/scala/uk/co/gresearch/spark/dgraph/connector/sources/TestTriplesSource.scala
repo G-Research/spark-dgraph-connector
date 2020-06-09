@@ -101,7 +101,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .as[StringTriple]
           .collectAsList()
       rows.forEach(println)
-      assert(rows.size() == 34)
+      assert(rows.size() == 44)
     }
 
     it("should encode TypedTriple") {
@@ -113,7 +113,7 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .as[TypedTriple]
           .collectAsList()
       rows.forEach(println)
-      assert(rows.size() == 34)
+      assert(rows.size() == 44)
     }
 
     it("should fail without target") {

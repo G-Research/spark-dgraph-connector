@@ -20,7 +20,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
+import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
@@ -30,12 +30,21 @@ class NodeSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-nodes"
 
+  def getNodeMode(options: CaseInsensitiveStringMap): Option[String] =
+    getStringOption(NodesModeOption, options)
+
   def getTable(options: CaseInsensitiveStringMap): Table = {
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
-    val encoder = TypedNodeEncoder(schema.predicateMap)
+    val nodeMode = getNodeMode(options)
+    val encoder = nodeMode match {
+      case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
+      case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicateMap)
+      case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
+      case None => TypedNodeEncoder(schema.predicateMap)
+    }
     val model = NodeTableModel(encoder)
     new TripleTable(partitioner, model, clusterState.cid)
   }

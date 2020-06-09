@@ -28,6 +28,8 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         s"""{
          |  ${resultName} (func: has(dgraph.type)$pagination) {
          |    uid
+         |    dgraph.graphql.schema
+         |    dgraph.type
          |    expand(_all_)
          |  }
          |}""".stripMargin
@@ -49,6 +51,8 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         s"""{
            |  ${resultName} (func: has(dgraph.type)$pagination) {
            |    uid
+           |    dgraph.graphql.schema
+           |    dgraph.type
            |    expand(_all_) {
            |      uid
            |    }
