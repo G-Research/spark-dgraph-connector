@@ -6,6 +6,7 @@ This provides instructions on how to release a version of `spark-dgraph-connecto
 
 Follow this procedure to release a new version:
 
+- Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.0] - 2020-06-09`
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.0-SNAPSHOT` → `1.1.0`
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.0`. Do not push to github yet.
 - Tag that commit with a tag message like `Release v1.1.0`. Do not push to github yet.
@@ -38,6 +39,7 @@ Merge your bug fixes into this branch as you would normally do for master, use P
 This is very similar to [releasing from master](#releasing-from-master),
 but the version increment occurs on [patch level](https://semver.org/):
 
+- Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.1] - 2020-06-09`
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.1-SNAPSHOT` → `1.1.1`
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.1`. Do not push to github yet.
 - Tag that commit with a tag message like `Release v1.1.1`. Do not push to github yet.
