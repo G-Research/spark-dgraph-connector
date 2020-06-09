@@ -1,7 +1,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>uk.co.gresearch.spark</groupId>
-  <artifactId>spark-dgraph-connector_${scala.compat.version}</artifactId>
+  <artifactId>spark-dgraph-connector-3.0_2.12</artifactId>
   <version>0.2.0-SNAPSHOT</version>
   <name>Spark Dgraph Connector</name>
   <description>A Spark connector for Dgraph databases</description>
@@ -35,11 +35,12 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <encoding>UTF-8</encoding>
+    <!-- scala.compat.version must be reflected in project artifactId -->
     <scala.compat.version>2.12</scala.compat.version>
     <scala.version>${scala.compat.version}.10</scala.version>
+    <!-- spark.compat.version must be reflected in project artifactId -->
     <spark.compat.version>3.0</spark.compat.version>
     <spark.version>${spark.compat.version}.0-preview2</spark.version>
-    <dgraph4j.version>20.03.0</dgraph4j.version>
   </properties>
 
   <dependencies>
@@ -73,7 +74,7 @@
     <dependency>
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
-      <version>${dgraph4j.version}</version>
+      <version>20.03.0</version>
     </dependency>
 
     <dependency>
