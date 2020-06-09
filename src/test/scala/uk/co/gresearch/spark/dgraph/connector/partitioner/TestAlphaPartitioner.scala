@@ -20,6 +20,8 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target}
 
 class TestAlphaPartitioner extends FunSpec {
@@ -43,40 +45,42 @@ class TestAlphaPartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
+    val encoder = TypedTripleEncoder(schema.predicateMap)
+    val model = TripleTableModel(encoder)
 
     it("should partition with 1 partition per alpha") {
       val partitioner = AlphaPartitioner(schema, clusterState, 1)
-      val partitions = partitioner.getPartitions
+      val partitions = partitioner.getPartitions(model)
 
       assert(partitions.length === 4)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"))), None),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"), Predicate("pred4", "type4"))), None),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"))), None, model),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"), Predicate("pred4", "type4"))), None, model),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None, model),
 
-        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"), Predicate("pred6", "type6"))), None)
+        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"), Predicate("pred6", "type6"))), None, model)
       ))
     }
 
     Seq(2, 3, 7).foreach(partsPerAlpha =>
       it(s"should partition with $partsPerAlpha partitions per alpha") {
         val partitioner = AlphaPartitioner(schema, clusterState, 2)
-        val partitions = partitioner.getPartitions
+        val partitions = partitioner.getPartitions(model)
 
         assert(partitions.length === 7)
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"))), None),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"))), None),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"))), None),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred4", "type4"))), None),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"))), None, model),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"))), None, model),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3"))), None, model),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred4", "type4"))), None, model),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5"))), None, model),
 
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None),
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"))), None)
+          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None, model),
+          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7"))), None, model)
         ))
       }
     )

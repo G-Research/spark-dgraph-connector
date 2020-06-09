@@ -17,7 +17,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.connector.read.InputPartition
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.sources.v2.reader.{InputPartition, InputPartitionReader}
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
 /**
  * Partition of Dgraph data. Reads all triples with the given predicates in the given uid range.
@@ -26,10 +28,14 @@ import org.apache.spark.sql.connector.read.InputPartition
  * @param predicates optional predicates to read
  * @param uids optional uid ranges
  */
-case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange]) extends InputPartition {
+case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange], model: GraphTableModel)
+  extends InputPartition[InternalRow] {
 
   // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
+
+  override def createPartitionReader(): InputPartitionReader[InternalRow] =
+    new TriplePartitionReader(this, model)
 
   /**
    * Provide the query representing this partitions sub-graph.

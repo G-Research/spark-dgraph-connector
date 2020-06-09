@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import java.util.UUID
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Predicate, Schema, Target}
 
@@ -34,7 +34,7 @@ class TestDefaultPartitionerOption extends FunSpec {
       10000,
       UUID.randomUUID()
     )
-    val options = CaseInsensitiveStringMap.empty()
+    val options = DataSourceOptions.empty()
 
     it(s"should provide a partitioner") {
       new DefaultPartitionerOption().getPartitioner(schema, state, options)

@@ -17,21 +17,21 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 import uk.co.gresearch.spark.dgraph.connector._
 
 class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParser {
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
-                              options: CaseInsensitiveStringMap): Option[Partitioner] =
+                              options: DataSourceOptions): Option[Partitioner] =
     getStringOption(PartitionerOption, options)
       .map(getPartitioner(_, schema, clusterState, options))
 
   private def getPartitioner(partitionerName: String,
                              schema: Schema,
                              clusterState: ClusterState,
-                             options: CaseInsensitiveStringMap): Partitioner =
+                             options: DataSourceOptions): Partitioner =
     partitionerName match {
       case SingletonPartitionerOption => SingletonPartitioner(allClusterTargets(clusterState))
       case GroupPartitionerOption => GroupPartitioner(schema, clusterState)

@@ -21,6 +21,8 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestTriplesSource extends FunSpec with SparkTestSession {
 
@@ -135,6 +137,19 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
       }
     }
 
+    val schema = Schema(Set(
+      Predicate("release_date", "datetime"),
+      Predicate("revenue", "float"),
+      Predicate("running_time", "int"),
+      Predicate("name", "string"),
+      Predicate("dgraph.graphql.schema", "string"),
+      Predicate("dgraph.type", "string"),
+      Predicate("director", "uid"),
+      Predicate("starring", "uid")
+    ))
+    val encoder = TypedTripleEncoder(schema.predicateMap)
+    val model = TripleTableModel(encoder)
+
     it("should load as a single partition") {
       val target = "localhost:9080"
       val targets = Seq(Target(target))
@@ -145,11 +160,11 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .dgraphTriples(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None, model))))
     }
 
     it("should load as predicate partitions") {
@@ -162,15 +177,15 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .dgraphTriples(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None, model))
       ))
     }
 
@@ -184,12 +199,12 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .dgraphTriples(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
 
       val expected = (0 to 1).map(idx =>
-        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(idx * 5000, 5000))))
+        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(idx * 5000, 5000)), model))
       )
 
       assert(partitions.length === expected.size)
@@ -207,16 +222,16 @@ class TestTriplesSource extends FunSpec with SparkTestSession {
           .dgraphTriples(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
 
       val expected = Seq(0, 5000).flatMap( first =>
         Seq(
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000))))
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)), model)),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)), model)),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)), model)),
+          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000)), model))
         )
       )
 

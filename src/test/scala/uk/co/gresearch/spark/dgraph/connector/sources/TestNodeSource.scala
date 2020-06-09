@@ -21,6 +21,8 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, TypedTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.model.{NodeTableModel, TripleTableModel}
 
 class TestNodeSource extends FunSpec with SparkTestSession {
 
@@ -96,6 +98,17 @@ class TestNodeSource extends FunSpec with SparkTestSession {
       }
     }
 
+    val schema = Schema(Set(
+      Predicate("release_date", "datetime"),
+      Predicate("revenue", "float"),
+      Predicate("running_time", "int"),
+      Predicate("name", "string"),
+      Predicate("dgraph.graphql.schema", "string"),
+      Predicate("dgraph.type", "string")
+    ))
+    val encoder = TypedNodeEncoder(schema.predicateMap)
+    val model = NodeTableModel(encoder)
+
     it("should load as a single partition") {
       val target = "localhost:9080"
       val targets = Seq(Target(target))
@@ -106,11 +119,11 @@ class TestNodeSource extends FunSpec with SparkTestSession {
           .dgraphNodes(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None, model))))
     }
 
     it("should load as a predicate partitions") {
@@ -123,15 +136,15 @@ class TestNodeSource extends FunSpec with SparkTestSession {
           .dgraphNodes(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))), None))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))), None, model))
       ))
     }
 

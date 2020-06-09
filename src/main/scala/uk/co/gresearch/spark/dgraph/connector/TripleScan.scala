@@ -17,19 +17,19 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition}
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
-class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends Scan with Batch {
+import scala.collection.JavaConverters._
+
+class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends DataSourceReader {
 
   override def readSchema(): StructType = model.readSchema()
 
-  override def toBatch: Batch = this
-
-  override def planInputPartitions(): Array[InputPartition] = partitioner.getPartitions.toArray
-
-  override def createReaderFactory(): PartitionReaderFactory = new TriplePartitionReaderFactory(model)
+  override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] =
+    partitioner.getPartitions(model).map(_.asInstanceOf[InputPartition[InternalRow]]).toList.asJava
 
 }

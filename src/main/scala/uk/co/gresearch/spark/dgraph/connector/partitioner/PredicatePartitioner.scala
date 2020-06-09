@@ -20,6 +20,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.math.BigInteger
 import java.security.MessageDigest
 
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema}
 
 import scala.language.implicitConversions
@@ -33,9 +34,9 @@ case class PredicatePartitioner(schema: Schema, clusterState: ClusterState, pred
   def getPartitionsForPredicates(predicates: Set[_]): Int =
     if (predicates.isEmpty) 1 else 1 + (predicates.size-1) / predicatesPerPartition
 
-  override def getPartitions: Seq[Partition] = {
+  override def getPartitions(model: GraphTableModel): Seq[Partition] = {
     val partitionsPerGroup = clusterState.groupPredicates.mapValues(getPartitionsForPredicates)
-    PredicatePartitioner.getPartitions(schema, clusterState, partitionsPerGroup)
+    PredicatePartitioner.getPartitions(schema, clusterState, partitionsPerGroup, model)
   }
 
 }
@@ -90,7 +91,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       .map(_._2.map(_._1).toSet)
   }
 
-  def getPartitions(schema: Schema, clusterState: ClusterState, partitionsInGroup: (String) => Int): Seq[Partition] =
+  def getPartitions(schema: Schema, clusterState: ClusterState, partitionsInGroup: (String) => Int, model: GraphTableModel): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)
@@ -98,7 +99,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       val predicatesPartitions = partition(groupPredicates, partitions)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None)
+        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, model)
       }
     }.toSeq
 

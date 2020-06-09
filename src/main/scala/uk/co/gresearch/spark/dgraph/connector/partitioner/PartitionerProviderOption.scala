@@ -17,14 +17,14 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, Target}
 
 trait PartitionerProviderOption {
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
-                     options: CaseInsensitiveStringMap): Option[Partitioner]
+                     options: DataSourceOptions): Option[Partitioner]
 
   protected def allClusterTargets(clusterState: ClusterState): Seq[Target] =
     clusterState.groupMembers.values.flatten.toSeq

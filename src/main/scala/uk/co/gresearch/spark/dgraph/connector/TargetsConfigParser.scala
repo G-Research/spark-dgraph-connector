@@ -18,11 +18,11 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 
 trait TargetsConfigParser extends ConfigParser {
 
-  protected def getTargets(options: CaseInsensitiveStringMap): Seq[Target] = {
+  protected def getTargets(options: DataSourceOptions): Seq[Target] = {
     val objectMapper = new ObjectMapper()
     val fromTargets = Seq(TargetsOption, "paths").flatMap(option =>
       getStringOption(option, options).map { pathStr =>

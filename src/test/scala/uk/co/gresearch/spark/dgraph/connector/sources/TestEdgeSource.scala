@@ -21,6 +21,8 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.encoder.{EdgeEncoder, TypedTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.model.{EdgeTableModel, TripleTableModel}
 
 class TestEdgeSource extends FunSpec with SparkTestSession {
 
@@ -96,6 +98,13 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
       }
     }
 
+    val schema = Schema(Set(
+      Predicate("director", "uid"),
+      Predicate("starring", "uid")
+    ))
+    val encoder = EdgeEncoder(schema.predicateMap)
+    val model = EdgeTableModel(encoder)
+
     it("should load as a single partition") {
       val target = "localhost:9080"
       val targets = Seq(Target(target))
@@ -106,11 +115,11 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
           .dgraphEdges(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 1)
-      assert(partitions === Seq(Some(Partition(targets, None, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None, model))))
     }
 
     it("should load as a predicate partitions") {
@@ -123,13 +132,13 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
           .dgraphEdges(target)
           .rdd
           .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
+          case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
       assert(partitions.length === 2)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid"))), None))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid"))), None, model))
       ))
     }
 

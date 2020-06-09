@@ -20,6 +20,8 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target}
 
 class TestGroupPartitioner extends FunSpec {
@@ -41,15 +43,17 @@ class TestGroupPartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
+    val encoder = TypedTripleEncoder(schema.predicateMap)
+    val model = TripleTableModel(encoder)
 
     it("should partition") {
       val partitioner = GroupPartitioner(schema, clusterState)
-      val partitions = partitioner.getPartitions
+      val partitions = partitioner.getPartitions(model)
 
       assert(partitions.length === 2)
       assert(partitions.toSet === Set(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None),
-        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None)
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, model),
+        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None, model)
       ))
     }
 

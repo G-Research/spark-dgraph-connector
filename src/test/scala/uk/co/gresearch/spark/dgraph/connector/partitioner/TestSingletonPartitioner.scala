@@ -18,20 +18,25 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Target}
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Predicate, Schema, Target}
 
 class TestSingletonPartitioner extends FunSpec {
 
   describe("SingletonPartitioner") {
 
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
+    val schema = Schema(Set(Predicate("predicate", "string")))
+    val encoder = TypedTripleEncoder(schema.predicateMap)
+    val model = TripleTableModel(encoder)
 
     it("should partition") {
       val partitioner = SingletonPartitioner(targets)
-      val partitions = partitioner.getPartitions
+      val partitions = partitioner.getPartitions(model)
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets, None, None)))
+      assert(partitions.toSet === Set(Partition(targets, None, None, model)))
     }
 
   }

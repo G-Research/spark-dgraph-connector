@@ -17,8 +17,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import org.apache.spark.sql.connector.catalog.Table
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
+import org.apache.spark.sql.sources.v2.reader.DataSourceReader
+import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
@@ -30,10 +31,10 @@ class TripleSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-triples"
 
-  def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
+  def getTripleMode(options: DataSourceOptions): Option[String] =
     getStringOption(TriplesModeOption, options)
 
-  def getTable(options: CaseInsensitiveStringMap): Table = {
+  override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
     val schema = getSchema(targets)
     val clusterState = getClusterState(targets)
@@ -46,7 +47,10 @@ class TripleSource() extends TableProviderBase
       case None => TypedTripleEncoder(schema.predicateMap)
     }
     val model = TripleTableModel(encoder)
-    new TripleTable(partitioner, model, clusterState.cid)
+    new TripleScan(partitioner, model)
   }
+
+  override def createReader(schema: StructType, options: DataSourceOptions): DataSourceReader =
+    super.createReader(schema, options)
 
 }

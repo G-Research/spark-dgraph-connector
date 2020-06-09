@@ -18,7 +18,8 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector.Partition
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
 trait Partitioner {
-  def getPartitions: Seq[Partition]
+  def getPartitions(model: GraphTableModel): Seq[Partition]
 }

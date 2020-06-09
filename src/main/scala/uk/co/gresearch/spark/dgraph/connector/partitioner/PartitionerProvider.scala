@@ -17,7 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema}
 
 trait PartitionerProvider {
@@ -29,7 +29,7 @@ trait PartitionerProvider {
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
-                     options: CaseInsensitiveStringMap): Partitioner =
+                     options: DataSourceOptions): Partitioner =
     partitionerOptions
       .flatMap(_.getPartitioner(schema, clusterState, options))
       .headOption

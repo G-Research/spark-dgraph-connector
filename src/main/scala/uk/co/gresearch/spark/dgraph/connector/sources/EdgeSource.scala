@@ -17,12 +17,13 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import org.apache.spark.sql.connector.catalog.Table
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.sources.v2.DataSourceOptions
+import org.apache.spark.sql.sources.v2.reader.DataSourceReader
+import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleScan}
 
 class EdgeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -30,14 +31,17 @@ class EdgeSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-edges"
 
-  def getTable(options: CaseInsensitiveStringMap): Table = {
+  override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName == "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = EdgeEncoder(schema.predicateMap)
     val model = EdgeTableModel(encoder)
-    new TripleTable(partitioner, model, clusterState.cid)
+    new TripleScan(partitioner, model)
   }
+
+  override def createReader(schema: StructType, options: DataSourceOptions): DataSourceReader =
+    super.createReader(schema, options)
 
 }

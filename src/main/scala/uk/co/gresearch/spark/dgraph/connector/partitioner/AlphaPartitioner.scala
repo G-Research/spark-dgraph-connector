@@ -17,6 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
 
 case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitionsPerAlpha: Int)
@@ -25,9 +26,9 @@ case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitio
   if (partitionsPerAlpha <= 0)
     throw new IllegalArgumentException(s"partitionsPerAlpha must be larger than zero: $partitionsPerAlpha")
 
-  override def getPartitions: Seq[Partition] = {
+  override def getPartitions(model: GraphTableModel): Seq[Partition] = {
     PredicatePartitioner.getPartitions(
-      schema, clusterState, getGroupTargets(clusterState, _).size * partitionsPerAlpha
+      schema, clusterState, getGroupTargets(clusterState, _).size * partitionsPerAlpha, model
     )
   }
 
