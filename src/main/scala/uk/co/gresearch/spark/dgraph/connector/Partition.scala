@@ -17,9 +17,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import io.dgraph.DgraphClient
-import io.dgraph.DgraphProto.Response
-import io.grpc.ManagedChannel
 import org.apache.spark.sql.connector.read.InputPartition
 
 /**
@@ -35,75 +32,9 @@ case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], u
   override def preferredLocations(): Array[String] = super.preferredLocations()
 
   /**
-   * Reads the entire partition and returns all triples.
-   *
-   * @param triplesFactory: triples factory
-   * @return triples
+   * Provide the query representing this partitions sub-graph.
+   * @return partition query
    */
-  def getTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
-    val query =
-      predicates
-        .map(Query.forPropertiesAndEdges("data", _, uids))
-        .getOrElse(Query.forAllPropertiesAndEdges("data", uids))
-
-    readTriples(query, None, triplesFactory)
-  }
-
-  /**
-   * Reads the entire partition and returns all edge triples.
-   *
-   * @param triplesFactory: triples factory
-   * @return triples
-   */
-  def getEdgeTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
-    val query =
-      predicates
-        // returns only edges due to schema
-        .map(Query.forPropertiesAndEdges("data", _, uids))
-        // returns properties and edges, requires filtering for edges (see below)
-        .getOrElse(Query.forAllPropertiesAndEdges("data", uids))
-
-    val nodeTriplesFilter: Option[Triple => Boolean] =
-      predicates
-        // no filtering
-        .map(_ => None)
-        // filter for true edges
-        .getOrElse(Some((t: Triple) => t.o.isInstanceOf[Uid]))
-
-    readTriples(query, nodeTriplesFilter, triplesFactory)
-  }
-
-  /**
-   * Reads the entire partition and returns all node triples.
-   *
-   * @param triplesFactory: triples factory
-   * @return triples
-   */
-  def getNodeTriples(triplesFactory: TriplesFactory): Iterator[Triple] = {
-    val query =
-      predicates
-        .map(Query.forPropertiesAndEdges("data", _, uids))
-        .getOrElse(Query.forAllProperties("data", uids))
-    readTriples(query, None, triplesFactory)
-  }
-
-  /**
-   * Sends the query, parses the Json response into triples and filters with the optional filter.
-   * @param query dgraph query
-   * @param triplesFilter optional filter for triples
-   * @return triples
-   */
-  private def readTriples(query: String, triplesFilter: Option[Triple => Boolean], triplesFactory: TriplesFactory): Iterator[Triple] = {
-    val channels: Seq[ManagedChannel] = targets.map(toChannel)
-    try {
-      val client: DgraphClient = getClientFromChannel(channels)
-      val response: Response = client.newReadOnlyTransaction().query(query)
-      val json: String = response.getJson.toStringUtf8
-      val triples = triplesFactory.fromJson(json, "data")
-      triplesFilter.map(triples.filter).getOrElse(triples)
-    } finally {
-      channels.foreach(_.shutdown())
-    }
-  }
+  def query: PartitionQuery = PartitionQuery.of(this)
 
 }

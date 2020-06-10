@@ -19,9 +19,10 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable, TriplesFactory}
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -34,8 +35,9 @@ class NodeSource() extends TableProviderBase
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
-    val encoder = TypedNodeEncoder(TriplesFactory(schema))
-    new TripleTable(partitioner, encoder, clusterState.cid)
+    val encoder = TypedNodeEncoder(schema.predicateMap)
+    val model = NodeTableModel(encoder)
+    new TripleTable(partitioner, model, clusterState.cid)
   }
 
 }

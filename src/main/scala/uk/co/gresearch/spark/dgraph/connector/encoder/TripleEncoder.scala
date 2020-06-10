@@ -17,35 +17,55 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
+import com.google.gson.JsonObject
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.{Triple, TriplesFactory}
+import uk.co.gresearch.spark.dgraph.connector.{Json, Predicate, Uid}
 
-trait TripleEncoder extends Serializable {
+import scala.collection.JavaConverters._
 
-  // TODO: remove intermediate triples representation, encode Json into Iterator[InternalRow]
-  val triplesFactory: TriplesFactory
+/**
+ * Encodes triples as InternalRows from Dgraph json results.
+ */
+trait TripleEncoder extends JsonNodeInternalRowEncoder {
 
-  /**
-   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
-   * empty schema can be returned here.
-   * From: org.apache.spark.sql.connector.catalog.Table.schema
-   */
-  def schema(): StructType
+  val predicates: Map[String, Predicate]
 
   /**
-   * Returns the actual schema of this data source scan, which may be different from the physical
-   * schema of the underlying storage, as column pruning or other optimizations may happen.
-   * From: org.apache.spark.sql.connector.read.Scan.readSchema
-   */
-  def readSchema(): StructType
-
-  /**
-   * Encodes a triple as an InternalRow.
+   * Encodes the given Dgraph json result into InternalRows.
    *
-   * @param triple a Triple
-   * @return an InternalRow
+   * @param json Json result
+   * @param member member in the json that has the result
+   * @return internal rows
    */
-  def asInternalRow(triple: Triple): InternalRow
+  override def fromJson(json: Json, member: String): Iterator[InternalRow] =
+    getNodes(json, member).flatMap(toTriples)
+
+  /**
+   * Encodes a node as InternalRows.
+   *
+   * @param node a json node to turn into triples
+   * @return InternalRows
+   */
+  def toTriples(node: JsonObject): Iterator[InternalRow] = {
+    val uidString = node.remove("uid").getAsString
+    val uid = Uid(uidString)
+    node.entrySet().iterator().asScala
+      .flatMap(e => predicates.get(e.getKey).map(_.typeName).map(t => (e.getKey, e.getValue, t)))
+      .flatMap{ case (p, v, t) =>
+        getValues(v).flatMap(v =>
+          asInternalRow(uid, p, getValue(v, t))
+        )
+      }
+  }
+
+  /**
+   * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
+   *
+   * @param s subject
+   * @param p predicate
+   * @param o object
+   * @return an internal row
+   */
+  def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow]
 
 }

@@ -17,10 +17,8 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.util.UUID
-
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target}
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Target}
 
 class TestSingletonPartitioner extends FunSpec {
 

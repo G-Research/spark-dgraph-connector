@@ -17,10 +17,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
-import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 
 class TestTriplesSource extends FunSpec with SparkTestSession {
 

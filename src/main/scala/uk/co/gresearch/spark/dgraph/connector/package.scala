@@ -81,13 +81,16 @@ package object connector {
     override def toString: String = password
   }
 
-  case class Triple(s: Uid, p: String, o: Any)
-
   case class Predicate(predicateName: String, typeName: String)
+
   case class UidRange(first: Long, length: Long) {
     if (first < 0 || length <= 0)
       throw new IllegalArgumentException(s"UidRange first must be positive (is $first), length must be larger than zero (is $length)")
   }
+
+  // typed strings
+  case class GraphQl(string: String) // technically not GraphQl but GraphQl+: https://dgraph.io/docs/query-language/
+  case class Json(string: String)
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"
@@ -133,7 +136,8 @@ package object connector {
     /**
      * Loads all triples of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphTriples(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     * @param target a target
+     *
+     * @param target  a target
      * @param targets more targets
      * @return triples DataFrame
      */
@@ -145,7 +149,8 @@ package object connector {
     /**
      * Loads all edges of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphEdges(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     * @param target a target
+     *
+     * @param target  a target
      * @param targets more targets
      * @return triples DataFrame
      */
@@ -158,7 +163,8 @@ package object connector {
     /**
      * Loads all ndoes of a Dgraph database into a DataFrame. Requires at least one target.
      * Use dgraphNodes(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     * @param target a target
+     *
+     * @param target  a target
      * @param targets more targets
      * @return triples DataFrame
      */

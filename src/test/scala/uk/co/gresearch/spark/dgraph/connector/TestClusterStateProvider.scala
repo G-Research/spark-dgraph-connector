@@ -17,8 +17,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import java.util.UUID
-
 import org.scalatest.FunSpec
 
 class TestClusterStateProvider extends FunSpec {

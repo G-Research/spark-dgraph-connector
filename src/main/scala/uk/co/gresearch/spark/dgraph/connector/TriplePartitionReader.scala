@@ -19,20 +19,16 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
-import uk.co.gresearch.spark.dgraph.connector.encoder.{EdgeEncoder, TripleEncoder, TypedNodeEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.{EdgeEncoder, TypedNodeEncoder}
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
-class TriplePartitionReader(partition: Partition, encoder: TripleEncoder) extends PartitionReader[InternalRow] {
+class TriplePartitionReader(partition: Partition, model: GraphTableModel) extends PartitionReader[InternalRow] {
 
-  lazy val triples: Iterator[Triple] =
-    encoder match {
-      case _: EdgeEncoder => partition.getEdgeTriples(encoder.triplesFactory)
-      case _: TypedNodeEncoder => partition.getNodeTriples(encoder.triplesFactory)
-      case _ => partition.getTriples(encoder.triplesFactory)
-    }
+  lazy val rows: Iterator[InternalRow] = model.modelPartition(partition)
 
-  def next: Boolean = triples.hasNext
+  def next: Boolean = rows.hasNext
 
-  def get: InternalRow = encoder.asInternalRow(triples.next())
+  def get: InternalRow = rows.next()
 
   def close(): Unit = Unit
 

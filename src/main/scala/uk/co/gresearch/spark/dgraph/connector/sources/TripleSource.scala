@@ -19,9 +19,10 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
-import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
 class TripleSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -38,14 +39,14 @@ class TripleSource() extends TableProviderBase
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
     val tripleMode = getTripleMode(options)
-    val triplesFactory = TriplesFactory(schema)
     val encoder = tripleMode match {
-      case Some(TriplesModeStringOption) => StringTripleEncoder(triplesFactory)
-      case Some(TriplesModeTypedOption) => TypedTripleEncoder(triplesFactory)
+      case Some(TriplesModeStringOption) => StringTripleEncoder(schema.predicateMap)
+      case Some(TriplesModeTypedOption) => TypedTripleEncoder(schema.predicateMap)
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => TypedTripleEncoder(triplesFactory)
+      case None => TypedTripleEncoder(schema.predicateMap)
     }
-    new TripleTable(partitioner, encoder, clusterState.cid)
+    val model = TripleTableModel(encoder)
+    new TripleTable(partitioner, model, clusterState.cid)
   }
 
 }

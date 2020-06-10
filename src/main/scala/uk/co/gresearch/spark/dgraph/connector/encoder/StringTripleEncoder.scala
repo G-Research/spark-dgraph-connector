@@ -21,12 +21,12 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{StringTriple, Triple, TriplesFactory}
+import uk.co.gresearch.spark.dgraph.connector.{Predicate, StringTriple, Uid}
 
 /**
  * Encodes Triple by representing objects as strings.
  **/
-case class StringTripleEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
+case class StringTripleEncoder(predicates: Map[String, Predicate]) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -43,17 +43,19 @@ case class StringTripleEncoder(triplesFactory: TriplesFactory) extends TripleEnc
   override def readSchema(): StructType = schema()
 
   /**
-   * Encodes a triple as an InternalRow.
+   * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
    *
-   * @param triple a Triple
-   * @return an InternalRow
+   * @param s subject
+   * @param p predicate
+   * @param o object
+   * @return an internal row
    */
-  override def asInternalRow(triple: Triple): InternalRow =
-    InternalRow(
-      triple.s.uid,
-      UTF8String.fromString(triple.p),
-      UTF8String.fromString(triple.o.toString),
-      UTF8String.fromString(triplesFactory.getType(triple.o)),
-    )
+  override def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] =
+    Some(InternalRow(
+      s.uid,
+      UTF8String.fromString(p),
+      UTF8String.fromString(o.toString),
+      UTF8String.fromString(getType(o))
+    ))
 
 }

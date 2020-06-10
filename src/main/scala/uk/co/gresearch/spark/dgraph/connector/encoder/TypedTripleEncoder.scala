@@ -24,12 +24,12 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{TypedTriple, Geo, Password, Triple, TriplesFactory, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, TypedTriple, Uid}
 
 /**
  * Encodes Triple by representing objects in multiple typed columns.
  **/
-case class TypedTripleEncoder(triplesFactory: TriplesFactory) extends TripleEncoder {
+case class TypedTripleEncoder(predicates: Map[String, Predicate]) extends TripleEncoder {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -46,18 +46,20 @@ case class TypedTripleEncoder(triplesFactory: TriplesFactory) extends TripleEnco
   override def readSchema(): StructType = schema()
 
   /**
-   * Encodes a triple as an InternalRow.
+   * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
    *
-   * @param triple a Triple
-   * @return an InternalRow
+   * @param s subject
+   * @param p predicate
+   * @param o object
+   * @return an internal row
    */
-  override def asInternalRow(triple: Triple): InternalRow = {
-    val objectType = triplesFactory.getType(triple.o)
+  override def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] = {
+    val objectType = getType(o)
 
     // order has to align with TypedTriple
     val valuesWithoutObject = Seq(
-      triple.s.uid,
-      UTF8String.fromString(triple.p),
+      s.uid,
+      UTF8String.fromString(p),
       null, // uid
       null, // string
       null, // long
@@ -72,20 +74,20 @@ case class TypedTripleEncoder(triplesFactory: TriplesFactory) extends TripleEnco
     // order has to align with TypedTriple
     val (objectValueIndex, objectValue) =
       objectType match {
-        case "uid" => (2, triple.o.asInstanceOf[Uid].uid)
-        case "string" => (3, UTF8String.fromString(triple.o.asInstanceOf[String]))
-        case "long" => (4, triple.o)
-        case "double" => (5, triple.o)
-        case "timestamp" => (6, DateTimeUtils.fromJavaTimestamp(triple.o.asInstanceOf[Timestamp]))
-        case "boolean" => (7, triple.o)
-        case "geo" => (8, UTF8String.fromString(triple.o.asInstanceOf[Geo].geo))
-        case "password" => (9, UTF8String.fromString(triple.o.asInstanceOf[Password].password))
-        case "default" => (3, UTF8String.fromString(triple.o.toString))
-        case _ => (3, UTF8String.fromString(triple.o.toString))
+        case "uid" => (2, o.asInstanceOf[Uid].uid)
+        case "string" => (3, UTF8String.fromString(o.asInstanceOf[String]))
+        case "long" => (4, o)
+        case "double" => (5, o)
+        case "timestamp" => (6, DateTimeUtils.fromJavaTimestamp(o.asInstanceOf[Timestamp]))
+        case "boolean" => (7, o)
+        case "geo" => (8, UTF8String.fromString(o.asInstanceOf[Geo].geo))
+        case "password" => (9, UTF8String.fromString(o.asInstanceOf[Password].password))
+        case "default" => (3, UTF8String.fromString(o.toString))
+        case _ => (3, UTF8String.fromString(o.toString))
       }
     val values = valuesWithoutObject.updated(objectValueIndex, objectValue)
 
-    InternalRow(values: _*)
+    Some(InternalRow(values: _*))
   }
 
 }

@@ -18,6 +18,8 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestPartition extends FunSpec with SchemaProvider {
 
@@ -36,8 +38,9 @@ class TestPartition extends FunSpec with SchemaProvider {
           ).toSet
         val schema = Schema(syntheticPredicates ++ existingPredicates)
         val partition = Partition(targets, Option(schema.predicates), None)
-        val triplesFactory = TriplesFactory(schema)
-        println(partition.getTriples(triplesFactory).length)
+        val encoder = TypedTripleEncoder(schema.predicateMap)
+        val model = TripleTableModel(encoder)
+        println(model.modelPartition(partition).length)
       }
 
     }
