@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
+## [0.2.0] - 2020-06-11
+
 ### Added
 - Load nodes from Dgraph cluster as wide nodes (fully typed property columns).
 - Added `dgraph.type` and `dgraph.graphql.schema` predicates to be loaded from Dgraph cluster.
