@@ -47,16 +47,18 @@ Add this dependency to your `pom.xml` file to use the latest version:
 
 The following examples use a local Dgraph instance setup as described in the
 [Dgraph Quickstart Guide](https://dgraph.io/docs/get-started).
-Run [Step 1](https://dgraph.io/docs/get-started/#step-1-run-dgraph) to start an instance and
-[Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data and schema:
+Run [Step 1](https://dgraph.io/docs/get-started/#step-1-run-dgraph) to start an instance,
+[Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data, and
+[Step 3](https://dgraph.io/docs/get-started/#step-3-alter-schema) to add a schema. These steps are
+provided in the following scripts:
 
     ./dgraph-instance.start.sh
     ./dgraph-instance.insert.sh
     ./dgraph-instance.schema.sh
 
 The connection to the Dgraph can be established via a `target`, which is the [hostname and gRPC port of a
-Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `"hostname:port"`. With our example instance started above,
-we can use `"localhost:9080` as the target.
+Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `"hostname:port"`.
+With our example instance started above, we can use `"localhost:9080` as the target.
 
 ### GraphX
 
@@ -158,10 +160,9 @@ with the actual type of the object. Here is an example:
 
 You can load all nodes into a `DataFrame` in a fully typed form. This contains all nodes' properties but no edges to other nodes:
 
-    spark
-      .read
-      .option(NodesModeOption, NodesModeTypedOption)
-      .dgraphNodes("localhost:9080")
+    import uk.co.gresearch.spark.dgraph.connector._
+
+    spark.read.dgraphNodes("localhost:9080")
 
 The returned `DataFrame` has the following schema:
 
@@ -195,12 +196,15 @@ The schema of the returned `DataFrame` is very similar to the typed triples sche
 
 Nodes can also be loaded in a wide fully typed format:
 
+    import uk.co.gresearch.spark.dgraph.connector._
+
     spark
       .read
-      .option(NodesModeOption, NodesModeTypedOption)
+      .option(NodesModeOption, NodesModeWideOption)
       .dgraphNodes("localhost:9080")
 
-The returned `DataFrame` has the following schema (depends on the schema of the Dgraph database). Node properties get stored in typed columns:
+The returned `DataFrame` has the following schema (depends on the schema of the Dgraph database).
+Node properties get stored in typed columns, ordered alphabetically (property columns start after the `subject` column):
 
     root
      |-- subject: long (nullable = false)
@@ -230,10 +234,9 @@ Note: The graph schema could become very large and therefore the `DataFrame` cou
 
 Edges can be loaded in the following way:
 
-    spark
-      .read
-      .format(EdgesSource)
-      .load("localhost:9080")
+    import uk.co.gresearch.spark.dgraph.connector._
+
+    spark.read.dgraphEdges("localhost:9080")
 
 The returned `DataFrame` has the following simple schema:
 
