@@ -27,10 +27,9 @@ Compare the backport branch (e.g. `spark-2.4`) against the default branch `spark
 
     ./git-compare-logs-2.4.sh
 
-This script shows the commits that are in one branch but not the other. Note that any commits merged (cherry-pick) from
-one branch to the other will still appear in both logs. So expect the full history since `spark-2.4` branched off `spark-3.0`.
-Therefor it is important not to change the commit message when cherry-picking one commit from one branch
-to the other and not to enhance a commit.
+This script shows the commits that are in one branch but not the other, together with all commits
+since `spark-2.4` branched off `spark-3.0`. It is important not to change the commit message when
+merging (cherry-pick) one commit from one branch to the other and not to enhance a commit.
 
 Once the backport branch is in sync (feature wise) with the default branch, repeat above release process
 for the backport branch with the same version, e.g. version `1.1.0` and tag `spark-2.4_v1.1.0`.
