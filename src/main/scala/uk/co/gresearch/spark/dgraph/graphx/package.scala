@@ -87,7 +87,7 @@ package object graphx extends TargetsConfigParser {
       throw new IllegalArgumentException(s"Unsupported object type ${row.objectType} in node row: $row")
   }
 
-  implicit class DgraphDataFrameReader(reader: DataFrameReader) {
+  implicit class GraphxDataFrameReader(reader: DataFrameReader) {
 
     def dgraph(targets: String*): Graph[VertexProperty, EdgeProperty] =
       graphx.loadGraph(reader, targets.map(Target): _*)
