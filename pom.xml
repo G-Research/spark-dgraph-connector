@@ -43,6 +43,14 @@
     <spark.version>${spark.compat.version}.6</spark.version>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>bintray</id>
+      <name>Bintray</name>
+      <url>https://dl.bintray.com/spark-packages/maven/</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -68,6 +76,13 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-graphx_${scala.compat.version}</artifactId>
       <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>graphframes</groupId>
+      <artifactId>graphframes</artifactId>
+      <version>0.8.1-spark${spark.compat.version}-s_${scala.compat.version}</version>
       <scope>provided</scope>
     </dependency>
 

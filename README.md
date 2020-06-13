@@ -4,8 +4,9 @@ This project provides an [Apache Spark](https://spark.apache.org/) connector
 for [Dgraph databases](https://dgraph.io/).
 It comes with a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html)
 to read graphs from a Dgraph cluster directly into
-[DataFrame](https://spark.apache.org/docs/latest/sql-programming-guide.html) or
-[GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html).
+[DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html),
+[GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html) or
+[GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html).
 The connector supports [filter pushdown](https://github.com/apache/spark/blob/v3.0.0/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsPushDownFilters.java#L30),
 [projection pushdown](https://github.com/apache/spark/blob/v3.0.0/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsPushDownRequiredColumns.java#L31)
 and partitioning by orthogonal dimensions [predicates](#partitioning-by-predicates) and [nodes](#partitioning-by-uids).
@@ -16,6 +17,9 @@ Example code:
 
     import uk.co.gresearch.spark.dgraph.graphx._
     val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph(target)
+
+    import uk.co.gresearch.spark.dgraph.graphframes._
+    val graph: GraphFrame = spark.read.dgraph(target)
 
     import uk.co.gresearch.spark.dgraph.connector._
     val triples: DataFrame = spark.read.dgraphTriples(target)
@@ -89,10 +93,30 @@ graph. For example:
     val graph = spark.read.dgraph("localhost:9080")
 
 Example code to perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
-computation on the graph to test that the connector is working:
+computation on this graph to test that the connector is working:
 
     val pageRank = graph.pageRank(0.0001)
     pageRank.vertices.foreach(println)
+
+### GraphFrames
+
+You can load the entire Dgraph database into a
+[GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) graph. For example:
+
+    import uk.co.gresearch.spark.dgraph.graphframes._
+
+    val graph: GraphFrame = spark.read.dgraph("localhost:9080")
+
+Example code to perform a [PageRank](https://graphframes.github.io/graphframes/docs/_site/user-guide.html#pagerank)
+computation on this graph to test that the connector is working:
+
+    val pageRank = graph.pageRank.maxIter(10)
+    pageRank.run().triplets.show(false)
+
+Note: Predicates get renamed when they are loaded from the Dgraph database. Any `.` (dot) in the name
+is replaced by a `_` (underscore). To guarantee uniqueness of names, underscores in the original predicate
+names are replaced by two underscores. For instance, predicates `dgraph.type` and `release_date`
+become `dgraph_type` and `release__date`, respectively.
 
 ### DataFrame
 
