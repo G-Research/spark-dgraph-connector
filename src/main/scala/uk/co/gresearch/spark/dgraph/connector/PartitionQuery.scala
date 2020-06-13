@@ -62,7 +62,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         val filter =
           Option(predicates.get)
             .filter(_.nonEmpty)
-            .map(_.map(p => s"has(${p.predicateName})").mkString(" OR "))
+            .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
             // an empty predicates set must return empty result set
             .orElse(Some("eq(true, false)"))
             .map(filter => s"@filter(${filter}) ")
@@ -73,8 +73,8 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
             .filter(_.nonEmpty)
             .map(t =>
               t.map {
-                case Predicate(predicate, "uid") => s"    $predicate { uid }"
-                case Predicate(predicate, _____) => s"    $predicate"
+                case Predicate(predicate, "uid") => s"    <$predicate> { uid }"
+                case Predicate(predicate, _____) => s"    <$predicate>"
               }.mkString("\n") + "\n"
             ).getOrElse("")
 
