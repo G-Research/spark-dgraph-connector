@@ -49,18 +49,18 @@ object ClusterState {
   }
 
   def getMembersFromGroup(group: JsonObject): Set[String] =
-    group
-      .getAsJsonObject("members")
-      .entrySet().asScala
+    Option(group.getAsJsonObject("members"))
+      .map(_.entrySet().asScala)
+      .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
       .map(_.getAsJsonPrimitive("addr"))
       .map(_.getAsString)
       .toSet
 
   def getPredicatesFromGroup(group: JsonObject): Set[String] =
-    group
-      .getAsJsonObject("tablets")
-      .entrySet().asScala
+    Option(group.getAsJsonObject("tablets"))
+      .map(_.entrySet().asScala)
+      .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
       .map(_.getAsJsonPrimitive("predicate"))
       .map(_.getAsString)
