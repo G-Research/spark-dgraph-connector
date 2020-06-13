@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Dgraph groups with no predicates caused a `NullPointerException`.
+- Predicate names need to be escaped in Dgraph queries.
 
 ## [0.2.0] - 2020-06-11
 

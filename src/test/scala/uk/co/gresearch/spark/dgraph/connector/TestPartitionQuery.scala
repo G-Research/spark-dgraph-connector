@@ -47,12 +47,12 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), None)
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(dgraph.type)) @filter(has(prop1) OR has(prop2) OR has(edge1) OR has(edge2)) {
+          |  result (func: has(dgraph.type)) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
           |    uid
-          |    prop1
-          |    prop2
-          |    edge1 { uid }
-          |    edge2 { uid }
+          |    <prop1>
+          |    <prop2>
+          |    <edge1> { uid }
+          |    <edge2> { uid }
           |  }
           |}""".stripMargin)
     }
@@ -106,12 +106,12 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), None)
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(dgraph.type)) @filter(has(prop1) OR has(prop2) OR has(edge1) OR has(edge2)) {
+          |  result (func: has(dgraph.type)) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
           |    uid
-          |    prop1
-          |    prop2
-          |    edge1 { uid }
-          |    edge2 { uid }
+          |    <prop1>
+          |    <prop2>
+          |    <edge1> { uid }
+          |    <edge2> { uid }
           |  }
           |}""".stripMargin)
     }
@@ -121,12 +121,12 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), Some(uids))
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(dgraph.type), first: 500, offset: 1000) @filter(has(prop1) OR has(prop2) OR has(edge1) OR has(edge2)) {
+          |  result (func: has(dgraph.type), first: 500, offset: 1000) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
           |    uid
-          |    prop1
-          |    prop2
-          |    edge1 { uid }
-          |    edge2 { uid }
+          |    <prop1>
+          |    <prop2>
+          |    <edge1> { uid }
+          |    <edge2> { uid }
           |  }
           |}""".stripMargin)
     }
