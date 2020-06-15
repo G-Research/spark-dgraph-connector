@@ -151,7 +151,7 @@ class TestEdgeSource extends FunSpec with SparkTestSession {
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
       assert(partitions.length === 10)
-      assert(partitions === Seq(Set(3, 4, 10)) ++ (1 to 9).map(_ => Set.empty[Long]))
+      assert(partitions.map(_.size) === Seq(3) ++ (1 to 9).map(_ => 0))
     }
 
   }
