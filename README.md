@@ -13,15 +13,32 @@ Now, you can do things like:
     val target = "localhost:9080"
 
     import uk.co.gresearch.spark.dgraph.graphx._
-    val graph: Graph[VertexProperty, EdgeProperty] = spark.read.loadGraph(target)
+    val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph(target)
 
     import uk.co.gresearch.spark.dgraph.graphframes._
-    val graph: GraphFrame = spark.read.loadGraph(target)
+    val graph: GraphFrame = spark.read.dgraph(target)
 
     import uk.co.gresearch.spark.dgraph.connector._
     val triples: DataFrame = spark.read.dgraphTriples(target)
     val edges: DataFrame = spark.read.dgraphEdges(target)
     val nodes: DataFrame = spark.read.dgraphNodes(target)
+
+## Limitations
+
+The connector is in early stage and continuously developed. It has the following limitations:
+
+- **Read-Only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
+- **Transaction**: Individual partitions do not read the same transaction. The graph should not be
+  modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
+- **Filter Push-Down**: The connector does not support any filter push-down. It always reads the
+  entire graph into Spark where then filters get applied (e.g. filter for predicates, uids or values) ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
+- **Type System**: The connector can only read data of nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
+  and predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
+- **Language Tags, Facets**: The connector cannot read any string values with language tags or facets.
+- **Maturity**: Untested with non-trivial sized real-world graphs.
+
+Beside the **Language Tags and Facets**, which is a limitation of Dgraph, all other issues mentioned
+above will be addressed in the near future.
 
 ## Using Spark Dgraph Connector
 
@@ -74,7 +91,7 @@ graph:
 
     import uk.co.gresearch.spark.dgraph.graphx._
 
-    val graph = spark.read.loadGraph("localhost:9080")
+    val graph = spark.read.dgraph("localhost:9080")
 
 Perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
 computation on this graph to test the connector:
@@ -89,7 +106,7 @@ You can load the entire Dgraph database into a
 
     import uk.co.gresearch.spark.dgraph.graphframes._
 
-    val graph: GraphFrame = spark.read.loadGraph("localhost:9080")
+    val graph: GraphFrame = spark.read.dgraph("localhost:9080")
 
 Perform a [PageRank](https://graphframes.github.io/graphframes/docs/_site/user-guide.html#pagerank)
 computation on this graph to test the connector:
