@@ -26,14 +26,14 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 package object graphx extends TargetsConfigParser {
 
-  class VertexProperty(property: String, value: Any) extends Serializable
-  case class StringVertexProperty(property: String, value: String) extends VertexProperty(property, value)
-  case class LongVertexProperty(property: String, value: Long) extends VertexProperty(property, value)
-  case class DoubleVertexProperty(property: String, value: Double) extends VertexProperty(property, value)
-  case class TimestampVertexProperty(property: String, value: Timestamp) extends VertexProperty(property, value)
-  case class BooleanVertexProperty(property: String, value: Boolean) extends VertexProperty(property, value)
-  case class GeoVertexProperty(property: String, value: Geo) extends VertexProperty(property, value)
-  case class PasswordVertexProperty(property: String, value: Password) extends VertexProperty(property, value)
+  class VertexProperty(val property: String, val value: Any) extends Serializable
+  case class StringVertexProperty(override val property: String, override val value: String) extends VertexProperty(property, value)
+  case class LongVertexProperty(override val property: String, override val value: Long) extends VertexProperty(property, value)
+  case class DoubleVertexProperty(override val property: String, override val value: Double) extends VertexProperty(property, value)
+  case class TimestampVertexProperty(override val property: String, override val value: Timestamp) extends VertexProperty(property, value)
+  case class BooleanVertexProperty(override val property: String, override val value: Boolean) extends VertexProperty(property, value)
+  case class GeoVertexProperty(override val property: String, override val value: Geo) extends VertexProperty(property, value)
+  case class PasswordVertexProperty(override val property: String, override val value: Password) extends VertexProperty(property, value)
 
   case class EdgeProperty(property: String)
 
