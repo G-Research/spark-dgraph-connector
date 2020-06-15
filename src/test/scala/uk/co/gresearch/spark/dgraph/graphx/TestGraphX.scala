@@ -19,8 +19,10 @@ package uk.co.gresearch.spark.dgraph.graphx
 
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestGraphX extends FunSpec with SparkTestSession {
+class TestGraphX extends FunSpec
+  with SparkTestSession with DgraphTestCluster {
 
   describe("GraphX") {
 

@@ -74,6 +74,7 @@
     <dependency>
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
+      <!-- adjust version in DgraphTestCluster when you change this version -->
       <version>20.03.0</version>
     </dependency>
 

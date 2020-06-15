@@ -20,11 +20,13 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-class TestTriplesSource extends FunSpec with SparkTestSession {
+class TestTriplesSource extends FunSpec
+  with SparkTestSession with DgraphTestCluster {
 
   import spark.implicits._
 
