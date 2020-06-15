@@ -2,8 +2,10 @@ package uk.co.gresearch.spark.dgraph.graphframes
 
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestGraphFrames extends FunSpec with SparkTestSession {
+class TestGraphFrames extends FunSpec
+  with SparkTestSession with DgraphTestCluster {
 
   describe("GraphFrames") {
 

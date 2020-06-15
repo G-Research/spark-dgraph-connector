@@ -17,8 +17,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import java.net.ConnectException
-
 trait ClusterStateProvider {
 
   def getClusterState(targets: Seq[Target]): ClusterState = {

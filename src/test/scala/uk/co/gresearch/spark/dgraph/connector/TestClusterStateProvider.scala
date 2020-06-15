@@ -18,8 +18,9 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestClusterStateProvider extends FunSpec {
+class TestClusterStateProvider extends FunSpec with DgraphTestCluster {
 
   describe("ClusterStateProvider") {
 

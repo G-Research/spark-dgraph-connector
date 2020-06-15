@@ -414,3 +414,11 @@ to get rid of this error
       at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
+
+## Testing
+
+Some unit tests require a Dgraph cluster running at `localhost:9080`. It has to be setup as
+described in [Examples](#examples) section. If that cluster is not running, the unit tests will
+launch and setup such a cluster for you. This requires `docker` to be installed on your machine
+and will make the tests take longer. So if you run those tests frequently it is recommended you run
+that cluster setup yourself.

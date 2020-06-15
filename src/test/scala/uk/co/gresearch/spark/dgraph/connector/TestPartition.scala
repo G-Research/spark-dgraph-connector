@@ -18,10 +18,11 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-class TestPartition extends FunSpec with SchemaProvider {
+class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
 
   describe("Partition") {
 
