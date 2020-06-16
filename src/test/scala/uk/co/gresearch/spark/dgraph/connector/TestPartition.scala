@@ -26,7 +26,7 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
 
   describe("Partition") {
 
-    Seq(1, 3, 10, 30, 100, 300, 1000, 3000, 10000).foreach { predicates =>
+    Seq(10, 100, 1000, 10000).foreach { predicates =>
 
       // test that a partition works with N predicates
       // the query grows linearly with N, so does the processing time
@@ -41,7 +41,7 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
         val encoder = TypedTripleEncoder(schema.predicateMap)
         val model = TripleTableModel(encoder)
         val partition = Partition(targets, Option(schema.predicates), None, model)
-        println(model.modelPartition(partition).length)
+        assert(model.modelPartition(partition).length === 44)
       }
 
     }

@@ -17,6 +17,8 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.{DataFrame, Encoders, Row}
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
@@ -32,52 +34,77 @@ class TestEdgeSource extends FunSpec
 
   describe("EdgeDataSource") {
 
+    def doTestLoadEdges(load: () => DataFrame): Unit = {
+      val columns = Encoders.product[Edge].schema.fields.map(_.name).map(col)
+      val edges = load().coalesce(1).sortWithinPartitions(columns: _*)
+      assert(edges.collect() === Seq(
+        Row(5, "director", 3),
+        Row(5, "starring", 2),
+        Row(5, "starring", 7),
+        Row(5, "starring", 8),
+        Row(6, "director", 4),
+        Row(6, "starring", 2),
+        Row(6, "starring", 7),
+        Row(6, "starring", 8),
+        Row(10, "director", 9),
+        Row(10, "starring", 2),
+        Row(10, "starring", 7),
+        Row(10, "starring", 8),
+      ))
+    }
+
     it("should load edges via path") {
-      spark
-        .read
-        .format(EdgesSource)
-        .load("localhost:9080")
-        .printSchema()
+      doTestLoadEdges( () =>
+        spark
+          .read
+          .format(EdgesSource)
+          .load("localhost:9080")
+      )
     }
 
     it("should load edges via paths") {
-      spark
-        .read
-        .format(EdgesSource)
-        .load("localhost:9080", "127.0.0.1:9080")
-        .show(100, false)
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .format(EdgesSource)
+          .load("localhost:9080", "127.0.0.1:9080")
+      )
     }
 
     it("should load edges via target option") {
-      spark
-        .read
-        .format(EdgesSource)
-        .option(TargetOption, "localhost:9080")
-        .load()
-        .show(100, false)
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .format(EdgesSource)
+          .option(TargetOption, "localhost:9080")
+          .load()
+      )
     }
 
     it("should load edges via targets option") {
-      spark
-        .read
-        .format(EdgesSource)
-        .option(TargetsOption, "[\"localhost:9080\",\"127.0.0.1:9080\"]")
-        .load()
-        .show(100, false)
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .format(EdgesSource)
+          .option(TargetsOption, "[\"localhost:9080\",\"127.0.0.1:9080\"]")
+          .load()
+      )
     }
 
     it("should load edges via implicit dgraph target") {
+      doTestLoadEdges( () =>
       spark
         .read
         .dgraphEdges("localhost:9080")
-        .show(100, false)
+      )
     }
 
     it("should load edges via implicit dgraph targets") {
-      spark
-        .read
-        .dgraphEdges("localhost:9080", "127.0.0.1:9080")
-        .show(100, false)
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .dgraphEdges("localhost:9080", "127.0.0.1:9080")
+      )
     }
 
     it("should encode Edge") {
@@ -88,7 +115,7 @@ class TestEdgeSource extends FunSpec
           .load("localhost:9080")
           .as[Edge]
           .collectAsList()
-      rows.forEach(println)
+      assert(rows.size() === 12)
     }
 
     it("should fail without target") {
