@@ -40,7 +40,7 @@ class TestPartitionerProvider extends FunSpec {
 
     val singleton = SingletonPartitioner(target)
     val group = GroupPartitioner(schema, state)
-    val alpha =AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
+    val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
     val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, 10000)
 
