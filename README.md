@@ -85,7 +85,7 @@ With our example instance started above, we can use `localhost:9080` as the targ
 
 ### GraphX
 
-You can load the entire Dgraph database into a
+You can load the entire Dgraph database into an
 [Apache Spark GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html)
 graph. For example:
 
