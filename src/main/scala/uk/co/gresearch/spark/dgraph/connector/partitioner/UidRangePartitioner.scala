@@ -20,7 +20,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.{Partition, UidRange}
 
-case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinality: Long) extends Partitioner {
+case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
@@ -28,28 +28,31 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
   if (uidsPerPartition <= 0)
     throw new IllegalArgumentException(s"uidsPerPartition must be larger than zero: $uidsPerPartition")
 
-  if (uidCardinality <= 0)
-    throw new IllegalArgumentException(s"uidCardinality must be larger than zero: $uidCardinality")
-
-  val parts: Long = ((uidCardinality - 1) / uidsPerPartition) + 1
-  if (!parts.isValidInt)
-    throw new IllegalArgumentException(s"uidsPerPartition of $uidsPerPartition with uidCardinality of $uidCardinality leads to more then ${Integer.MAX_VALUE} partitions: $parts")
-
   override def getPartitions(model: GraphTableModel): Seq[Partition] = {
     val partitions = partitioner.getPartitions(model)
     if (partitions.exists(_.uids.isDefined))
       throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
         s"another uid partitioner: ${partitioner.getClass.getSimpleName}")
 
-    if (parts > 1) {
-      (0 until parts.toInt).map(idx => idx -> UidRange(idx * uidsPerPartition, uidsPerPartition)).flatMap {
-        case (idx, range) =>
-          partitions.map(partition =>
-            Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), partition.model)
-          )
+    partitions.flatMap { partition =>
+      val uidCardinality = uidCardinalityEstimator.uidCardinality(partition)
+      val parts = uidCardinality.map(uids => ((uids - 1) / uidsPerPartition) + 1)
+
+      if (parts.isDefined && parts.get > 1) {
+        if (!parts.get.isValidInt)
+          throw new IllegalArgumentException(s"uidsPerPartition of $uidsPerPartition " +
+            s"with uidCardinality of ${uidCardinality.get} " +
+            s"leads to more then ${Integer.MAX_VALUE} partitions: ${parts.get}")
+
+        (0 until parts.get.toInt)
+          .map(idx => idx -> UidRange(idx * uidsPerPartition, uidsPerPartition))
+          .map {
+            case (idx, range) =>
+              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
+          }
+      } else {
+        Seq(partition)
       }
-    } else {
-      partitions
     }
   }
 

@@ -63,16 +63,19 @@ class TestUidRangePartitioner extends FunSpec {
       testSizes.foreach { size =>
 
         it(s"should decorate $label partitioner with ${size} uids per partition") {
-          val uidPartitioner = UidRangePartitioner(partitioner, size, clusterState.maxLeaseId)
+          val uidPartitioner = UidRangePartitioner(partitioner, size, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
           val partitions = partitioner.getPartitions(model)
           val uidPartitions = uidPartitioner.getPartitions(model)
           println(uidPartitions)
 
           val ranges = (0 until (10000 / size)).map(idx => UidRange(idx * size, size))
           assert(uidPartitions.length === partitions.length * ranges.length)
-          val expectedPartitions = ranges.zipWithIndex.flatMap { case (range, idx) =>
-            partitions.map(partition => Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model))
-          }
+          val expectedPartitions = partitions.flatMap( partition =>
+            ranges.zipWithIndex.map { case (range, idx) =>
+              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
+            }
+          )
+
           assert(uidPartitions === expectedPartitions)
         }
 
@@ -82,7 +85,7 @@ class TestUidRangePartitioner extends FunSpec {
     testPartitioners.foreach{ case (partitioner, label) =>
 
       it(s"should noop $label partitioner with too large uidsPerPartition") {
-        val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.toInt, clusterState.maxLeaseId)
+        val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.toInt, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
         assert(uidPartitioner.getPartitions(model) === partitioner.getPartitions(model))
       }
 
@@ -90,32 +93,20 @@ class TestUidRangePartitioner extends FunSpec {
 
     it("should fail on null partitioner") {
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(null, 1, 1000)
+        UidRangePartitioner(null, 1, UidCardinalityEstimator.forMaxLeaseId(1000))
       }
     }
 
-    it("should fail on negative or zero uidsPerPartition") {
+    it("should fail with integer overflow partition size") {
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, -1, 1000)
-      }
-      assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, 0, 1000)
-      }
-    }
-
-    it("should fail on negative or zero max uids") {
-      assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, 1, -1)
-      }
-      assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, 1, 0)
+        UidRangePartitioner(singleton, 1, UidCardinalityEstimator.forMaxLeaseId(Long.MaxValue)).getPartitions(model)
       }
     }
 
     it("should fail on decorating uid partitioner") {
-      val uidPartitioner = UidRangePartitioner(singleton, 2, 1000)
+      val uidPartitioner = UidRangePartitioner(singleton, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(uidPartitioner, 1, 1000).getPartitions(model)
+        UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(1000)).getPartitions(model)
       }
     }
 
