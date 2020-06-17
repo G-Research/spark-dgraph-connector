@@ -251,11 +251,12 @@ class TestNodeSource extends FunSpec
       val partitions =
         spark
           .read
+          .option(UidRangePartitionerUidsPerPartOption, "7")
           .dgraphNodes(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions.length === 10)
-      assert(partitions === Seq((1 to 10).toSet) ++ (1 to 9).map(_ => Set.empty[Long]))
+      assert(partitions.length === 2)
+      assert(partitions === Seq((1 to 7).toSet, (8 to 10).toSet))
     }
 
   }

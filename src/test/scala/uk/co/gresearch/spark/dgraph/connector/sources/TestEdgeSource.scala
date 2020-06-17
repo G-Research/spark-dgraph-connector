@@ -176,11 +176,17 @@ class TestEdgeSource extends FunSpec
       val partitions =
         spark
           .read
+          .options(Map(
+            UidRangePartitionerUidsPerPartOption -> "2",
+            UidRangePartitionerEstimatorOption -> UidCountEstimatorOption,
+          ))
           .dgraphEdges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions.length === 10)
-      assert(partitions.map(_.size) === Seq(3) ++ (1 to 9).map(_ => 0))
+      assert(partitions.length === 5)
+      // we can only count and retrieve triples, not edges only, and filter for edges in the connector
+      // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
+      assert(partitions.map(_.size) === Seq(0, 0, 2, 0, 1))
     }
 
   }

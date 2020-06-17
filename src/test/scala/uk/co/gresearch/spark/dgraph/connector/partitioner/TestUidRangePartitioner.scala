@@ -20,9 +20,11 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, UidRange}
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -80,6 +82,27 @@ class TestUidRangePartitioner extends FunSpec {
         }
 
       }
+
+      it(s"should decorate $label partitioner with uid count estimator") {
+        val executor = new JsonGraphQlExecutor {
+          override def query(query: connector.GraphQl): connector.Json = Json("""{ "result": [ { "count": 8 } ] }""")
+        }
+        val uidPartitioner = UidRangePartitioner(partitioner, 5, UidCardinalityEstimator.forExecutor(executor))
+        val partitions = partitioner.getPartitions(model)
+        val uidPartitions = uidPartitioner.getPartitions(model)
+        println(uidPartitions)
+
+        val ranges = Seq(UidRange(0, 5), UidRange(5, 5))
+        assert(uidPartitions.length === partitions.length * ranges.length)
+        val expectedPartitions = partitions.flatMap( partition =>
+          ranges.zipWithIndex.map { case (range, idx) =>
+            Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
+          }
+        )
+
+        assert(uidPartitions === expectedPartitions)
+      }
+
     }
 
     testPartitioners.foreach{ case (partitioner, label) =>

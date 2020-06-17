@@ -311,7 +311,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(PartitionerOption, s"$UidRangePartitionerOption")
-          .option(UidRangePartitionerUidsPerPartOption, "5000")
+          .option(UidRangePartitionerUidsPerPartOption, "7")
           .dgraphTriples(target)
           .rdd
           .partitions.map {
@@ -319,8 +319,9 @@ class TestTriplesSource extends FunSpec
           case _ => None
         }
 
-      val expected = (0 to 1).map(idx =>
-        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(idx * 5000, 5000)), model))
+      val expected = Seq(
+        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(0, 7)), model)),
+        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(7, 7)), model)),
       )
 
       assert(partitions.length === expected.size)
@@ -334,7 +335,7 @@ class TestTriplesSource extends FunSpec
           .read
           .option(PartitionerOption, s"$PredicatePartitionerOption+$UidRangePartitionerOption")
           .option(PredicatePartitionerPredicatesOption, "2")
-          .option(UidRangePartitionerUidsPerPartOption, "5000")
+          .option(UidRangePartitionerUidsPerPartOption, "5")
           .dgraphTriples(target)
           .rdd
           .partitions.map {
@@ -343,11 +344,12 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Seq(
-        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)), model)),
-        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)), model)),
-        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)), model)),
-        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000)), model))
-      ).flatMap(f => Seq(0, 5000).map(f))
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(0, 5)), model)),
+        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(5, 5)), model))
+      )
 
       assert(partitions.length === expected.size)
       assert(partitions === expected)
@@ -358,11 +360,12 @@ class TestTriplesSource extends FunSpec
       val partitions =
         spark
           .read
+          .option(UidRangePartitionerUidsPerPartOption, "7")
           .dgraphTriples(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions.length === 10)
-      assert(partitions === Seq((1 to 10).toSet) ++ (1 to 9).map(_ => Set.empty[Long]))
+      assert(partitions.length === 2)
+      assert(partitions === Seq((1 to 7).toSet, (8 to 10).toSet))
     }
 
   }

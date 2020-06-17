@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
+### Added
+- Use exact uid cardinality for uid range partitioning. Combined with predicate partitioning, large
+  predicates get split into more partitions than small predicates.
+
 ### Fixed
 - Dgraph groups with no predicates caused a `NullPointerException`.
 - Predicate names need to be escaped in Dgraph queries.

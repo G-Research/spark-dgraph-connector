@@ -20,15 +20,19 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import uk.co.gresearch.spark.dgraph.connector._
 
-class DefaultPartitionerOption extends PartitionerProviderOption with ConfigParser {
+class DefaultPartitionerOption extends ConfigParser
+  with PartitionerProviderOption with EstimatorProviderOption
+  with ClusterStateHelper {
+
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
                               options: DataSourceOptions): Option[Partitioner] =
     Some(
       UidRangePartitioner(
-        SingletonPartitioner(allClusterTargets(clusterState)),
+        SingletonPartitioner(getAllClusterTargets(clusterState)),
         getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault),
-        UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId)
+        getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
       )
     )
+
 }

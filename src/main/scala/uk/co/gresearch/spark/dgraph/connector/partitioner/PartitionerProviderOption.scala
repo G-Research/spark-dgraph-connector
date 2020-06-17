@@ -26,7 +26,4 @@ trait PartitionerProviderOption {
                      clusterState: ClusterState,
                      options: DataSourceOptions): Option[Partitioner]
 
-  protected def allClusterTargets(clusterState: ClusterState): Seq[Target] =
-    clusterState.groupMembers.values.flatten.toSeq
-
 }

@@ -117,6 +117,10 @@ package object connector {
   val PredicatePartitionerPredicatesDefault: Int = 1000
   val UidRangePartitionerUidsPerPartOption: String = "dgraph.partitioner.uidRange.uidsPerPartition"
   val UidRangePartitionerUidsPerPartDefault: Int = 1000
+  val UidRangePartitionerEstimatorOption: String = "dgraph.partitioner.uidRange.estimator"
+  val MaxLeaseIdEstimatorOption: String = "maxLeaseId"
+  val UidCountEstimatorOption: String = "count"
+  val UidRangePartitionerEstimatorDefault: String = UidCountEstimatorOption
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
 

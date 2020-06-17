@@ -34,9 +34,8 @@ class TestGraphX extends FunSpec
     def doGraphTest(load: () => Graph[VertexProperty, EdgeProperty]): Unit = {
       val graph = load()
       val pageRank = graph.pageRank(0.0001)
-      val vertices = pageRank.vertices.collect()
+      val vertices = pageRank.vertices.sortBy(_._1)collect()
       assert(vertices === Seq(
-        (10,0.7968127490039841),
         (1,0.7968127490039841),
         (2,1.3047808764940239),
         (3,0.9661354581673308),
@@ -46,6 +45,7 @@ class TestGraphX extends FunSpec
         (7,1.3047808764940239),
         (8,1.3047808764940239),
         (9,0.9661354581673308),
+        (10,0.7968127490039841),
       ))
     }
 

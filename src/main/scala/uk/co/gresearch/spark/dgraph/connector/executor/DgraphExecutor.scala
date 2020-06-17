@@ -5,7 +5,7 @@ import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
 import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Target, getClientFromChannel, toChannel}
 
-class DgraphExecutor(targets: Seq[Target]) extends JsonGraphQlExecutor {
+case class DgraphExecutor(targets: Seq[Target]) extends JsonGraphQlExecutor {
 
   /**
    * Executes a GraphQl query against a Dgraoh cluster and returns the JSON query result.
