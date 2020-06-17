@@ -133,7 +133,7 @@ Dgraph data can be loaded into Spark DataFrames in various forms:
 
 #### Typed Triples
 
-You can load the entire Dgraph database as triples into a [Apache Spark Dataset](https://spark.apache.org/docs/latest/api/java/index.html?org/apache/spark/sql/Dataset.html). For example:
+You can load the entire Dgraph database as triples into an [Apache Spark Dataset](https://spark.apache.org/docs/latest/api/java/index.html?org/apache/spark/sql/Dataset.html). For example:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
