@@ -347,9 +347,27 @@ the graph by the subject of the graph triples. This can be combined with predica
 which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
 induces Dgraph cluster internal communication across the groups.
 
+The uid partitioning is based on top of a predicate partitioning. With none defined a singleton partitioning is used.
+The number of uids of each underlying partition has to be estimated. Once the number of uids is estimated,
+the partition can further be split into ranges of that uid space.
+
 The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000`
 and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
-partitions in ascending order. If vertice size is skewed and a function of `uid`, then partitions will be skewed as well.
+partitions in ascending order. If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
+
+The estimator can be selected with the `dgraph.partitioner.uidRange.estimator` option. These estimators are available:
+
+##### Cluster MaxLeaseId
+
+The Dgraph cluster [maintains a maxLeaseId](https://dgraph.io/docs/deploy/#more-about-state-endpoint), which is the largest possible uid.
+It grows as new uids are added to the cluster, so it serves as an upper estimate of the actual largest uid.
+Compared to the count estimator it is very cheap to retrieve this value.
+This estimator can be selected with the `maxLeaseId` value.
+
+##### Count Uid Estimator
+
+This estimator counts the distinct uids within each underlying partition first. With many or large predicate partitions, this can become expensive.
+The estimator is the default estimator for uid partitioning and can be selected with the `count` value.
 
 #### Partitioning by Predicates
 

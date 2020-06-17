@@ -20,7 +20,10 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 
-class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParser {
+class ConfigPartitionerOption extends PartitionerProviderOption
+  with EstimatorProviderOption
+  with ClusterStateHelper
+  with ConfigParser {
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
@@ -33,7 +36,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParse
                              clusterState: ClusterState,
                              options: CaseInsensitiveStringMap): Partitioner =
     partitionerName match {
-      case SingletonPartitionerOption => SingletonPartitioner(allClusterTargets(clusterState))
+      case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState))
       case GroupPartitionerOption => GroupPartitioner(schema, clusterState)
       case AlphaPartitionerOption =>
         AlphaPartitioner(schema, clusterState,
@@ -43,9 +46,10 @@ class ConfigPartitionerOption extends PartitionerProviderOption with ConfigParse
           getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault))
       case UidRangePartitionerOption =>
         val uidsPerPartition = getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
-        val targets = allClusterTargets(clusterState)
+        val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
+        val targets = getAllClusterTargets(clusterState)
         val singleton = SingletonPartitioner(targets)
-        UidRangePartitioner(singleton, uidsPerPartition, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
+        UidRangePartitioner(singleton, uidsPerPartition, estimator)
       case option if option.endsWith(s"+${UidRangePartitionerOption}") =>
         val name = option.substring(0, option.indexOf('+'))
         val partitioner = getPartitioner(name, schema, clusterState, options)

@@ -59,6 +59,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
       } else {
         // this assumes all given predicates are all properties, no edges
         // TODO: make this else branch produce a query that returns only properties even if edges are in predicates
+        //       https://github.com/G-Research/spark-dgraph-connector/issues/19
         forPropertiesAndEdges.string
       }
 

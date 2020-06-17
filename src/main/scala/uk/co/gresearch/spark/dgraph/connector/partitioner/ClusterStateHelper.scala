@@ -21,6 +21,9 @@ import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Predicate, Schema, 
 
 trait ClusterStateHelper {
 
+  def getAllClusterTargets(clusterState: ClusterState): Seq[Target] =
+    clusterState.groupMembers.values.flatten.toSeq
+
   def getGroupTargets(clusterState: ClusterState, group: String): Set[Target] =
     clusterState.groupMembers.getOrElse(group,
       throw new IllegalArgumentException(s"cluster state group in groupPredicates " +

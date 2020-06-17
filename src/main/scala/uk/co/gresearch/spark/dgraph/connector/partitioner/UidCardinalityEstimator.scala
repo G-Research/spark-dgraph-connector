@@ -71,9 +71,7 @@ case class QueryUidCardinalityEstimator(executor: JsonGraphQlExecutor) extends U
   def queryUidCardinality(partition: Partition): Option[Long] = {
     val query = partition.query
     val graphql = query.countUids
-    println(graphql.string)
     val json = executor.query(graphql)
-    println(json.string)
     getCardinality(json, query.resultName)
   }
 
