@@ -19,20 +19,43 @@ package uk.co.gresearch.spark.dgraph.connector
 
 case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]], uids: Option[UidRange]) {
 
-  def forProperties: GraphQl = {
-    val pagination =
-      uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
+  def pagination: String =
+    uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
 
+  val predicateFilter: Option[String] =
+    predicates.map(preds =>
+      Option(preds)
+        .filter(_.nonEmpty)
+        .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
+        // an empty predicates set must return empty result set
+        .orElse(Some("eq(true, false)"))
+        .map(filter => s"@filter(${filter}) ")
+        .get
+    )
+
+  val predicatePaths: Option[String] =
+    predicates.map(preds =>
+      Option(preds)
+        .filter(_.nonEmpty)
+        .map(t =>
+          t.map {
+            case Predicate(predicate, "uid") => s"    <$predicate> { uid }"
+            case Predicate(predicate, _____) => s"    <$predicate>"
+          }.mkString("\n") + "\n"
+        ).getOrElse("")
+    )
+
+  def forProperties: GraphQl = {
     val query =
       if (predicates.isEmpty) {
         s"""{
-         |  ${resultName} (func: has(dgraph.type)$pagination) {
-         |    uid
-         |    dgraph.graphql.schema
-         |    dgraph.type
-         |    expand(_all_)
-         |  }
-         |}""".stripMargin
+           |  ${resultName} (func: has(dgraph.type)$pagination) {
+           |    uid
+           |    dgraph.graphql.schema
+           |    dgraph.type
+           |    expand(_all_)
+           |  }
+           |}""".stripMargin
       } else {
         // this assumes all given predicates are all properties, no edges
         // TODO: make this else branch produce a query that returns only properties even if edges are in predicates
@@ -43,50 +66,35 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
   }
 
   def forPropertiesAndEdges: GraphQl = {
-    val pagination =
-      uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
+    val paths = predicatePaths.getOrElse(
+      """    dgraph.graphql.schema
+        |    dgraph.type
+        |    expand(_all_) {
+        |      uid
+        |    }
+        |""".stripMargin)
 
     val query =
-      if (predicates.isEmpty) {
-        s"""{
-           |  ${resultName} (func: has(dgraph.type)$pagination) {
-           |    uid
-           |    dgraph.graphql.schema
-           |    dgraph.type
-           |    expand(_all_) {
-           |      uid
-           |    }
-           |  }
-           |}""".stripMargin
-      } else {
-        val filter =
-          Option(predicates.get)
-            .filter(_.nonEmpty)
-            .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
-            // an empty predicates set must return empty result set
-            .orElse(Some("eq(true, false)"))
-            .map(filter => s"@filter(${filter}) ")
-            .get
-
-        val predicatesPaths =
-          Option(predicates.get)
-            .filter(_.nonEmpty)
-            .map(t =>
-              t.map {
-                case Predicate(predicate, "uid") => s"    <$predicate> { uid }"
-                case Predicate(predicate, _____) => s"    <$predicate>"
-              }.mkString("\n") + "\n"
-            ).getOrElse("")
-
-        s"""{
-           |  ${resultName} (func: has(dgraph.type)${pagination}) ${filter}{
-           |    uid
-           |${predicatesPaths}  }
-           |}""".stripMargin
-      }
+      s"""{
+         |  ${resultName} (func: has(dgraph.type)${pagination}) ${predicateFilter.getOrElse("")}{
+         |    uid
+         |${paths}  }
+         |}""".stripMargin
 
     GraphQl(query)
   }
+
+  def countUids: GraphQl = {
+    val query =
+      s"""{
+         |  ${resultName} (func: has(dgraph.type)${pagination}) ${predicateFilter.getOrElse("")}{
+         |    count(uid)
+         |  }
+         |}""".stripMargin
+
+    GraphQl(query)
+  }
+
 
 }
 

@@ -327,14 +327,12 @@ class TestTriplesSource extends FunSpec
           case _ => None
         }
 
-      val expected = Seq(0, 5000).flatMap( first =>
-        Seq(
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)))),
-          Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000))))
-        )
-      )
+      val expected = Seq(
+        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), Some(UidRange(first, 5000)))),
+        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), Some(UidRange(first, 5000)))),
+        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), Some(UidRange(first, 5000)))),
+        (first: Int) => Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(first, 5000))))
+      ).flatMap(f => Seq(0, 5000).map(f))
 
       assert(partitions.length === expected.size)
       assert(partitions === expected)

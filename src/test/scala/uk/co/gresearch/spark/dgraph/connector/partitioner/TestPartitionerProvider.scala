@@ -42,7 +42,7 @@ class TestPartitionerProvider extends FunSpec {
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, 10000)
+    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, UidCardinalityEstimator.forMaxLeaseId(10000))
 
     Seq(
       ("singleton", singleton),
@@ -70,14 +70,14 @@ class TestPartitionerProvider extends FunSpec {
       val provider = new PartitionerProvider {}
       val options = CaseInsensitiveStringMap.empty()
       val partitioner = provider.getPartitioner(schema, state, options)
-      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), UidRangePartitionerUidsPerPartDefault, state.maxLeaseId))
+      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), UidRangePartitionerUidsPerPartDefault, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId)))
     }
 
     it("should provide configurable default partitioner") {
       val provider = new PartitionerProvider {}
       val options = new CaseInsensitiveStringMap(Map(UidRangePartitionerUidsPerPartOption -> "1").asJava)
       val partitioner = provider.getPartitioner(schema, state, options)
-      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), 1, state.maxLeaseId))
+      assert(partitioner === UidRangePartitioner(SingletonPartitioner(target), 1, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId)))
     }
 
     it("should fail on unknown partitioner option") {

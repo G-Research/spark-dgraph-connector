@@ -2,8 +2,9 @@ package uk.co.gresearch.spark.dgraph.connector.model
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.{GraphQl, JsonGraphQlExecutor, Partition, PartitionQuery}
+import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Partition, PartitionQuery}
 import uk.co.gresearch.spark.dgraph.connector.encoder.InternalRowEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutor, JsonGraphQlExecutor}
 
 /**
  * Represents a specific model of graph data in a tabular form.
@@ -35,7 +36,7 @@ trait GraphTableModel {
   def modelPartition(partition: Partition): Iterator[InternalRow] = {
     val query = partition.query
     val graphql = toGraphQl(query)
-    val executor = new JsonGraphQlExecutor(partition.targets)
+    val executor = new DgraphExecutor(partition.targets)
     val json = executor.query(graphql)
     encoder.fromJson(json, query.resultName)
   }

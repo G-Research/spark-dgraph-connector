@@ -1,4 +1,4 @@
-package uk.co.gresearch.spark.dgraph.connector
+package uk.co.gresearch.spark.dgraph.connector.executor
 
 trait QueryExecutor[Q,R] {
   /**

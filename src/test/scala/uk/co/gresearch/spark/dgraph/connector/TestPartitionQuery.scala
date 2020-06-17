@@ -132,14 +132,51 @@ class TestPartitionQuery extends FunSpec {
     }
 
     it("should provide query for explicitly no properties and edges") {
-      val predicates = Set.empty[Predicate]
-      val query = PartitionQuery("result", Some(predicates), None)
+      val query = PartitionQuery("result", Some(Set.empty), None)
       assert(query.forPropertiesAndEdges.string ===
         """{
           |  result (func: has(dgraph.type)) @filter(eq(true, false)) {
           |    uid
           |  }
           |}""".stripMargin)
+    }
+
+    it("should have none predicate filter for none predicates set") {
+      val query = PartitionQuery("result", None, None)
+      assert(query.predicateFilter.isEmpty)
+    }
+
+    it("should have always-false predicate filter for empty predicates set") {
+      val query = PartitionQuery("result", Some(Set.empty), None)
+      assert(query.predicateFilter.isDefined)
+      assert(query.predicateFilter.get === "@filter(eq(true, false)) ")
+    }
+
+    it("should have predicate filter for given predicates set") {
+      val query = PartitionQuery("result", Some(predicates), None)
+      assert(query.predicateFilter.isDefined)
+      assert(query.predicateFilter.get === "@filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) ")
+    }
+
+    it("should have none predicate paths for none predicates set") {
+      val query = PartitionQuery("result", None, None)
+      assert(query.predicatePaths.isEmpty)
+    }
+
+    it("should have empty predicate paths for empty predicates set") {
+      val query = PartitionQuery("result", Some(Set.empty), None)
+      assert(query.predicatePaths.isDefined)
+      assert(query.predicatePaths.get === "")
+    }
+
+    it("should have predicate paths for given predicates set") {
+      val query = PartitionQuery("result", Some(predicates), None)
+      assert(query.predicatePaths.isDefined)
+      assert(query.predicatePaths.get === """    <prop1>
+                                            |    <prop2>
+                                            |    <edge1> { uid }
+                                            |    <edge2> { uid }
+                                            |""".stripMargin)
     }
 
   }

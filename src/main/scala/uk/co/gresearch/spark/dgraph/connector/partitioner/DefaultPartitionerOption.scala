@@ -28,7 +28,7 @@ class DefaultPartitionerOption extends PartitionerProviderOption with ConfigPars
       UidRangePartitioner(
         SingletonPartitioner(allClusterTargets(clusterState)),
         getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault),
-        clusterState.maxLeaseId
+        UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId)
       )
     )
 }

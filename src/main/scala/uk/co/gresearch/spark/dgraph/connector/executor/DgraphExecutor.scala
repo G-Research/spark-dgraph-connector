@@ -1,16 +1,17 @@
-package uk.co.gresearch.spark.dgraph.connector
+package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
 import io.grpc.ManagedChannel
+import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Target, getClientFromChannel, toChannel}
 
-class JsonGraphQlExecutor(targets: Seq[Target]) extends GraphQlExecutor[Json] {
+class DgraphExecutor(targets: Seq[Target]) extends JsonGraphQlExecutor {
 
   /**
-   * Executes the given query of type Q and returns the query result of type R.
+   * Executes a GraphQl query against a Dgraoh cluster and returns the JSON query result.
    *
-   * @param query query
-   * @return result
+   * @param query: the query
+   * @return a Json result
    */
   override def query(query: GraphQl): Json = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
