@@ -23,7 +23,8 @@ class DefaultPartitionerOption extends ConfigPartitionerOption {
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
+                              transaction: Transaction,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Some(getPartitioner(PartitionerDefault, schema, clusterState, options))
+    Some(getPartitioner(PartitionerDefault, schema, clusterState, transaction, options))
 
 }

@@ -24,15 +24,16 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
+
 import scala.collection.JavaConverters._
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider
-  with Logging {
+  with TransactionProvider with Logging {
 
   /**
    * Sets the number of predicates per partition to max int when predicate partitioner is used
@@ -82,9 +83,11 @@ class NodeSource() extends TableProviderBase
     val adjustedOptions = adjustOptions(options)
 
     val targets = getTargets(adjustedOptions)
+    val transaction = getTransaction(targets)
+    val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets).filter(_.isProperty)
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, adjustedOptions)
+    val partitioner = getPartitioner(schema, clusterState, transaction, adjustedOptions)
     val nodeMode = getNodeMode(adjustedOptions)
     val encoder = nodeMode match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
@@ -92,7 +95,6 @@ class NodeSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
       case None => TypedNodeEncoder(schema.predicateMap)
     }
-    val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)
     TripleTable(partitioner, model, clusterState.cid)

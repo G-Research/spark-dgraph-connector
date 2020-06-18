@@ -22,15 +22,16 @@ import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector._
 
 class EdgeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider {
+  with ClusterStateProvider with PartitionerProvider
+  with TransactionProvider {
 
   override def shortName(): String = "dgraph-edges"
 
@@ -42,11 +43,12 @@ class EdgeSource() extends TableProviderBase
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
+    val transaction = getTransaction(targets)
+    val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets).filter(_.isEdge)
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, options)
+    val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val encoder = EdgeEncoder(schema.predicateMap)
-    val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = EdgeTableModel(execution, encoder, chunkSize)
     TripleTable(partitioner, model, clusterState.cid)
