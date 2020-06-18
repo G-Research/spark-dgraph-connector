@@ -33,22 +33,22 @@ class TestEdgeSource extends FunSpec
   describe("EdgeDataSource") {
 
     def doTestLoadEdges(load: () => DataFrame): Unit = {
-      val columns = Encoders.product[Edge].schema.fields.map(_.name).map(col)
-      val edges = load().coalesce(1).sortWithinPartitions(columns: _*)
-      assert(edges.collect() === Seq(
-        Row(5, "director", 3),
-        Row(5, "starring", 2),
-        Row(5, "starring", 7),
-        Row(5, "starring", 8),
-        Row(6, "director", 4),
-        Row(6, "starring", 2),
-        Row(6, "starring", 7),
-        Row(6, "starring", 8),
-        Row(10, "director", 9),
-        Row(10, "starring", 2),
-        Row(10, "starring", 7),
-        Row(10, "starring", 8),
-      ))
+      val edges = load().collect().toSet
+      val expected = Set(
+        Row(sw1, "director", lucas),
+        Row(sw1, "starring", leia),
+        Row(sw1, "starring", luke),
+        Row(sw1, "starring", han),
+        Row(sw2, "director", irvin),
+        Row(sw2, "starring", leia),
+        Row(sw2, "starring", luke),
+        Row(sw2, "starring", han),
+        Row(sw3, "director", richard),
+        Row(sw3, "starring", leia),
+        Row(sw3, "starring", luke),
+        Row(sw3, "starring", han),
+      )
+      assert(edges === expected)
     }
 
     it("should load edges via path") {
@@ -177,7 +177,10 @@ class TestEdgeSource extends FunSpec
       assert(partitions.length === 5)
       // we can only count and retrieve triples, not edges only, and filter for edges in the connector
       // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
-      assert(partitions.map(_.size) === Seq(0, 0, 2, 0, 1))
+      // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)
+      val uids = Set(sw1, sw2, sw3)
+      val expected = (1L to 10L).grouped(2).map(p => p.toSet.intersect(uids)).toList
+      assert(partitions === expected)
     }
 
   }
