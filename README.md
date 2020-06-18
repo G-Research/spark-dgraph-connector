@@ -386,7 +386,7 @@ The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the:
       <version>[20.0-jre,)</version>
     </dependency>
 
-...in the `pom.xml`file. Otherwise, we would see this error:
+…in the `pom.xml`file. Otherwise, we would see this error:
 
       java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
       at io.grpc.Metadata$Key.validateName(Metadata.java:629)
@@ -408,7 +408,7 @@ Furthermore, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
       <version>[3,]</version>
     </dependency>
 
-...to get rid of this error:
+…to get rid of this error:
 
       java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
       at java.base/java.lang.ClassLoader.defineClass1(Native Method)
