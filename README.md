@@ -1,14 +1,14 @@
 # Spark Dgraph Connector
 
-This projects provides an [Apache Spark](https://spark.apache.org/) connector
+This project provides an [Apache Spark](https://spark.apache.org/) connector
 for [Dgraph databases](https://dgraph.io/).
-It comes with [Spark Data Sources](https://spark.apache.org/docs/latest/sql-data-sources.html)
+It comes with a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html)
 to read graphs from a Dgraph cluster directly into
-[DataFrame](https://spark.apache.org/docs/latest/sql-programming-guide.html),
+[DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html),
 [GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html) or
 [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html).
 
-Now, you can do things like:
+Example code:
 
     val target = "localhost:9080"
 
@@ -25,26 +25,26 @@ Now, you can do things like:
 
 ## Limitations
 
-The connector is in early stage and continuously developed. It has the following limitations:
+The connector is at an early stage, but is being continuously developed. It has the following limitations:
 
-- **Read-Only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
-- **Transaction**: Individual partitions do not read the same transaction. The graph should not be
+- **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
+- **Not transaction-aware**: Individual partitions do not read the same transaction. The graph should not be
   modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
-- **Filter Push-Down**: The connector does not support any filter push-down. It always reads the
+- **No filter push-down**: The connector does not support any filter push-down. It always reads the
   entire graph into Spark where then filters get applied (e.g. filter for predicates, uids or values) ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
-- **Type System**: The connector can only read data of nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
-  and predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
-- **Language Tags, Facets**: The connector cannot read any string values with language tags or facets.
-- **Maturity**: Untested with non-trivial sized real-world graphs.
+- **Type system**: The connector can only read data for nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
+  and use predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
+- **Language tags & facets**: The connector cannot read any string values with language tags or facets.
+- **Maturity**: Untested with non-trivial-size real-world graphs.
 
-Beside the **Language Tags and Facets**, which is a limitation of Dgraph, all other issues mentioned
+Beside the **language tags & facets**, which is a limitation of Dgraph, all the other issues mentioned
 above will be addressed in the near future.
 
 ## Using Spark Dgraph Connector
 
 The Spark Dgraph Connector is available for Spark 2.4 and Spark 3.0, both with Scala 2.12.
-Use Maven artifact id `spark-dgraph-connector-2.4_2.12` and `spark-dgraph-connector-3.0_2.12`, respectively.
-Minor versions are kept in sync between those two packages, so same minor versions contain same feature set (where supported by the respective Spark version).
+Use Maven artifact ID `spark-dgraph-connector-2.4_2.12` and `spark-dgraph-connector-3.0_2.12`, respectively.
+Minor versions are kept in sync between those two packages, such that identical minor versions contain identical feature sets (where supported by the respective Spark version).
 
 ### SBT
 
@@ -79,22 +79,22 @@ provided in the following scripts:
     ./dgraph-instance.insert.sh
     ./dgraph-instance.schema.sh
 
-The connection to the Dgraph can be established via a `target`, which is the [hostname and gRPC port of a
-Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `"hostname:port"`.
-With our example instance started above, we can use `"localhost:9080` as the target.
+The connection to Dgraph can be established via a `target`, which is the [hostname and gRPC port of a
+Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `<hostname>:<port>`.
+With our example instance started above, we can use `localhost:9080` as the target.
 
 ### GraphX
 
-You can load the entire Dgraph database into a
+You can load the entire Dgraph database into an
 [Apache Spark GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html)
-graph:
+graph. For example:
 
     import uk.co.gresearch.spark.dgraph.graphx._
 
     val graph = spark.read.dgraph("localhost:9080")
 
-Perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
-computation on this graph to test the connector:
+Example code to perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
+computation on the graph to test that the connector is working:
 
     val pageRank = graph.pageRank(0.0001)
     pageRank.vertices.foreach(println)
@@ -102,21 +102,21 @@ computation on this graph to test the connector:
 ### GraphFrames
 
 You can load the entire Dgraph database into a
-[GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) graph:
+[GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) graph. For example:
 
     import uk.co.gresearch.spark.dgraph.graphframes._
 
     val graph: GraphFrame = spark.read.dgraph("localhost:9080")
 
-Perform a [PageRank](https://graphframes.github.io/graphframes/docs/_site/user-guide.html#pagerank)
-computation on this graph to test the connector:
+Example code to perform a [PageRank](https://graphframes.github.io/graphframes/docs/_site/user-guide.html#pagerank)
+computation on this graph to test that the connector is working:
 
     val pageRank = graph.pageRank.maxIter(10)
     pageRank.run().triplets.show(false)
 
-Note: Predicates get renamed when they are loaded from the Dgraph database. Any contained `.` (dot)
+Note: Predicates get renamed when they are loaded from the Dgraph database. Any `.` (dot) in the name
 is replaced by a `_` (underscore). To guarantee uniqueness of names, underscores in the original predicate
-names are replaced by two underscores. For instance, predicates `dgraph.type` and `release.date`
+names are replaced by two underscores. For instance, predicates `dgraph.type` and `release_date`
 become `dgraph_type` and `release__date`, respectively.
 
 ### DataFrame
@@ -133,7 +133,7 @@ Dgraph data can be loaded into Spark DataFrames in various forms:
 
 #### Typed Triples
 
-You can load the entire Dgraph database as triples into a [Apache Spark Dataset]():
+You can load the entire Dgraph database as triples into an [Apache Spark DataFrame](https://spark.apache.org/docs/latest/sql-programming-guide.html#datasets-and-dataframes). For example:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
@@ -169,20 +169,21 @@ The `objectType` column provides the type of the object. Here is an example:
 |3      |revenue     |null                                          |null      |7.75E8      |null               |null         |null     |null          |double    |
 |3      |running_time|null                                          |121       |null        |null               |null         |null     |null          |long      |
 
-This model allows to store the triples fully typed in a `DataFrame`.
+This model allows you to store the fully-typed triples in a `DataFrame`.
 
 #### String Triples
 
-The triples can also be loaded in an un-typed narrow form:
+The triples can also be loaded in an un-typed, narrow form:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
     spark
       .read
       .option(TriplesModeOption, TriplesModeStringOption)
-      .dgraphTriples("localhost:9080").show
+      .dgraphTriples("localhost:9080")
+      .show
 
-The returned `DataFrame` has the following schema:
+The resulting `DataFrame` has the following schema:
 
     root
      |-- subject: long (nullable = false)
@@ -190,7 +191,7 @@ The returned `DataFrame` has the following schema:
      |-- objectString: string (nullable = true)
      |-- objectType: string (nullable = true)
 
-The object value gets stored as a string in `objectString` and `objectType` provides you
+The object value gets stored as a string in `objectString`, and `objectType` provides you
 with the actual type of the object. Here is an example:
 
 |subject|predicate   |objectString                                  |objectType|
@@ -211,7 +212,7 @@ with the actual type of the object. Here is an example:
 
 #### Typed Nodes
 
-You can load all nodes into a `DataFrame` in a fully typed form. This contains all nodes' properties but no edges to other nodes:
+You can load all nodes into a `DataFrame` in a fully-typed form. This contains all the nodes' properties but no edges to other nodes:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
@@ -231,7 +232,7 @@ The returned `DataFrame` has the following schema:
      |-- objectPassword: string (nullable = true)
      |-- objectType: string (nullable = true)
 
-The schema of the returned `DataFrame` is very similar to the typed triples schema, except there is no `objectUid` column linking to other nodes. Here is an example:
+The schema of the returned `DataFrame` is very similar to the typed triples schema, except that there is no `objectUid` column linking to other nodes. Here is an example:
 
 |subject|predicate   |objectString                                  |objectLong|objectDouble|objectTimestamp    |objectBoolean|objectGeo|objectPassword|objectType|
 |:-----:|:----------:|:--------------------------------------------:|:--------:|:----------:|:-----------------:|:-----------:|:-------:|:------------:|:--------:|
@@ -247,7 +248,7 @@ The schema of the returned `DataFrame` is very similar to the typed triples sche
 
 #### Wide Nodes
 
-Nodes can also be loaded in a wide fully typed format:
+Nodes can also be loaded in a wide, fully-typed format:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
@@ -256,8 +257,8 @@ Nodes can also be loaded in a wide fully typed format:
       .option(NodesModeOption, NodesModeWideOption)
       .dgraphNodes("localhost:9080")
 
-The returned `DataFrame` has the following schema (depends on the schema of the Dgraph database).
-Node properties get stored in typed columns, ordered alphabetically (property columns start after the `subject` column):
+The returned `DataFrame` has the following schema format, which is dependent on the schema of the underlying Dgraph database.
+Node properties are stored in typed columns and are ordered alphabetically (property columns start after the `subject` column):
 
     root
      |-- subject: long (nullable = false)
@@ -285,7 +286,7 @@ Note: The graph schema could become very large and therefore the `DataFrame` cou
 
 #### Edges
 
-Edges can be loaded in the following way:
+Edges can be loaded as follows:
 
     import uk.co.gresearch.spark.dgraph.connector._
 
@@ -298,7 +299,7 @@ The returned `DataFrame` has the following simple schema:
      |-- predicate: string (nullable = true)
      |-- objectUid: long (nullable = false)
 
-Though there is only asingle `object` column for the destination node, it is called `objectUid` to align with the `DataFrame` schemata above.
+Though there is only a single `object` column for the destination node, it is called `objectUid` to align with the `DataFrame` schemata above.
 
 |subject|predicate|objectUid|
 |:-----:|:-------:|:-------:|
@@ -332,7 +333,7 @@ and will therefore not "see" those predicates ([issue #5](https://github.com/G-R
 
 ## Partitioning
 
-Partitioning the Dgraph is essential to be able to load large quantities of graph data into Spark.
+Partitioning your Dgraph graph is essential to be able to load large quantities of graph data into Spark.
 Spark splits data into partitions, where ideally all partitions have the same size and are of decent size.
 Partitions that are too large will kill your Spark executor as they won't fit into memory. When partitions
 are too small your Spark jobs becomes inefficient and slow, but will not fail.
@@ -344,22 +345,22 @@ specific use case, try a more appropriate partitioning scheme.
 
 ### Partitioner
 
-The following `Partitioner` implementations are availabe:
+The following `Partitioner` implementations are available:
 
 | Partitioner             | partition by | Description | Use Case |
 |:-----------------------:|:------------:|-------------|----------|
 | Singleton               | _nothing_    | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
-| Uid Range _(default)_   | uids         | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with "by predicate" partitioner, otherwise induces Dgraph cluster internal communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
+| Uid Range _(default)_   | uids         | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces internal Dgraph cluster communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
 | Predicate               | predicate    | Provides multiple partitions with at most `P` predicates per partition where `P` defaults to `1`. Partitions with multiple predicates perform poorly with large graphs ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)). Picks multiple predicates from the same Dgraph group. | Graphs with a small number of different predicates (100s) or graphs with huge schema with only a few predicates actually selected ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)). Each predicate should fit into one partition, otherwise combine with Uid Range partitioner. Skewness of predicates reflects skewness of partitions. |
 
 #### Partitioning by Uids
 
 A `uid` represents a node or vertice in Dgraph terminology. A "Uid Range" partitioning splits
-the graph by the subject of the graph triples. This can be combined with predicates partitioning,
+the graph by the subject of the graph triples. This can be combined with predicate partitioning,
 which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
-induces Dgraph cluster internal communication across the groups.
+induces internal Dgraph cluster communication across the groups.
 
-The uid partitioning is based on top of a predicate partitioning. With none defined a singleton partitioning is used.
+The uid partitioning is based on top of a predicate partitioner. If none is defined a singleton partitioner is used.
 The number of uids of each underlying partition has to be estimated. Once the number of uids is estimated,
 the partition can further be split into ranges of that uid space.
 
@@ -389,7 +390,7 @@ locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 ## Dependencies
 
-The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the
+The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the:
 
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -397,7 +398,7 @@ The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the
       <version>[20.0-jre,)</version>
     </dependency>
 
-in the `pom.xml`file. Otherwise, we would see this error:
+…in the `pom.xml`file. Otherwise, we would see this error:
 
       java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
       at io.grpc.Metadata$Key.validateName(Metadata.java:629)
@@ -411,7 +412,7 @@ in the `pom.xml`file. Otherwise, we would see this error:
       at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
       at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
 
-Further, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
+Furthermore, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
 
     <dependency>
       <groupId>com.google.protobuf</groupId>
@@ -419,7 +420,7 @@ Further, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
       <version>[3,]</version>
     </dependency>
 
-to get rid of this error
+…to get rid of this error:
 
       java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
       at java.base/java.lang.ClassLoader.defineClass1(Native Method)
@@ -447,8 +448,8 @@ to get rid of this error
 
 ## Testing
 
-Some unit tests require a Dgraph cluster running at `localhost:9080`. It has to be setup as
-described in [Examples](#examples) section. If that cluster is not running, the unit tests will
-launch and setup such a cluster for you. This requires `docker` to be installed on your machine
-and will make the tests take longer. So if you run those tests frequently it is recommended you run
-that cluster setup yourself.
+Some unit tests require a Dgraph cluster running at `localhost:9080`. It has to be set up as
+described in the [Examples](#examples) section. If that cluster is not running, the unit tests will
+launch and set up such a cluster for you. This requires `docker` to be installed on your machine
+and will make the tests take longer. If you run those tests frequently it is recommended you run
+the cluster setup yourself.
