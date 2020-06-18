@@ -315,6 +315,21 @@ Though there is only asingle `object` column for the destination node, it is cal
 |10     |starring |6        |
 |10     |director |8        |
 
+## Special Use Cases
+
+### Nodes without types (dgraph.type)
+
+A graph where nodes do not have any type (`dgraph.type`) can only be read with the `PredicatePartitioner` (see below),
+and then only with a single predicate per partition.
+Any other partitioner relies on the [Dgraphs type system](https://dgraph.io/docs/query-language/#type-system)
+and will therefore not "see" those nodes ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)).
+
+### Nodes with types and predicates that are not part of its types
+
+A graph where nodes have predicates that are not part of the nodes' types can only be read with the `PredicatePartitioner` (see below).
+Any other partitioner relies on the [Dgraphs type system](https://dgraph.io/docs/query-language/#type-system)
+and will therefore not "see" those predicates ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
+
 ## Partitioning
 
 Partitioning the Dgraph is essential to be able to load large quantities of graph data into Spark.
@@ -334,11 +349,8 @@ The following `Partitioner` implementations are availabe:
 | Partitioner             | partition by | Description | Use Case |
 |:-----------------------:|:------------:|-------------|----------|
 | Singleton               | _nothing_    | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
-| Uid Range _(default)_   | uids         | Each partition has at most `N` uids. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces Dgraph cluster internal communication across groups. |
-| Predicate               | predicate    | Provides multiple partitions with at most `P` predicates per partition. Partitions by group first (see "Group" partitioner). | Graphs with a large number of different predicates. Each predicate should fit into one partition. Skewness of predicates reflects skewness of partitions. |
-| Group                   | predicate    | Provides a single partition for each [Dgraph cluster group](https://dgraph.io/docs/design-concepts/#group). A partition contains only predicates of that group. | Dgraph cluster with multiple groups where number of predicates per group is < 1000. Not very useful on its own but can be combined with `uid` partitioners to avoid Dgraph internal communication. |
-| Alpha                   | predicate    | Provides `N` partitions for each [Dgraph cluster alpha](https://dgraph.io/docs/deploy/#cluster-setup). A partition contains a subset of predicates of the alpha's group only. | Like "Predicate" partitioner but scales with the number of alphas, not predicates. Graphs with a large number of different predicates. |
-
+| Uid Range _(default)_   | uids         | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with "by predicate" partitioner, otherwise induces Dgraph cluster internal communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
+| Predicate               | predicate    | Provides multiple partitions with at most `P` predicates per partition where `P` defaults to `1`. Partitions with multiple predicates perform poorly with large graphs ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)). Picks multiple predicates from the same Dgraph group. | Graphs with a small number of different predicates (100s) or graphs with huge schema with only a few predicates actually selected ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)). Each predicate should fit into one partition, otherwise combine with Uid Range partitioner. Skewness of predicates reflects skewness of partitions. |
 
 #### Partitioning by Uids
 

@@ -22,16 +22,29 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
   def pagination: String =
     uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
 
+  val seedPredicate: String =
+    predicates
+      // when a single predicate is given, use it as the seed predicate (func: has(…))
+      .filter(_.size == 1)
+      .map(_.head.predicateName)
+      // use dgraph.type as seed predicate otherwise
+      .getOrElse("dgraph.type")
+
   val predicateFilter: Option[String] =
-    predicates.map(preds =>
-      Option(preds)
-        .filter(_.nonEmpty)
-        .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
-        // an empty predicates set must return empty result set
-        .orElse(Some("eq(true, false)"))
-        .map(filter => s"@filter(${filter}) ")
-        .get
-    )
+    predicates
+      // treat a single predicate as if None is given here
+      // that single predicate will be used as seed predicate (see above)
+      .filter(_.size != 1)
+      .map(preds =>
+        Option(preds)
+          .flatMap(p => if (p.size == 1) None else Some(p))
+          .filter(_.nonEmpty)
+          .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
+          // an empty predicates set must return empty result set
+          .orElse(Some("eq(true, false)"))
+          .map(filter => s"@filter(${filter}) ")
+          .get
+      )
 
   val predicatePaths: Option[String] =
     predicates.map(preds =>
@@ -49,7 +62,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(dgraph.type)$pagination) {
+           |  ${resultName} (func: has(<$seedPredicate>)$pagination) {
            |    uid
            |    dgraph.graphql.schema
            |    dgraph.type
@@ -77,7 +90,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
 
     val query =
       s"""{
-         |  ${resultName} (func: has(dgraph.type)${pagination}) ${predicateFilter.getOrElse("")}{
+         |  ${resultName} (func: has(<$seedPredicate>)${pagination}) ${predicateFilter.getOrElse("")}{
          |    uid
          |${paths}  }
          |}""".stripMargin
@@ -88,7 +101,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
   def countUids: GraphQl = {
     val query =
       s"""{
-         |  ${resultName} (func: has(dgraph.type)${pagination}) ${predicateFilter.getOrElse("")}{
+         |  ${resultName} (func: has(<$seedPredicate>)${pagination}) ${predicateFilter.getOrElse("")}{
          |    count(uid)
          |  }
          |}""".stripMargin
