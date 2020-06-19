@@ -39,15 +39,16 @@ above will be addressed in the near future.
 ## Using Spark Dgraph Connector
 
 The Spark Dgraph Connector is available for Spark 2.4 and Spark 3.0, both with Scala 2.12.
-Use Maven artifact ID `spark-dgraph-connector-2.4_2.12` and `spark-dgraph-connector-3.0_2.12`, respectively.
+Use Maven artifact ID `spark-dgraph-connector_2.12`. The Spark version is part of the package version,
+e.g. 0.3.0-2.4 and 0.3.0-3.0, respectively.
 Minor versions are kept in sync between those two packages, such that identical minor versions contain identical feature sets (where supported by the respective Spark version).
 
 ### SBT
 
-Add this line to your `build.sbt` file to use the latest version:
+Add this line to your `build.sbt` file to use the latest version for Spark 2.4:
 
 ```sbt
-libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector-2.4" % "[0,)"
+libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "0.3.0-2.4"
 ```
 
 ### Maven
@@ -57,8 +58,8 @@ Add this dependency to your `pom.xml` file to use the latest version:
 ```xml
 <dependency>
   <groupId>uk.co.gresearch.spark</groupId>
-  <artifactId>spark-dgraph-connector-2.4_2.12</artifactId>
-  <version>[0,)</version>
+  <artifactId>spark-dgraph-connector_2.12</artifactId>
+  <version>0.3.0-2.4</version>
 </dependency>
 ```
 
@@ -388,15 +389,15 @@ The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the:
       at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
       at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
 
-Furthermore, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
+Furthermore, we need to set `protobuf-java >= 3.4.0` in the `pom.xml` file:
 
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>[3,]</version>
+      <version>[3.4.0,]</version>
     </dependency>
 
-…to get rid of this error:
+…to get rid of these errors:
 
       java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
       at java.base/java.lang.ClassLoader.defineClass1(Native Method)
@@ -421,6 +422,46 @@ Furthermore, we need to set `protobuf-java >= 3.0.0` in the `pom.xml` file:
       at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
+
+    Exception in thread "grpc-default-executor-0" java.lang.NoSuchMethodError: 'void com.google.protobuf.GeneratedMessageV3.serializeStringMapTo(com.google.protobuf.CodedOutputStream, com.google.protobuf.MapField, com.google.protobuf.MapEntry, int)'
+        at io.dgraph.DgraphProto$Request.writeTo(DgraphProto.java:477)
+        at com.google.protobuf.AbstractMessageLite.writeTo(AbstractMessageLite.java:83)
+        at io.grpc.protobuf.lite.ProtoInputStream.drainTo(ProtoInputStream.java:52)
+        at io.grpc.internal.MessageFramer.writeToOutputStream(MessageFramer.java:269)
+        at io.grpc.internal.MessageFramer.writeKnownLengthUncompressed(MessageFramer.java:230)
+        at io.grpc.internal.MessageFramer.writeUncompressed(MessageFramer.java:168)
+        at io.grpc.internal.MessageFramer.writePayload(MessageFramer.java:141)
+        at io.grpc.internal.AbstractStream.writeMessage(AbstractStream.java:53)
+        at io.grpc.internal.ForwardingClientStream.writeMessage(ForwardingClientStream.java:37)
+        at io.grpc.internal.DelayedStream$6.run(DelayedStream.java:257)
+        at io.grpc.internal.DelayedStream.drainPendingCalls(DelayedStream.java:163)
+        at io.grpc.internal.DelayedStream.setStream(DelayedStream.java:132)
+        at io.grpc.internal.DelayedClientTransport$PendingStream.createRealStream(DelayedClientTransport.java:358)
+        at io.grpc.internal.DelayedClientTransport$PendingStream.access$300(DelayedClientTransport.java:341)
+        at io.grpc.internal.DelayedClientTransport$5.run(DelayedClientTransport.java:300)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+        at java.base/java.lang.Thread.run(Thread.java:834)
+
+    java.lang.NoSuchMethodError: com.google.protobuf.AbstractMessageLite$Builder.addAll(Ljava/lang/Iterable;Ljava/util/List;)V
+        at io.dgraph.DgraphProto$TxnContext$Builder.addAllKeys(DgraphProto.java:7656)
+        at io.dgraph.AsyncTransaction.mergeContext(AsyncTransaction.java:273)
+        at io.dgraph.AsyncTransaction.lambda$doRequest$0(AsyncTransaction.java:183)
+        at java.util.concurrent.CompletableFuture.uniApply(CompletableFuture.java:616)
+        at java.util.concurrent.CompletableFuture$UniApply.tryFire(CompletableFuture.java:591)
+        at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:488)
+        at java.util.concurrent.CompletableFuture.complete(CompletableFuture.java:1975)
+        at io.dgraph.StreamObserverBridge.onNext(StreamObserverBridge.java:27)
+        at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onMessage(ClientCalls.java:436)
+        at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
+        at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
+        at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInternal(ClientCallImpl.java:610)
+        at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInContext(ClientCallImpl.java:595)
+        at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+        at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:123)
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+        at java.lang.Thread.run(Thread.java:748)
 
 ## Testing
 

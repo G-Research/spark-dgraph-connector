@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>uk.co.gresearch.spark</groupId>
-  <artifactId>spark-dgraph-connector-2.4_2.12</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <artifactId>spark-dgraph-connector_2.12</artifactId>
+  <version>0.3.0-2.4-SNAPSHOT</version>
   <name>Spark Dgraph Connector</name>
   <description>A Spark connector for Dgraph databases</description>
   <inceptionYear>2020</inceptionYear>
@@ -38,7 +38,7 @@
     <!-- scala.compat.version must be reflected in project artifactId -->
     <scala.compat.version>2.12</scala.compat.version>
     <scala.version>${scala.compat.version}.10</scala.version>
-    <!-- spark.compat.version must be reflected in project artifactId -->
+    <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>2.4</spark.compat.version>
     <spark.version>${spark.compat.version}.5</spark.version>
   </properties>
@@ -84,16 +84,19 @@
       <version>0.5.1</version>
     </dependency>
 
+    <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>[3,]</version>
+      <version>3.4.0</version>
     </dependency>
 
+    <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>[20.0-jre,)</version>
+      <!-- after 23.0 the jre version should be used, e.g. 23.1-jre -->
+      <version>20.0</version>
     </dependency>
 
     <!-- Test -->
