@@ -37,61 +37,59 @@ class TestNodeSource extends FunSpec
   describe("NodeDataSource") {
 
     def doTestLoadTypedNodes(load: () => DataFrame): Unit = {
-      val columns = Encoders.product[TypedNode].schema.fields.map(_.name).map(col)
-      val nodes = load().as[TypedNode]
-        .coalesce(1)
-        .sortWithinPartitions(columns: _*)
-      assert(nodes.collect() === Seq(
-        TypedNode(1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-        TypedNode(1, "name", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
-        TypedNode(1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
-        TypedNode(1, "revenue", None, None, Some(1.39E8), None, None, None, None, "double"),
-        TypedNode(1, "running_time", None, Some(132), None, None, None, None, None, "long"),
-        TypedNode(2, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(2, "name", Some("Princess Leia"), None, None, None, None, None, None, "string"),
-        TypedNode(3, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(3, "name", Some("George Lucas"), None, None, None, None, None, None, "string"),
-        TypedNode(4, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(4, "name", Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
-        TypedNode(5, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-        TypedNode(5, "name", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
-        TypedNode(5, "release_date", None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
-        TypedNode(5, "revenue", None, None, Some(7.75E8), None, None, None, None, "double"),
-        TypedNode(5, "running_time", None, Some(121), None, None, None, None, None, "long"),
-        TypedNode(6, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-        TypedNode(6, "name", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
-        TypedNode(6, "release_date", None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
-        TypedNode(6, "revenue", None, None, Some(5.34E8), None, None, None, None, "double"),
-        TypedNode(6, "running_time", None, Some(124), None, None, None, None, None, "long"),
-        TypedNode(7, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(7, "name", Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
-        TypedNode(8, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(8, "name", Some("Han Solo"), None, None, None, None, None, None, "string"),
-        TypedNode(9, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-        TypedNode(9, "name", Some("Richard Marquand"), None, None, None, None, None, None, "string"),
-        TypedNode(10, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-        TypedNode(10, "name", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
-        TypedNode(10, "release_date", None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
-        TypedNode(10, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
-        TypedNode(10, "running_time", None, Some(131), None, None, None, None, None, "long"),
-      ))
+      val nodes = load().as[TypedNode].collect().toSet
+      val expected = Set(
+        TypedNode(st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+        TypedNode(st1, "name", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+        TypedNode(st1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
+        TypedNode(st1, "revenue", None, None, Some(1.39E8), None, None, None, None, "double"),
+        TypedNode(st1, "running_time", None, Some(132), None, None, None, None, None, "long"),
+        TypedNode(leia, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(leia, "name", Some("Princess Leia"), None, None, None, None, None, None, "string"),
+        TypedNode(lucas, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(lucas, "name", Some("George Lucas"), None, None, None, None, None, None, "string"),
+        TypedNode(irvin, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(irvin, "name", Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
+        TypedNode(sw1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+        TypedNode(sw1, "name", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+        TypedNode(sw1, "release_date", None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
+        TypedNode(sw1, "revenue", None, None, Some(7.75E8), None, None, None, None, "double"),
+        TypedNode(sw1, "running_time", None, Some(121), None, None, None, None, None, "long"),
+        TypedNode(sw2, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+        TypedNode(sw2, "name", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+        TypedNode(sw2, "release_date", None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
+        TypedNode(sw2, "revenue", None, None, Some(5.34E8), None, None, None, None, "double"),
+        TypedNode(sw2, "running_time", None, Some(124), None, None, None, None, None, "long"),
+        TypedNode(luke, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(luke, "name", Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
+        TypedNode(han, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(han, "name", Some("Han Solo"), None, None, None, None, None, None, "string"),
+        TypedNode(richard, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+        TypedNode(richard, "name", Some("Richard Marquand"), None, None, None, None, None, None, "string"),
+        TypedNode(sw3, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+        TypedNode(sw3, "name", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+        TypedNode(sw3, "release_date", None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
+        TypedNode(sw3, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
+        TypedNode(sw3, "running_time", None, Some(131), None, None, None, None, None, "long"),
+      )
+      assert(nodes === expected)
     }
 
     def doTestLoadWideNodes(load: () => DataFrame): Unit = {
-      val nodes = load().coalesce(1)
-      val sorted = nodes.sortWithinPartitions(nodes.columns.map(c => col(s"`${c}`")): _*)
-      assert(sorted.collect() === Seq(
-        Row(1, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132),
-        Row(2, null, "Person", "Princess Leia", null, null, null),
-        Row(3, null, "Person", "George Lucas", null, null, null),
-        Row(4, null, "Person", "Irvin Kernshner", null, null, null),
-        Row(5, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121),
-        Row(6, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124),
-        Row(7, null, "Person", "Luke Skywalker", null, null, null),
-        Row(8, null, "Person", "Han Solo", null, null, null),
-        Row(9, null, "Person", "Richard Marquand", null, null, null),
-        Row(10, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131)
-      ))
+      val nodes = load().collect().toSet
+      val expected = Set(
+        Row(st1, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132),
+        Row(leia, null, "Person", "Princess Leia", null, null, null),
+        Row(lucas, null, "Person", "George Lucas", null, null, null),
+        Row(irvin, null, "Person", "Irvin Kernshner", null, null, null),
+        Row(sw1, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121),
+        Row(sw2, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124),
+        Row(luke, null, "Person", "Luke Skywalker", null, null, null),
+        Row(han, null, "Person", "Han Solo", null, null, null),
+        Row(richard, null, "Person", "Richard Marquand", null, null, null),
+        Row(sw3, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131)
+      )
+      assert(nodes === expected)
     }
 
     it("should load nodes via path") {

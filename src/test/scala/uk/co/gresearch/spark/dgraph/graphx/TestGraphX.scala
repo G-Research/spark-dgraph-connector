@@ -34,75 +34,78 @@ class TestGraphX extends FunSpec
     def doGraphTest(load: () => Graph[VertexProperty, EdgeProperty]): Unit = {
       val graph = load()
       val pageRank = graph.pageRank(0.0001)
-      val vertices = pageRank.vertices.sortBy(_._1)collect()
-      assert(vertices === Seq(
-        (1,0.7968127490039841),
-        (2,1.3047808764940239),
-        (3,0.9661354581673308),
-        (4,0.9661354581673308),
-        (5,0.7968127490039841),
-        (6,0.7968127490039841),
-        (7,1.3047808764940239),
-        (8,1.3047808764940239),
-        (9,0.9661354581673308),
-        (10,0.7968127490039841),
-      ))
+      val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).toSet
+      val expected = Set(
+        (st1,0.7968127490039841),
+        (leia,1.3047808764940239),
+        (lucas,0.9661354581673308),
+        (irvin,0.9661354581673308),
+        (sw1,0.7968127490039841),
+        (sw2,0.7968127490039841),
+        (luke,1.3047808764940239),
+        (han,1.3047808764940239),
+        (richard,0.9661354581673308),
+        (sw3,0.7968127490039841),
+      ).map(t => (t._1, t._2.toFloat))
+      assert(vertices === expected)
     }
 
     def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
-      val vertices = load()
-      assert(vertices.collect().sortBy(v => (v._1, v._2.property, v._2.value.toString)) === Seq(
-        (1, StringVertexProperty("dgraph.type", "Film")),
-        (1, StringVertexProperty("name", "Star Trek: The Motion Picture")),
-        (1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
-        (1, DoubleVertexProperty("revenue", 1.39E8)),
-        (1, LongVertexProperty("running_time", 132)),
-        (2, StringVertexProperty("dgraph.type", "Person")),
-        (2, StringVertexProperty("name", "Princess Leia")),
-        (3, StringVertexProperty("dgraph.type", "Person")),
-        (3, StringVertexProperty("name", "George Lucas")),
-        (4, StringVertexProperty("dgraph.type", "Person")),
-        (4, StringVertexProperty("name", "Irvin Kernshner")),
-        (5, StringVertexProperty("dgraph.type", "Film")),
-        (5, StringVertexProperty("name", "Star Wars: Episode IV - A New Hope")),
-        (5, TimestampVertexProperty("release_date", Timestamp.valueOf("1977-05-25 00:00:00.0"))),
-        (5, DoubleVertexProperty("revenue", 7.75E8)),
-        (5, LongVertexProperty("running_time", 121)),
-        (6, StringVertexProperty("dgraph.type", "Film")),
-        (6, StringVertexProperty("name", "Star Wars: Episode V - The Empire Strikes Back")),
-        (6, TimestampVertexProperty("release_date", Timestamp.valueOf("1980-05-21 00:00:00.0"))),
-        (6, DoubleVertexProperty("revenue", 5.34E8)),
-        (6, LongVertexProperty("running_time", 124)),
-        (7, StringVertexProperty("dgraph.type", "Person")),
-        (7, StringVertexProperty("name", "Luke Skywalker")),
-        (8, StringVertexProperty("dgraph.type", "Person")),
-        (8, StringVertexProperty("name", "Han Solo")),
-        (9, StringVertexProperty("dgraph.type", "Person")),
-        (9, StringVertexProperty("name", "Richard Marquand")),
-        (10, StringVertexProperty("dgraph.type", "Film")),
-        (10, StringVertexProperty("name", "Star Wars: Episode VI - Return of the Jedi")),
-        (10, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
-        (10, DoubleVertexProperty("revenue", 5.72E8)),
-        (10, LongVertexProperty("running_time", 131)),
-      ))
+      val vertices = load().collect().toSet
+      val expected = Set(
+        (st1, StringVertexProperty("dgraph.type", "Film")),
+        (st1, StringVertexProperty("name", "Star Trek: The Motion Picture")),
+        (st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
+        (st1, DoubleVertexProperty("revenue", 1.39E8)),
+        (st1, LongVertexProperty("running_time", 132)),
+        (leia, StringVertexProperty("dgraph.type", "Person")),
+        (leia, StringVertexProperty("name", "Princess Leia")),
+        (lucas, StringVertexProperty("dgraph.type", "Person")),
+        (lucas, StringVertexProperty("name", "George Lucas")),
+        (irvin, StringVertexProperty("dgraph.type", "Person")),
+        (irvin, StringVertexProperty("name", "Irvin Kernshner")),
+        (sw1, StringVertexProperty("dgraph.type", "Film")),
+        (sw1, StringVertexProperty("name", "Star Wars: Episode IV - A New Hope")),
+        (sw1, TimestampVertexProperty("release_date", Timestamp.valueOf("1977-05-25 00:00:00.0"))),
+        (sw1, DoubleVertexProperty("revenue", 7.75E8)),
+        (sw1, LongVertexProperty("running_time", 121)),
+        (sw2, StringVertexProperty("dgraph.type", "Film")),
+        (sw2, StringVertexProperty("name", "Star Wars: Episode V - The Empire Strikes Back")),
+        (sw2, TimestampVertexProperty("release_date", Timestamp.valueOf("1980-05-21 00:00:00.0"))),
+        (sw2, DoubleVertexProperty("revenue", 5.34E8)),
+        (sw2, LongVertexProperty("running_time", 124)),
+        (luke, StringVertexProperty("dgraph.type", "Person")),
+        (luke, StringVertexProperty("name", "Luke Skywalker")),
+        (han, StringVertexProperty("dgraph.type", "Person")),
+        (han, StringVertexProperty("name", "Han Solo")),
+        (richard, StringVertexProperty("dgraph.type", "Person")),
+        (richard, StringVertexProperty("name", "Richard Marquand")),
+        (sw3, StringVertexProperty("dgraph.type", "Film")),
+        (sw3, StringVertexProperty("name", "Star Wars: Episode VI - Return of the Jedi")),
+        (sw3, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
+        (sw3, DoubleVertexProperty("revenue", 5.72E8)),
+        (sw3, LongVertexProperty("running_time", 131)),
+      )
+      assert(vertices === expected)
     }
 
     def doEdgeTest(load: () => RDD[Edge[EdgeProperty]]): Unit = {
-      val edges = load()
-      assert(edges.collect().sortBy(e => (e.srcId, e.dstId, e.attr.property)) === Seq(
-        Edge(5, 2, EdgeProperty("starring")),
-        Edge(5, 3, EdgeProperty("director")),
-        Edge(5, 7, EdgeProperty("starring")),
-        Edge(5, 8, EdgeProperty("starring")),
-        Edge(6, 2, EdgeProperty("starring")),
-        Edge(6, 4, EdgeProperty("director")),
-        Edge(6, 7, EdgeProperty("starring")),
-        Edge(6, 8, EdgeProperty("starring")),
-        Edge(10, 2, EdgeProperty("starring")),
-        Edge(10, 7, EdgeProperty("starring")),
-        Edge(10, 8, EdgeProperty("starring")),
-        Edge(10, 9, EdgeProperty("director")),
-      ))
+      val edges = load().collect().toSet
+      val expected = Set(
+        Edge(sw1, leia, EdgeProperty("starring")),
+        Edge(sw1, lucas, EdgeProperty("director")),
+        Edge(sw1, luke, EdgeProperty("starring")),
+        Edge(sw1, han, EdgeProperty("starring")),
+        Edge(sw2, leia, EdgeProperty("starring")),
+        Edge(sw2, irvin, EdgeProperty("director")),
+        Edge(sw2, luke, EdgeProperty("starring")),
+        Edge(sw2, han, EdgeProperty("starring")),
+        Edge(sw3, leia, EdgeProperty("starring")),
+        Edge(sw3, luke, EdgeProperty("starring")),
+        Edge(sw3, han, EdgeProperty("starring")),
+        Edge(sw3, richard, EdgeProperty("director")),
+      )
+      assert(edges === expected)
     }
 
     Seq(

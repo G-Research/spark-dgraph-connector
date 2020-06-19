@@ -19,32 +19,64 @@ package uk.co.gresearch.spark.dgraph
 
 import java.util.UUID
 
+import com.google.gson.{Gson, JsonObject}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.RequestBlob
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, Target}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, Target, Uid}
 
+import scala.collection.JavaConverters._
 import scala.sys.process.{Process, ProcessLogger}
 
 trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
 
   val version = "20.03.0"
   val target = "localhost:9080"
-  val cluster: DgraphCluster = DgraphCluster(s"dgraph-test-cluster-${UUID.randomUUID()}", version)
-  val testClusterRunning: Boolean = isDgraphClusterRunning
+  val cluster: DgraphCluster = DgraphCluster(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", version)
 
-  try {
-    if(!testClusterRunning)
-      assert(Process(Seq("docker", "--version")).run().exitValue() === 0)
-  } catch {
-    case _: Throwable => fail("docker must be installed")
-  }
+  val testClusterRunning: Boolean = isDgraphClusterRunning && (!isDockerInstalled || runningDockerDgraphCluster.isEmpty)
+  if (!testClusterRunning)
+    assert(isDockerInstalled, "docker must be installed")
+
+  lazy val han: Long = cluster.uids("han")
+  lazy val irvin: Long = cluster.uids("irvin")
+  lazy val leia: Long = cluster.uids("leia")
+  lazy val lucas: Long = cluster.uids("lucas")
+  lazy val luke: Long = cluster.uids("luke")
+  lazy val richard: Long = cluster.uids("richard")
+  lazy val st1: Long = cluster.uids("st1")
+  lazy val sw1: Long = cluster.uids("sw1")
+  lazy val sw2: Long = cluster.uids("sw2")
+  lazy val sw3: Long = cluster.uids("sw3")
 
   def isDgraphClusterRunning: Boolean =
     new ClusterStateProvider { }.getClusterState(Target(target)).isDefined
 
+  def isDockerInstalled: Boolean =
+    try {
+      Process(Seq("docker", "--version")).run().exitValue() == 0
+    } catch {
+      case _: Throwable => false
+    }
+
+  def runningDockerDgraphCluster: Option[String] =
+    Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList.mkString("\n")).filter(!_.isEmpty)
+
   override protected def beforeAll(): Unit = {
-    if (!testClusterRunning)
+    if (testClusterRunning) {
+      // this file is created when dgraph-instance.insert.sh is run, see README.md, section Examples
+      val source = scala.io.Source.fromFile("dgraph-instance.inserted.json")
+      val json = try source.mkString finally source.close()
+      cluster.uids = cluster.getUids(json)
+    } else {
+      if (runningDockerDgraphCluster.isDefined) {
+        println("killing unit test docker dgraph cluster that is running from an earlier test run")
+        val containerId = runningDockerDgraphCluster.get
+        val result = Process(Seq("docker", "container", "kill", containerId)).run().exitValue()
+        assert(result === 0, s"could not kill running docker container $containerId")
+      }
+
       cluster.start()
+    }
   }
 
   override protected def afterAll(): Unit = {
@@ -58,11 +90,12 @@ case class DgraphCluster(name: String, version: String) {
 
   var process: Option[Process] = None
   var sync: Object = new Object
+  var uids: Map[String, Long] = Map.empty
 
   def start(): Unit = {
     println(s"starting dgraph cluster")
     process = Some(launchCluster())
-    insertData()
+    uids = insertData()
     alterSchema()
   }
 
@@ -106,7 +139,7 @@ case class DgraphCluster(name: String, version: String) {
     process
   }
 
-  def insertData(): Unit = {
+  def insertData(): Map[String, Long] = {
     println("mutating dgraph")
     val url = "http://localhost:8080/mutate?commitNow=true"
     val headers = Seq("Content-Type" -> "application/rdf")
@@ -164,9 +197,13 @@ case class DgraphCluster(name: String, version: String) {
         |  }
         |}""".stripMargin
 
-    val response = requests.post(url, headers=headers, data=RequestBlob.ByteSourceRequestBlob(data))
+    val response = requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data))
     assert(response.statusCode == 200)
-    println(s"dgraph mutation response: ${response.text()}")
+
+    // extract the blank-node uid mapping
+    val json = response.text()
+    println(s"dgraph mutation response: ${json}")
+    getUids(json)
   }
 
   def alterSchema(): Unit = {
@@ -195,6 +232,25 @@ case class DgraphCluster(name: String, version: String) {
     val response = requests.post(url, data=RequestBlob.ByteSourceRequestBlob(data))
     assert(response.statusCode == 200)
     println(s"dgraph schema response: ${response.text()}")
+  }
+
+  def getUids(json: String): Map[String, Long] = {
+    // {"data":{"uids":{"han":"0x8",...}}}
+    val map = new Gson()
+      .fromJson(json, classOf[JsonObject])
+      .getAsJsonObject("data")
+      .getAsJsonObject("uids")
+      .entrySet().asScala
+      .map(e => e.getKey -> Uid(e.getValue.getAsString).uid)
+      .toMap
+
+    assert(map.keys.toSet == Set(
+      "st1", "sw1", "sw2", "sw3",
+      "lucas", "irvin", "richard",
+      "leia", "luke", "han"
+    ), "some expected nodes have not been inserted")
+
+    map
   }
 
 }
