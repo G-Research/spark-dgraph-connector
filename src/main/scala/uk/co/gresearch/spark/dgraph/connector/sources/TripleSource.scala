@@ -17,7 +17,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import java.util
+
 import org.apache.spark.sql.connector.catalog.Table
+import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
@@ -30,10 +34,21 @@ class TripleSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-triples"
 
+  override def inferSchema(options: CaseInsensitiveStringMap): StructType =
+    getTripleMode(options) match {
+      case Some(TriplesModeStringOption) => StringTripleEncoder.schema()
+      case Some(TriplesModeTypedOption) => TypedTripleEncoder.schema()
+      case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
+      case None => TypedTripleEncoder.schema()
+    }
+
   def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(TriplesModeOption, options)
 
-  def getTable(options: CaseInsensitiveStringMap): Table = {
+  override def getTable(schema: StructType,
+                        partitioning: Array[Transform],
+                        properties: util.Map[String, String]): Table = {
+    val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
     val schema = getSchema(targets)
     val clusterState = getClusterState(targets)

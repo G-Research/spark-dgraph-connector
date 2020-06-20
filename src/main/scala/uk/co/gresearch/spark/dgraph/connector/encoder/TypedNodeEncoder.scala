@@ -36,7 +36,7 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate]) extends TripleEn
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[TypedNode].schema
+  override def schema(): StructType = TypedNodeEncoder.schema()
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -92,4 +92,8 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate]) extends TripleEn
     }
   }
 
+}
+
+object TypedNodeEncoder {
+  def schema(): StructType = Encoders.product[TypedNode].schema
 }

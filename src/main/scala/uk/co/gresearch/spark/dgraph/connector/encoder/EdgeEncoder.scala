@@ -35,7 +35,7 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate]) extends Tri
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[Edge].schema
+  override def schema(): StructType = EdgeEncoder.schema()
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -57,4 +57,8 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate]) extends Tri
     case _ => None
   }
 
+}
+
+object EdgeEncoder {
+  def schema(): StructType = Encoders.product[Edge].schema
 }

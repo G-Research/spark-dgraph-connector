@@ -33,7 +33,7 @@ case class StringTripleEncoder(predicates: Map[String, Predicate]) extends Tripl
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = Encoders.product[StringTriple].schema
+  override def schema(): StructType = StringTripleEncoder.schema()
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -58,4 +58,8 @@ case class StringTripleEncoder(predicates: Map[String, Predicate]) extends Tripl
       UTF8String.fromString(getType(o))
     ))
 
+}
+
+object StringTripleEncoder {
+  def schema(): StructType = Encoders.product[StringTriple].schema
 }
