@@ -17,7 +17,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import java.util
+
 import org.apache.spark.sql.connector.catalog.Table
+import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
@@ -30,10 +34,24 @@ class NodeSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-nodes"
 
+  override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
+    val targets = getTargets(options)
+    val schema = getSchema(targets).filter(_.typeName != "uid")
+    getNodeMode(options) match {
+      case Some(NodesModeTypedOption) => TypedNodeEncoder.schema()
+      case Some(NodesModeWideOption) => WideNodeEncoder.schema(schema.predicateMap)
+      case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
+      case None => TypedNodeEncoder.schema()
+    }
+  }
+
   def getNodeMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(NodesModeOption, options)
 
-  def getTable(options: CaseInsensitiveStringMap): Table = {
+  override def getTable(schema: StructType,
+                        partitioning: Array[Transform],
+                        properties: util.Map[String, String]): Table = {
+    val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)

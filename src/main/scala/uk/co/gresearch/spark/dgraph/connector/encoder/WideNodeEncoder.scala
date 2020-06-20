@@ -33,49 +33,24 @@ import scala.collection.JavaConverters._
  */
 case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeInternalRowEncoder {
 
-  // this order defines the order of the columns
-  val sortedPredicates: Seq[Predicate] = predicates.values.toSeq.sortBy(_.predicateName)
-  val fields: Seq[StructField] =
-    Seq(StructField("subject", LongType, nullable = false)) ++ sortedPredicates.map(toStructField)
-
-  /**
-   * 1-based dense column indices for predicate names.
-   */
-  val columns: Map[String, Int] = sortedPredicates.zipWithIndex.map{ case (p, i) => (p.predicateName, i+1) }.toMap
-
-  /**
-   * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, repectively)
-   * @param predicate predicate
-   * @return spark type
-   */
-  def toStructField(predicate: Predicate): StructField = {
-    val dType = predicate.typeName match {
-      case "uid" => LongType
-      case "string" => StringType
-      case "int" => LongType
-      case "float" => DoubleType
-      case "datetime" => TimestampType
-      case "boolean" => BooleanType
-      case "geo" => StringType
-      case "password" => StringType
-      case _ => StringType
-    }
-    StructField(predicate.predicateName, dType, nullable = true)
-  }
-
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = StructType(fields)
+  override val schema: StructType = WideNodeEncoder.schema(predicates)
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
    * schema of the underlying storage, as column pruning or other optimizations may happen.
    * From: org.apache.spark.sql.connector.read.Scan.readSchema
    */
-  override def readSchema(): StructType = schema()
+  override val readSchema: StructType = schema
+
+  /**
+   * 1-based dense column indices for predicate names.
+   */
+  val columns: Map[String, Int] = schema.fields.zipWithIndex.map{ case (p, i) => (p.name, i) }.drop(1).toMap
 
   /**
    * Encodes the given Dgraph json result into InternalRows.
@@ -127,6 +102,39 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
       }
 
     InternalRow.fromSeq(values)
+  }
+
+}
+
+object WideNodeEncoder {
+
+  def schema(predicates: Map[String, Predicate]): StructType =
+    schema(predicates.values.toSeq)
+
+  def schema(predicates: Seq[Predicate]): StructType =
+    StructType(
+      Seq(StructField("subject", LongType, nullable = false))
+        ++ predicates.sortBy(_.predicateName).map(toStructField)
+    )
+
+  /**
+   * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, repectively)
+   * @param predicate predicate
+   * @return spark type
+   */
+  def toStructField(predicate: Predicate): StructField = {
+    val dType = predicate.typeName match {
+      case "uid" => LongType
+      case "string" => StringType
+      case "int" => LongType
+      case "float" => DoubleType
+      case "datetime" => TimestampType
+      case "boolean" => BooleanType
+      case "geo" => StringType
+      case "password" => StringType
+      case _ => StringType
+    }
+    StructField(predicate.predicateName, dType, nullable = true)
   }
 
 }
