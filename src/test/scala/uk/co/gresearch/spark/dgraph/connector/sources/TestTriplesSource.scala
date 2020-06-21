@@ -19,10 +19,9 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.{DataFrame, Encoders}
-import org.scalatest.FunSpec
+import org.scalatest.{Assertions, FunSpec}
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
@@ -38,53 +37,7 @@ class TestTriplesSource extends FunSpec
 
     def doTestLoadTypedTriples(load: () => DataFrame): Unit = {
       val triples = load().as[TypedTriple].collect().toSet
-      val expected = Set(
-        TypedTriple(st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-        TypedTriple(st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
-        TypedTriple(st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
-        TypedTriple(st1, "revenue", None, None, None, Some(1.39E8), None, None, None, None, "double"),
-        TypedTriple(st1, "running_time", None, None, Some(132), None, None, None, None, None, "long"),
-        TypedTriple(leia, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(leia, "name", None, Some("Princess Leia"), None, None, None, None, None, None, "string"),
-        TypedTriple(lucas, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(lucas, "name", None, Some("George Lucas"), None, None, None, None, None, None, "string"),
-        TypedTriple(irvin, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(irvin, "name", None, Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw1, "director", Some(lucas), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw1, "name", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
-        TypedTriple(sw1, "revenue", None, None, None, Some(7.75E8), None, None, None, None, "double"),
-        TypedTriple(sw1, "running_time", None, None, Some(121), None, None, None, None, None, "long"),
-        TypedTriple(sw1, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw1, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw1, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw2, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw2, "director", Some(irvin), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw2, "name", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw2, "release_date", None, None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
-        TypedTriple(sw2, "revenue", None, None, None, Some(5.34E8), None, None, None, None, "double"),
-        TypedTriple(sw2, "running_time", None, None, Some(124), None, None, None, None, None, "long"),
-        TypedTriple(sw2, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw2, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw2, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(luke, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(luke, "name", None, Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
-        TypedTriple(han, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(han, "name", None, Some("Han Solo"), None, None, None, None, None, None, "string"),
-        TypedTriple(richard, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-        TypedTriple(richard, "name", None, Some("Richard Marquand"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw3, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw3, "director", Some(richard), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw3, "name", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
-        TypedTriple(sw3, "release_date", None, None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
-        TypedTriple(sw3, "revenue", None, None, None, Some(5.72E8), None, None, None, None, "double"),
-        TypedTriple(sw3, "running_time", None, None, Some(131), None, None, None, None, None, "long"),
-        TypedTriple(sw3, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw3, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-        TypedTriple(sw3, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-      )
-      assert(triples === expected)
+      TestTriplesSource.doAssertTriples(triples, this)
     }
 
     def doTestLoadStringTriples(load: () => DataFrame): Unit = {
@@ -143,7 +96,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .load("localhost:9080")
+          .load(cluster.grpc)
       )
     }
 
@@ -152,7 +105,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .load("localhost:9080", "127.0.0.1:9080")
+          .load(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -161,7 +114,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .option(TargetOption, "localhost:9080")
+          .option(TargetOption, cluster.grpc)
           .load()
       )
     }
@@ -171,7 +124,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .option(TargetsOption, "[\"localhost:9080\",\"127.0.0.1:9080\"]")
+          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
           .load()
       )
     }
@@ -180,7 +133,7 @@ class TestTriplesSource extends FunSpec
       doTestLoadTypedTriples(() =>
         spark
           .read
-          .dgraphTriples("localhost:9080")
+          .dgraphTriples(cluster.grpc)
       )
     }
 
@@ -188,7 +141,7 @@ class TestTriplesSource extends FunSpec
       doTestLoadTypedTriples(() =>
         spark
           .read
-          .dgraphTriples("localhost:9080", "127.0.0.1:9080")
+          .dgraphTriples(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -197,7 +150,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeStringOption)
-          .dgraphTriples("localhost:9080")
+          .dgraphTriples(cluster.grpc)
       )
     }
 
@@ -206,7 +159,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraphTriples("localhost:9080")
+          .dgraphTriples(cluster.grpc)
       )
     }
 
@@ -215,7 +168,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeStringOption)
-          .dgraphTriples("localhost:9080")
+          .dgraphTriples(cluster.grpc)
           .as[StringTriple]
           .collectAsList()
       rows.forEach(println)
@@ -227,7 +180,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraphTriples("localhost:9080")
+          .dgraphTriples(cluster.grpc)
           .as[TypedTriple]
           .collectAsList()
       rows.forEach(println)
@@ -267,7 +220,7 @@ class TestTriplesSource extends FunSpec
     val model = TripleTableModel(encoder)
 
     it("should load as a single partition") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val targets = Seq(Target(target))
       val partitions =
         spark
@@ -284,7 +237,7 @@ class TestTriplesSource extends FunSpec
     }
 
     it("should load as predicate partitions") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -298,15 +251,15 @@ class TestTriplesSource extends FunSpec
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None, model))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None, model))
       ))
     }
 
     it("should load as uid-range partitions") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -320,8 +273,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Seq(
-        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(0, 7)), model)),
-        Some(Partition(Seq(Target("localhost:9080")), None, Some(UidRange(7, 7)), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(0, 7)), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(7, 7)), model)),
       )
 
       assert(partitions.length === expected.size)
@@ -329,7 +282,7 @@ class TestTriplesSource extends FunSpec
     }
 
     it("should load as predicate uid-range partitions") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -344,11 +297,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(0, 5)), model)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(5, 5)), model))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(0, 5)), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(5, 5)), model))
       )
 
       assert(partitions.length === expected.size)
@@ -356,7 +309,7 @@ class TestTriplesSource extends FunSpec
     }
 
     it("should partition data") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -368,6 +321,60 @@ class TestTriplesSource extends FunSpec
       assert(partitions === Seq((1 to 7).toSet, (8 to 10).toSet))
     }
 
+  }
+
+}
+
+object TestTriplesSource extends Assertions {
+
+  def doAssertTriples(triples: Set[TypedTriple], cluster: DgraphTestCluster): Unit = {
+    val expected = Set(
+      TypedTriple(cluster.st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.st1, "revenue", None, None, None, Some(1.39E8), None, None, None, None, "double"),
+      TypedTriple(cluster.st1, "running_time", None, None, Some(132), None, None, None, None, None, "long"),
+      TypedTriple(cluster.leia, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.leia, "name", None, Some("Princess Leia"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.lucas, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.lucas, "name", None, Some("George Lucas"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.irvin, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.irvin, "name", None, Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "director", Some(cluster.lucas), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "name", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw1, "revenue", None, None, None, Some(7.75E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw1, "running_time", None, None, Some(121), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "director", Some(cluster.irvin), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "name", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "release_date", None, None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw2, "revenue", None, None, None, Some(5.34E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw2, "running_time", None, None, Some(124), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.luke, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.luke, "name", None, Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.han, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.han, "name", None, Some("Han Solo"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.richard, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.richard, "name", None, Some("Richard Marquand"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "director", Some(cluster.richard), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "name", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "release_date", None, None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw3, "revenue", None, None, None, Some(5.72E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw3, "running_time", None, None, Some(131), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+    )
+    assert(triples === expected)
   }
 
 }
