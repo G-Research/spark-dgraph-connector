@@ -95,7 +95,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load("localhost:9080")
+          .load(cluster.grpc)
       )
     }
 
@@ -104,7 +104,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load("localhost:9080", "127.0.0.1:9080")
+          .load(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -113,7 +113,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .option(TargetOption, "localhost:9080")
+          .option(TargetOption, cluster.grpc)
           .load()
       )
     }
@@ -123,7 +123,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .option(TargetsOption, "[\"localhost:9080\",\"127.0.0.1:9080\"]")
+          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
           .load()
       )
     }
@@ -132,7 +132,7 @@ class TestNodeSource extends FunSpec
       doTestLoadTypedNodes(() =>
         spark
           .read
-          .dgraphNodes("localhost:9080")
+          .dgraphNodes(cluster.grpc)
       )
     }
 
@@ -140,7 +140,7 @@ class TestNodeSource extends FunSpec
       doTestLoadTypedNodes(() =>
         spark
           .read
-          .dgraphNodes("localhost:9080", "127.0.0.1:9080")
+          .dgraphNodes(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -149,7 +149,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .option(NodesModeOption, NodesModeTypedOption)
-          .dgraphNodes("localhost:9080")
+          .dgraphNodes(cluster.grpc)
       )
     }
 
@@ -158,7 +158,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .option(NodesModeOption, NodesModeWideOption)
-          .dgraphNodes("localhost:9080")
+          .dgraphNodes(cluster.grpc)
       )
     }
 
@@ -167,7 +167,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load("localhost:9080")
+          .load(cluster.grpc)
           .as[TypedNode]
           .collectAsList()
       assert(rows.size() === 32)
@@ -193,7 +193,7 @@ class TestNodeSource extends FunSpec
     }
 
     it("should load as a single partition") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val targets = Seq(Target(target))
       val partitions =
         spark
@@ -210,7 +210,7 @@ class TestNodeSource extends FunSpec
     }
 
     it("should load as a predicate partitions") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -224,15 +224,15 @@ class TestNodeSource extends FunSpec
         }
       assert(partitions.length === 4)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("dgraph.type", "string"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("revenue", "float"))), None))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("running_time", "int"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("name", "string"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None))
       ))
     }
 
     it("should partition data") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read

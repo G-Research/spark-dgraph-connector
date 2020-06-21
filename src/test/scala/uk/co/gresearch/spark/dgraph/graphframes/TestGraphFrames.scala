@@ -138,32 +138,32 @@ class TestGraphFrames extends FunSpec
     }
 
     Seq(
-      ("target", Seq("localhost:9080")),
-      ("targets", Seq("localhost:9080", "127.0.0.1:9080"))
+      ("target", () => Seq(cluster.grpc)),
+      ("targets", () => Seq(cluster.grpc, cluster.grpcLocalIp))
     ).foreach{case (test, targets) =>
 
       it(s"should load dgraph from $test via implicit session") {
-        doGraphTest(() => loadGraph(targets: _*))
+        doGraphTest(() => loadGraph(targets(): _*))
       }
 
       it(s"should load dgraph from $test via reader") {
-        doGraphTest(() => spark.read.dgraph(targets: _*))
+        doGraphTest(() => spark.read.dgraph(targets(): _*))
       }
 
       it(s"should load vertices from $test via implicit session") {
-        doVerticesTest(() => loadVertices(targets: _*))
+        doVerticesTest(() => loadVertices(targets(): _*))
       }
 
       it(s"should load vertices from $test via reader") {
-        doVerticesTest(() => spark.read.dgraphVertices(targets: _*))
+        doVerticesTest(() => spark.read.dgraphVertices(targets(): _*))
       }
 
       it(s"should load edges from $test via implicit session") {
-        doEdgesTest(() => loadEdges(targets: _*))
+        doEdgesTest(() => loadEdges(targets(): _*))
       }
 
       it(s"should load edges from $test via reader") {
-        doEdgesTest(() => spark.read.dgraphEdges(targets: _*))
+        doEdgesTest(() => spark.read.dgraphEdges(targets(): _*))
       }
 
     }

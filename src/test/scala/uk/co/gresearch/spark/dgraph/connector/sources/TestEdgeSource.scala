@@ -56,7 +56,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load("localhost:9080")
+          .load(cluster.grpc)
       )
     }
 
@@ -65,7 +65,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load("localhost:9080", "127.0.0.1:9080")
+          .load(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -74,7 +74,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .option(TargetOption, "localhost:9080")
+          .option(TargetOption, cluster.grpc)
           .load()
       )
     }
@@ -84,7 +84,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .option(TargetsOption, "[\"localhost:9080\",\"127.0.0.1:9080\"]")
+          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
           .load()
       )
     }
@@ -93,7 +93,7 @@ class TestEdgeSource extends FunSpec
       doTestLoadEdges( () =>
       spark
         .read
-        .dgraphEdges("localhost:9080")
+        .dgraphEdges(cluster.grpc)
       )
     }
 
@@ -101,7 +101,7 @@ class TestEdgeSource extends FunSpec
       doTestLoadEdges(() =>
         spark
           .read
-          .dgraphEdges("localhost:9080", "127.0.0.1:9080")
+          .dgraphEdges(cluster.grpc, cluster.grpcLocalIp)
       )
     }
 
@@ -110,7 +110,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load("localhost:9080")
+          .load(cluster.grpc)
           .as[Edge]
           .collectAsList()
       assert(rows.size() === 12)
@@ -126,7 +126,7 @@ class TestEdgeSource extends FunSpec
     }
 
     it("should load as a single partition") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val targets = Seq(Target(target))
       val partitions =
         spark
@@ -143,7 +143,7 @@ class TestEdgeSource extends FunSpec
     }
 
     it("should load as a predicate partitions") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
@@ -157,13 +157,13 @@ class TestEdgeSource extends FunSpec
         }
       assert(partitions.length === 2)
       assert(partitions === Seq(
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("director", "uid"))), None)),
-        Some(Partition(Seq(Target("localhost:9080")), Some(Set(Predicate("starring", "uid"))), None))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("starring", "uid"))), None))
       ))
     }
 
     it("should partition data") {
-      val target = "localhost:9080"
+      val target = cluster.grpc
       val partitions =
         spark
           .read
