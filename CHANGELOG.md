@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
+### Security
+- Moved Google Guava dependency version fix to 24.1.1-jre due to [known security vulnerability
+  fixed in 24.1.1](https://github.com/advisories/GHSA-mvr2-9pj6-7w5j)
+
 ## [0.3.0] - 2020-06-22
 
 ### Added
