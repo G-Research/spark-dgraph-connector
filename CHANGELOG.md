@@ -5,12 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
+## [0.3.0] - 2020-06-22
+
 ### Added
 - Load data from Dgraph cluster as [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) `GraphFrame`.
 - Use exact uid cardinality for uid range partitioning. Combined with predicate partitioning, large
   predicates get split into more partitions than small predicates.
 - Improve performance of `PredicatePartitioner` for a single predicate per partition (`dgraph.partitioner.predicate.predicatesPerPartition=1`).
   This becomes the new default for this partitioner.
+- Move to Spark 3.0.0 release (was 3.0.0-preview2).
 
 ### Fixed
 - Dgraph groups with no predicates caused a `NullPointerException`.
