@@ -40,7 +40,7 @@
     <scala.version>${scala.compat.version}.10</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>2.4</spark.compat.version>
-    <spark.version>${spark.compat.version}.5</spark.version>
+    <spark.version>${spark.compat.version}.6</spark.version>
   </properties>
 
   <dependencies>
