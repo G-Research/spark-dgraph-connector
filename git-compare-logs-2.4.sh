@@ -3,9 +3,9 @@ diff <(git log --pretty=format:'%s' spark-2.4..spark-3.0; echo) <(git log --pret
 
 echo
 echo "===== spark-3.0 ====="
-git log --max-count=20 --graph --pretty=format:'%Cred%h%Creset - %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset' --abbrev-commit --date=relative spark-2.4..spark-3.0
+git log --max-count=10 --graph --pretty=format:'%Cred%h%Creset - %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset' --abbrev-commit --date=relative spark-2.4..spark-3.0
 
 echo
 echo "===== spark-2.4 ====="
-git log --max-count=20 --graph --pretty=format:'%Cred%h%Creset - %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset' --abbrev-commit --date=relative spark-3.0..spark-2.4
+git log --max-count=10 --graph --pretty=format:'%Cred%h%Creset - %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset' --abbrev-commit --date=relative spark-3.0..spark-2.4
 
