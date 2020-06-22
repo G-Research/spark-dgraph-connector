@@ -99,6 +99,7 @@
       <version>0.5.1</version>
     </dependency>
 
+    <!-- Spark core pulls in too old of a version -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
@@ -106,12 +107,14 @@
       <version>3.4.0</version>
     </dependency>
 
+    <!-- Spark core pulls in too old of a version -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
+    <!-- Version 20.0 would is the first known to work but it has a security vulnerability fixed in 24.1.1 -->
+    <!-- https://github.com/advisories/GHSA-mvr2-9pj6-7w5j -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <!-- after 23.0 the jre version should be used, e.g. 23.1-jre -->
-      <version>20.0</version>
+      <version>24.1.1-jre</version>
     </dependency>
 
     <!-- Test -->

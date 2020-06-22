@@ -391,12 +391,12 @@ locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 ## Dependencies
 
-The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the:
+The GRPC library used by the dgraph client requires `guava ≥ 20.0`, where `≥ 24.1.1-jre` is recommended, hence the:
 
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>[20.0-jre,)</version>
+      <version>[24.1.1-jre,)</version>
     </dependency>
 
 …in the `pom.xml`file. Otherwise, we would see this error:
@@ -413,7 +413,7 @@ The GRPC library used by the dgraph client requires `guava >= 20.0`, hence the:
       at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
       at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
 
-Furthermore, we need to set `protobuf-java >= 3.4.0` in the `pom.xml` file:
+Furthermore, we need to set `protobuf-java ≥ 3.4.0` in the `pom.xml` file:
 
     <dependency>
       <groupId>com.google.protobuf</groupId>
