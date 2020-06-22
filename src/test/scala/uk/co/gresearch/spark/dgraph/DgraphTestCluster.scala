@@ -22,6 +22,7 @@ import java.util.UUID
 import com.google.gson.{Gson, JsonObject}
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.RequestBlob
+import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, Target, Uid}
 
 import scala.collection.JavaConverters._
@@ -49,9 +50,6 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
   lazy val sw2: Long = cluster.uids("sw2")
   lazy val sw3: Long = cluster.uids("sw3")
   lazy val highestUid: Long = cluster.uids.values.max
-
-  def isDgraphClusterRunning: Boolean =
-    new ClusterStateProvider { }.getClusterState(Target(clusterTarget)).isDefined
 
   def runningDockerDgraphCluster: List[String] =
     Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList).filter(_.nonEmpty).getOrElse(List.empty)
@@ -123,9 +121,11 @@ case class DgraphCluster(name: String, version: String) {
     process.foreach(_.exitValue())
   }
 
+  val dgraphLogLines = Seq("^[WE].*", "^Dgraph version.*", ".*Listening on port.*", ".*CID set for cluster:*")
+
   def launchCluster(portOffset: Int): Option[Process] = {
     val logger = ProcessLogger(line => {
-      println(s"Docker: $line")
+      if (dgraphLogLines.exists(line.matches)) println(s"Docker: $line")
       if (line.contains("CID set for cluster:")) {
         println("dgraph cluster is up")
         // notify main thread about cluster being ready
@@ -280,10 +280,15 @@ case class DgraphCluster(name: String, version: String) {
 }
 
 object DgraphTestCluster {
+
+  lazy val isDgraphClusterRunning: Boolean =
+    new ClusterStateProvider { }.getClusterState(Target("localhost:9080")).isDefined
+
   lazy val isDockerInstalled: Boolean =
     try {
       Process(Seq("docker", "--version")).run().exitValue() == 0
     } catch {
       case _: Throwable => false
     }
+
 }
