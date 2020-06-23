@@ -32,9 +32,17 @@ class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider {
 
+  def assertOptions(options: CaseInsensitiveStringMap): Unit = {
+    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
+      getStringOption(PartitionerOption, options).contains(PredicatePartitionerOption)) {
+      throw new IllegalArgumentException("wide nodes cannot be read with predicate partitioner")
+    }
+  }
+
   override def shortName(): String = "dgraph-nodes"
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
+    assertOptions(options)
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     getNodeMode(options) match {
@@ -52,6 +60,8 @@ class NodeSource() extends TableProviderBase
                         partitioning: Array[Transform],
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
+    assertOptions(options)
+
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)

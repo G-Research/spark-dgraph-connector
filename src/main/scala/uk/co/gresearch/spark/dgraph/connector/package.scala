@@ -114,7 +114,7 @@ package object connector {
   val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
   val AlphaPartitionerPartitionsDefault: Int = 1
   val PredicatePartitionerPredicatesOption: String = "dgraph.partitioner.predicate.predicatesPerPartition"
-  val PredicatePartitionerPredicatesDefault: Int = 1
+  val PredicatePartitionerPredicatesDefault: Int = 1000
   val UidRangePartitionerUidsPerPartOption: String = "dgraph.partitioner.uidRange.uidsPerPartition"
   val UidRangePartitionerUidsPerPartDefault: Int = 1000
   val UidRangePartitionerEstimatorOption: String = "dgraph.partitioner.uidRange.estimator"
