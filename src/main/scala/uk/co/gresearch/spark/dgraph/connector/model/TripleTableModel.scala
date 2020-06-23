@@ -2,11 +2,12 @@ package uk.co.gresearch.spark.dgraph.connector.model
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.PartitionQuery
 import uk.co.gresearch.spark.dgraph.connector.encoder.InternalRowEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.ExecutorProvider
 
 /**
  * Models all triples of a graph as a table, nodes with properties and edges.
  */
-case class TripleTableModel(encoder: InternalRowEncoder) extends GraphTableModel {
+case class TripleTableModel(execution: ExecutorProvider, encoder: InternalRowEncoder) extends GraphTableModel {
 
   /**
    * Turn a partition query into a GraphQl query.

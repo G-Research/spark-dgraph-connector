@@ -22,6 +22,7 @@ import java.util.UUID
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestPredicatePartitioner extends FunSpec {
@@ -78,8 +79,9 @@ class TestPredicatePartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
+    val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(encoder)
+    val model = TripleTableModel(execution, encoder)
 
     it("should partition with 1 predicates per partition") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)

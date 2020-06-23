@@ -22,6 +22,7 @@ import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
@@ -46,7 +47,8 @@ class TripleSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
       case None => TypedTripleEncoder(schema.predicateMap)
     }
-    val model = TripleTableModel(encoder)
+    val execution = DgraphExecutorProvider()
+    val model = TripleTableModel(execution, encoder)
     new TripleScan(partitioner, model)
   }
 

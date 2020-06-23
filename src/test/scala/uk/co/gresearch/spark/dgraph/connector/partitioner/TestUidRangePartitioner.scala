@@ -22,7 +22,7 @@ import java.util.UUID
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, UidRange}
 
@@ -43,8 +43,9 @@ class TestUidRangePartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
+    val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(encoder)
+    val model = TripleTableModel(execution, encoder)
 
     val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
     val group = GroupPartitioner(schema, clusterState)

@@ -27,6 +27,7 @@ import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedNodeEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 
 class TestNodeSource extends FunSpec
@@ -214,8 +215,9 @@ class TestNodeSource extends FunSpec
       Predicate("dgraph.graphql.schema", "string"),
       Predicate("dgraph.type", "string")
     ))
+    val execution = DgraphExecutorProvider()
     val encoder = TypedNodeEncoder(schema.predicateMap)
-    val model = NodeTableModel(encoder)
+    val model = NodeTableModel(execution, encoder)
 
     it("should load as a single partition") {
       val target = cluster.grpc

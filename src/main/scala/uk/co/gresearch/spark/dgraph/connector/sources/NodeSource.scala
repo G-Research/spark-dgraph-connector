@@ -20,10 +20,11 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector._
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -55,7 +56,8 @@ class NodeSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
       case None => TypedNodeEncoder(schema.predicateMap)
     }
-    val model = NodeTableModel(encoder)
+    val execution = DgraphExecutorProvider()
+    val model = NodeTableModel(execution, encoder)
     new TripleScan(partitioner, model)
   }
 

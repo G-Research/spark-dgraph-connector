@@ -3,15 +3,16 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, Predicate, Schema, UidRange}
 
 class TestUidCardinalityEstimator extends FunSpec {
 
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
+  val execution: DgraphExecutorProvider = DgraphExecutorProvider()
   val encoder: TypedTripleEncoder = TypedTripleEncoder(schema.predicateMap)
-  val model: TripleTableModel = TripleTableModel(encoder)
+  val model: TripleTableModel = TripleTableModel(execution, encoder)
 
   def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {
