@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased] - YYYY-MM-DD
 
+### Added
+- Improve performance of `PredicatePartitioner` for multiple predicates per partition. Restoring
+  default number of predicates per partition of `1000` from before 0.3.0 ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)).
+- The `PredicatePartitioner` combined with `UidRangePartitioner` is the default partitioner now,
+  except for loading wide nodes, which still uses `PredicatePartitioner` as the default.
+
 ### Security
 - Moved Google Guava dependency version fix to 24.1.1-jre due to [known security vulnerability
   fixed in 24.1.1](https://github.com/advisories/GHSA-mvr2-9pj6-7w5j)

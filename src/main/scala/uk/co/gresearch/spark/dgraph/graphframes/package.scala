@@ -18,9 +18,7 @@ package object graphframes {
 
   def loadVertices(reader: DataFrameReader, targets: String*): DataFrame = {
     val vertices =
-      DgraphDataFrameReader(
-        reader.option(NodesModeOption, NodesModeWideOption)
-      )
+      DgraphDataFrameReader(reader.option(NodesModeOption, NodesModeWideOption).option(PredicatePartitionerPredicatesOption, "1"))
         .dgraphNodes(targets.head, targets.tail: _*)
         .withColumnRenamed("subject", "id")
     val renamedColumns =
