@@ -20,19 +20,18 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import uk.co.gresearch.spark.dgraph.connector._
 
-class DefaultPartitionerOption extends ConfigParser
-  with PartitionerProviderOption with EstimatorProviderOption
-  with ClusterStateHelper {
+class DefaultPartitionerOption extends ConfigPartitionerOption {
+
+  // for wide nodes we use uid range partitioner, for all other sources we use predicate + uid range
+  val defaultPartitionerName = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
+  val wideNodeDefaultPartitionerName = s"$UidRangePartitionerOption"
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
                               options: DataSourceOptions): Option[Partitioner] =
-    Some(
-      UidRangePartitioner(
-        SingletonPartitioner(getAllClusterTargets(clusterState)),
-        getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault),
-        getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
-      )
-    )
+    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption))
+      Some(getPartitioner(wideNodeDefaultPartitionerName, schema, clusterState, options))
+    else
+      Some(getPartitioner(defaultPartitionerName, schema, clusterState, options))
 
 }

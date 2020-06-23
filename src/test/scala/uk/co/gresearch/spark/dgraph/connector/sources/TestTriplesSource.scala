@@ -232,7 +232,6 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions.length === 1)
       assert(partitions === Seq(Some(Partition(targets, None, None, model))))
     }
 
@@ -249,7 +248,6 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions.length === 4)
       assert(partitions === Seq(
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None, model)),
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None, model)),
@@ -277,7 +275,6 @@ class TestTriplesSource extends FunSpec
         Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(7, 7)), model)),
       )
 
-      assert(partitions.length === expected.size)
       assert(partitions === expected)
     }
 
@@ -304,7 +301,6 @@ class TestTriplesSource extends FunSpec
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(5, 5)), model))
       )
 
-      assert(partitions.length === expected.size)
       assert(partitions === expected)
     }
 
@@ -313,11 +309,13 @@ class TestTriplesSource extends FunSpec
       val partitions =
         spark
           .read
-          .option(UidRangePartitionerUidsPerPartOption, "7")
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "7"
+          ))
           .dgraphTriples(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions.length === 2)
       assert(partitions === Seq((1 to 7).toSet, (8 to 10).toSet))
     }
 

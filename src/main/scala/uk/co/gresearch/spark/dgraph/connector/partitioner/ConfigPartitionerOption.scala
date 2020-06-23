@@ -31,7 +31,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption
     getStringOption(PartitionerOption, options)
       .map(getPartitioner(_, schema, clusterState, options))
 
-  private def getPartitioner(partitionerName: String,
+  def getPartitioner(partitionerName: String,
                              schema: Schema,
                              clusterState: ClusterState,
                              options: DataSourceOptions): Partitioner =

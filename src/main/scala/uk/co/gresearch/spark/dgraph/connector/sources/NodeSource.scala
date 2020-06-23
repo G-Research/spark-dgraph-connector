@@ -29,12 +29,21 @@ class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider {
 
+  def assertOptions(options: DataSourceOptions): Unit = {
+    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
+      getStringOption(PartitionerOption, options).contains(PredicatePartitionerOption)) {
+      throw new IllegalArgumentException("wide nodes cannot be read with predicate partitioner")
+    }
+  }
+
   override def shortName(): String = "dgraph-nodes"
 
   def getNodeMode(options: DataSourceOptions): Option[String] =
     getStringOption(NodesModeOption, options)
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
+    assertOptions(options)
+
     val targets = getTargets(options)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)

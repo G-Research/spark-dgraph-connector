@@ -147,7 +147,6 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions.length === 1)
       assert(partitions === Seq(Some(Partition(targets, None, None, model))))
     }
 
@@ -164,7 +163,6 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions.length === 2)
       assert(partitions === Seq(
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"))), None, model)),
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("starring", "uid"))), None, model))
@@ -177,13 +175,13 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
             UidRangePartitionerEstimatorOption -> UidCountEstimatorOption,
           ))
           .dgraphEdges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions.length === 5)
       // we can only count and retrieve triples, not edges only, and filter for edges in the connector
       // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
       // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)

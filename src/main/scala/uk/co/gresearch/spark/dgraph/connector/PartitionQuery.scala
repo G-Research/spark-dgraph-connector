@@ -22,47 +22,27 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
   def pagination: String =
     uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
 
-  val seedPredicate: String =
+  val predicateQueries: Map[String, String] =
     predicates
-      // when a single predicate is given, use it as the seed predicate (func: has(…))
-      .filter(_.size == 1)
-      .map(_.head.predicateName)
-      // use dgraph.type as seed predicate otherwise
-      .getOrElse("dgraph.type")
+      .getOrElse(Set.empty)
+      .zipWithIndex
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"pred${idx+1} as var(func: has(<${pred.predicateName}>))" }
+      .toMap
 
-  val predicateFilter: Option[String] =
+  val predicatePaths: Seq[String] =
     predicates
-      // treat a single predicate as if None is given here
-      // that single predicate will be used as seed predicate (see above)
-      .filter(_.size != 1)
-      .map(preds =>
-        Option(preds)
-          .flatMap(p => if (p.size == 1) None else Some(p))
-          .filter(_.nonEmpty)
-          .map(_.map(p => s"has(<${p.predicateName}>)").mkString(" OR "))
-          // an empty predicates set must return empty result set
-          .orElse(Some("eq(true, false)"))
-          .map(filter => s"@filter(${filter}) ")
-          .get
-      )
-
-  val predicatePaths: Option[String] =
-    predicates.map(preds =>
-      Option(preds)
-        .filter(_.nonEmpty)
-        .map(t =>
-          t.map {
-            case Predicate(predicate, "uid") => s"    <$predicate> { uid }"
-            case Predicate(predicate, _____) => s"    <$predicate>"
-          }.mkString("\n") + "\n"
-        ).getOrElse("")
-    )
+      .getOrElse(Set.empty)
+      .map {
+        case Predicate(predicate, "uid") => s"<$predicate> { uid }"
+        case Predicate(predicate, _____) => s"<$predicate>"
+      }
+      .toSeq
 
   def forProperties: GraphQl = {
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(<$seedPredicate>)$pagination) {
+           |  ${resultName} (func: has(dgraph.type)$pagination) {
            |    uid
            |    dgraph.graphql.schema
            |    dgraph.type
@@ -80,35 +60,46 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
   }
 
   def forPropertiesAndEdges: GraphQl = {
-    val paths = predicatePaths.getOrElse(
-      """    dgraph.graphql.schema
-        |    dgraph.type
-        |    expand(_all_) {
-        |      uid
-        |    }
-        |""".stripMargin)
-
     val query =
-      s"""{
-         |  ${resultName} (func: has(<$seedPredicate>)${pagination}) ${predicateFilter.getOrElse("")}{
-         |    uid
-         |${paths}  }
-         |}""".stripMargin
+      if (predicates.isEmpty) {
+        s"""{
+           |  ${resultName} (func: has(dgraph.type)${pagination}) {
+           |    uid
+           |    dgraph.graphql.schema
+           |    dgraph.type
+           |    expand(_all_) {
+           |      uid
+           |    }
+           |  }
+           |}""".stripMargin
+      } else {
+        s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
+           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${pagination}) {
+           |    uid
+           |${predicatePaths.map(path => s"    $path\n").mkString}  }
+           |}""".stripMargin
+      }
 
     GraphQl(query)
   }
 
   def countUids: GraphQl = {
     val query =
-      s"""{
-         |  ${resultName} (func: has(<$seedPredicate>)${pagination}) ${predicateFilter.getOrElse("")}{
-         |    count(uid)
-         |  }
-         |}""".stripMargin
-
+      if (predicates.isEmpty) {
+        s"""{
+           |  ${resultName} (func: has(dgraph.type)${pagination}) {
+           |    count(uid)
+           |  }
+           |}""".stripMargin
+      } else {
+        s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
+           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${pagination}) {
+           |    count(uid)
+           |  }
+           |}""".stripMargin
+      }
     GraphQl(query)
   }
-
 
 }
 

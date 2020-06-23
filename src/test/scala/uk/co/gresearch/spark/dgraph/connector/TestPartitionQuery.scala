@@ -26,11 +26,20 @@ class TestPartitionQuery extends FunSpec {
     val prop = Set(Predicate("prop", "string"))
     val edge = Set(Predicate("edge", "uid"))
 
+    val predicates = Set(
+      Predicate("prop1", "string"),
+      Predicate("prop2", "long"),
+      Predicate("edge1", "uid"),
+      Predicate("edge2", "uid")
+    )
+
     it("should provide query for one property") {
       val query = PartitionQuery("result", Some(prop), None)
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(<prop>)) {
+          |  pred1 as var(func: has(<prop>))
+          |
+          |  result (func: uid(pred1)) {
           |    uid
           |    <prop>
           |  }
@@ -41,7 +50,9 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(edge), None)
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(<edge>)) {
+          |  pred1 as var(func: has(<edge>))
+          |
+          |  result (func: uid(pred1)) {
           |    uid
           |    <edge> { uid }
           |  }
@@ -50,36 +61,33 @@ class TestPartitionQuery extends FunSpec {
 
     it("should provide query for one property or edge") {
       val query1 = PartitionQuery("result", Some(prop), None)
-      assert(query1.forPropertiesAndEdges.string ===
+      assert(query1.forProperties.string ===
         """{
-          |  result (func: has(<prop>)) {
+          |  pred1 as var(func: has(<prop>))
+          |
+          |  result (func: uid(pred1)) {
           |    uid
           |    <prop>
           |  }
           |}""".stripMargin)
 
       val query2 = PartitionQuery("result", Some(edge), None)
-      assert(query2.forPropertiesAndEdges.string ===
+      assert(query2.forProperties.string ===
         """{
-          |  result (func: has(<edge>)) {
+          |  pred1 as var(func: has(<edge>))
+          |
+          |  result (func: uid(pred1)) {
           |    uid
           |    <edge> { uid }
           |  }
           |}""".stripMargin)
     }
 
-    val predicates = Set(
-      Predicate("prop1", "string"),
-      Predicate("prop2", "long"),
-      Predicate("edge1", "uid"),
-      Predicate("edge2", "uid")
-    )
-
     it("should provide query for all properties") {
       val query = PartitionQuery("result", None, None)
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(<dgraph.type>)) {
+          |  result (func: has(dgraph.type)) {
           |    uid
           |    dgraph.graphql.schema
           |    dgraph.type
@@ -92,7 +100,12 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), None)
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(<dgraph.type>)) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
+          |  pred1 as var(func: has(<prop1>))
+          |  pred2 as var(func: has(<prop2>))
+          |  pred3 as var(func: has(<edge1>))
+          |  pred4 as var(func: has(<edge2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4)) {
           |    uid
           |    <prop1>
           |    <prop2>
@@ -107,7 +120,7 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", None, Some(uids))
       assert(query.forProperties.string ===
         """{
-          |  result (func: has(<dgraph.type>), first: 500, offset: 1000) {
+          |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
           |    dgraph.graphql.schema
           |    dgraph.type
@@ -120,7 +133,7 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", None, None)
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(<dgraph.type>)) {
+          |  result (func: has(dgraph.type)) {
           |    uid
           |    dgraph.graphql.schema
           |    dgraph.type
@@ -136,7 +149,7 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", None, Some(uids))
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(<dgraph.type>), first: 500, offset: 1000) {
+          |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
           |    dgraph.graphql.schema
           |    dgraph.type
@@ -151,7 +164,12 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), None)
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(<dgraph.type>)) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
+          |  pred1 as var(func: has(<prop1>))
+          |  pred2 as var(func: has(<prop2>))
+          |  pred3 as var(func: has(<edge1>))
+          |  pred4 as var(func: has(<edge2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4)) {
           |    uid
           |    <prop1>
           |    <prop2>
@@ -161,12 +179,41 @@ class TestPartitionQuery extends FunSpec {
           |}""".stripMargin)
     }
 
+    it("should provide query for one properties or edge") {
+      val query1 = PartitionQuery("result", Some(prop), None)
+      assert(query1.forPropertiesAndEdges.string ===
+        """{
+          |  pred1 as var(func: has(<prop>))
+          |
+          |  result (func: uid(pred1)) {
+          |    uid
+          |    <prop>
+          |  }
+          |}""".stripMargin)
+
+      val query2 = PartitionQuery("result", Some(edge), None)
+      assert(query2.forPropertiesAndEdges.string ===
+        """{
+          |  pred1 as var(func: has(<edge>))
+          |
+          |  result (func: uid(pred1)) {
+          |    uid
+          |    <edge> { uid }
+          |  }
+          |}""".stripMargin)
+    }
+
     it("should provide query for some properties and edges with uid range") {
       val uids = UidRange(1000, 500)
       val query = PartitionQuery("result", Some(predicates), Some(uids))
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(<dgraph.type>), first: 500, offset: 1000) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
+          |  pred1 as var(func: has(<prop1>))
+          |  pred2 as var(func: has(<prop2>))
+          |  pred3 as var(func: has(<edge1>))
+          |  pred4 as var(func: has(<edge2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4), first: 500, offset: 1000) {
           |    uid
           |    <prop1>
           |    <prop2>
@@ -180,7 +227,7 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(Set.empty), None)
       assert(query.forPropertiesAndEdges.string ===
         """{
-          |  result (func: has(<dgraph.type>)) @filter(eq(true, false)) {
+          |  result (func: uid()) {
           |    uid
           |  }
           |}""".stripMargin)
@@ -190,7 +237,7 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", None, None)
       assert(query.countUids.string ===
         """{
-          |  result (func: has(<dgraph.type>)) {
+          |  result (func: has(dgraph.type)) {
           |    count(uid)
           |  }
           |}""".stripMargin)
@@ -200,21 +247,23 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(Set.empty), None)
       assert(query.countUids.string ===
         """{
-          |  result (func: has(<dgraph.type>)) @filter(eq(true, false)) {
+          |  result (func: uid()) {
           |    count(uid)
           |  }
           |}""".stripMargin)
     }
 
     it("should provide query to count all uids with one predicate") {
-      Seq(prop, edge).foreach { preps =>
-        val query = PartitionQuery("result", Some(preps), None)
+      Seq(prop, edge).foreach { preds =>
+        val query = PartitionQuery("result", Some(preds), None)
         assert(query.countUids.string ===
           s"""{
-            |  result (func: has(<${preps.head.predicateName}>)) {
-            |    count(uid)
-            |  }
-            |}""".stripMargin)
+             |  pred1 as var(func: has(<${preds.head.predicateName}>))
+             |
+             |  result (func: uid(pred1)) {
+             |    count(uid)
+             |  }
+             |}""".stripMargin)
       }
     }
 
@@ -222,70 +271,62 @@ class TestPartitionQuery extends FunSpec {
       val query = PartitionQuery("result", Some(predicates), None)
       assert(query.countUids.string ===
         """{
-          |  result (func: has(<dgraph.type>)) @filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) {
+          |  pred1 as var(func: has(<prop1>))
+          |  pred2 as var(func: has(<prop2>))
+          |  pred3 as var(func: has(<edge1>))
+          |  pred4 as var(func: has(<edge2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4)) {
           |    count(uid)
           |  }
           |}""".stripMargin)
     }
 
-    it("should have default seed predicate for none predicates") {
+    it("should have empty predicate queries for none predicates") {
       val query = PartitionQuery("result", None, None)
-      assert(query.seedPredicate === "dgraph.type")
+      assert(query.predicateQueries === Map.empty)
     }
 
-    it("should have default seed predicate for empty predicates") {
+    it("should have empty predicate queries for empty predicates") {
       val query = PartitionQuery("result", Some(Set.empty), None)
-      assert(query.seedPredicate === "dgraph.type")
+      assert(query.predicateQueries === Map.empty)
     }
 
-    it("should have default seed predicate for multiple predicates") {
-      val query = PartitionQuery("result", Some(predicates), None)
-      assert(query.seedPredicate === "dgraph.type")
-    }
-
-    it("should have default seed predicate for single predicate") {
+    it("should have single predicate query for for single predicate") {
       Seq(prop, edge).foreach { preds =>
         val query = PartitionQuery("result", Some(preds), None)
-        assert(query.seedPredicate === preds.head.predicateName, s"for predicates $preds")
+        assert(query.predicateQueries === Map("pred1" -> s"pred1 as var(func: has(<${preds.head.predicateName}>))"))
       }
     }
 
-    it("should have none predicate filter for none predicates set") {
-      val query = PartitionQuery("result", None, None)
-      assert(query.predicateFilter.isEmpty)
-    }
-
-    it("should have always-false predicate filter for empty predicates set") {
-      val query = PartitionQuery("result", Some(Set.empty), None)
-      assert(query.predicateFilter.isDefined)
-      assert(query.predicateFilter.get === "@filter(eq(true, false)) ")
-    }
-
-    it("should have predicate filter for given predicates set") {
+    it("should have multiple predicate queries for multiple predicates") {
       val query = PartitionQuery("result", Some(predicates), None)
-      assert(query.predicateFilter.isDefined)
-      assert(query.predicateFilter.get === "@filter(has(<prop1>) OR has(<prop2>) OR has(<edge1>) OR has(<edge2>)) ")
+      assert(query.predicateQueries === Map(
+        "pred1" -> "pred1 as var(func: has(<prop1>))",
+        "pred2" -> "pred2 as var(func: has(<prop2>))",
+        "pred3" -> "pred3 as var(func: has(<edge1>))",
+        "pred4" -> "pred4 as var(func: has(<edge2>))",
+      ))
     }
 
-    it("should have none predicate paths for none predicates set") {
+    it("should have empty predicate paths for none predicates set") {
       val query = PartitionQuery("result", None, None)
-      assert(query.predicatePaths.isEmpty)
+      assert(query.predicatePaths === Seq.empty)
     }
 
     it("should have empty predicate paths for empty predicates set") {
       val query = PartitionQuery("result", Some(Set.empty), None)
-      assert(query.predicatePaths.isDefined)
-      assert(query.predicatePaths.get === "")
+      assert(query.predicatePaths === Seq.empty)
     }
 
     it("should have predicate paths for given predicates set") {
       val query = PartitionQuery("result", Some(predicates), None)
-      assert(query.predicatePaths.isDefined)
-      assert(query.predicatePaths.get === """    <prop1>
-                                            |    <prop2>
-                                            |    <edge1> { uid }
-                                            |    <edge2> { uid }
-                                            |""".stripMargin)
+      assert(query.predicatePaths === Seq(
+        "<prop1>",
+        "<prop2>",
+        "<edge1> { uid }",
+        "<edge2> { uid }"
+      ))
     }
 
   }

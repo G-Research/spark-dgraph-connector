@@ -261,6 +261,9 @@ Note: The graph schema could become very large and therefore the `DataFrame` cou
 |9      |null                 |Person     |Richard Marquand                              |null               |null   |null        |
 |10     |null                 |Film       |Star Wars: Episode V - The Empire Strikes Back|1980-05-21 00:00:00|5.34E8 |124         |
 
+Note: Wide nodes do not work with predicate partitioner.
+Default partitioner for wide nodes is `UidRangePartitioner`.
+
 #### Edges
 
 Edges can be loaded as follows:
@@ -324,11 +327,19 @@ specific use case, try a more appropriate partitioning scheme.
 
 The following `Partitioner` implementations are available:
 
-| Partitioner             | partition by | Description | Use Case |
-|:-----------------------:|:------------:|-------------|----------|
-| Singleton               | _nothing_    | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
-| Uid Range _(default)_   | uids         | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces internal Dgraph cluster communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
-| Predicate               | predicate    | Provides multiple partitions with at most `P` predicates per partition where `P` defaults to `1`. Partitions with multiple predicates perform poorly with large graphs ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)). Picks multiple predicates from the same Dgraph group. | Graphs with a small number of different predicates (100s) or graphs with huge schema with only a few predicates actually selected ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)). Each predicate should fit into one partition, otherwise combine with Uid Range partitioner. Skewness of predicates reflects skewness of partitions. |
+| Partitioner                       | partition by              | Description | Use Case |
+|:---------------------------------:|:-------------------------:|-------------|----------|
+| Singleton                         | _nothing_                 | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
+| Predicate                         | predicate                 | Provides multiple partitions with at most `P` predicates per partition where `P` defaults to `1000`. Picks multiple predicates from the same Dgraph group. | Large graphs where each predicate fits into a partition, otherwise combine with Uid Range partitioner. Skewness of predicates reflects skewness of partitions. |
+| Uid Range                         | uids                      | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces internal Dgraph cluster communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
+| Predicate + Uid Range _(default)_ | predicates + uids         | Partitions by predicate first (see Predicate Partitioner), then each partition gets partitioned by uid (see Uid Partitioner) | Graphs of any size. |
+
+
+#### Partitioning by Predicates
+
+The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
+Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
+locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 #### Partitioning by Uids
 
@@ -337,9 +348,9 @@ the graph by the subject of the graph triples. This can be combined with predica
 which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
 induces internal Dgraph cluster communication across the groups.
 
-The uid partitioning is based on top of a predicate partitioner. If none is defined a singleton partitioner is used.
+The uid partitioning always works on top of a predicate partitioner. If none is defined a singleton partitioner is used.
 The number of uids of each underlying partition has to be estimated. Once the number of uids is estimated,
-the partition can further be split into ranges of that uid space.
+the partition is further split into ranges of that uid space.
 
 The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000`
 and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
@@ -356,14 +367,8 @@ This estimator can be selected with the `maxLeaseId` value.
 
 ##### Count Uid Estimator
 
-This estimator counts the distinct uids within each underlying partition first. With many or large predicate partitions, this can become expensive.
-The estimator is the default estimator for uid partitioning and can be selected with the `count` value.
-
-#### Partitioning by Predicates
-
-The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
-Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
-locally to the alpha nodes and induce no Dgraph cluster internal communication.
+The count estimator counts the distinct uids within each underlying partition first. With many or large predicate partitions, this can become expensive.
+This estimator is the default estimator for uid partitioning and can be selected with the `count` value.
 
 ## Dependencies
 
