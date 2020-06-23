@@ -1,12 +1,13 @@
 package uk.co.gresearch.spark.dgraph.connector.model
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.PartitionQuery
-import uk.co.gresearch.spark.dgraph.connector.encoder.{EdgeEncoder, TripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.TripleEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.ExecutorProvider
 
 /**
  * Models only the edges of a graph as a table.
  */
-case class EdgeTableModel(encoder: TripleEncoder) extends GraphTableModel {
+case class EdgeTableModel(execution: ExecutorProvider, encoder: TripleEncoder) extends GraphTableModel {
 
   /**
    * Turn a partition query into a GraphQl query.

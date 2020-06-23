@@ -26,7 +26,8 @@ import org.apache.spark.sql.connector.read.InputPartition
  * @param predicates optional predicates to read
  * @param uids optional uid ranges
  */
-case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange]) extends InputPartition {
+case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange])
+  extends InputPartition {
 
   // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()

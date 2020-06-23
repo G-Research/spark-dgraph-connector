@@ -25,6 +25,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
@@ -73,7 +74,8 @@ class NodeSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
       case None => TypedNodeEncoder(schema.predicateMap)
     }
-    val model = NodeTableModel(encoder)
+    val execution = DgraphExecutorProvider()
+    val model = NodeTableModel(execution, encoder)
     new TripleTable(partitioner, model, clusterState.cid)
   }
 

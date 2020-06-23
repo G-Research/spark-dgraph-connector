@@ -24,6 +24,7 @@ import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleTable}
@@ -46,7 +47,8 @@ class EdgeSource() extends TableProviderBase
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = EdgeEncoder(schema.predicateMap)
-    val model = EdgeTableModel(encoder)
+    val execution = DgraphExecutorProvider()
+    val model = EdgeTableModel(execution, encoder)
     new TripleTable(partitioner, model, clusterState.cid)
   }
 
