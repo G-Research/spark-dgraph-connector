@@ -16,14 +16,14 @@
 
 package uk.co.gresearch.spark.dgraph
 
-import java.sql.Timestamp
-
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.netty.NettyChannelBuilder
 import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 import org.apache.spark.sql.DataFrameReader
+
+import java.sql.Timestamp
 
 package object connector {
 
@@ -151,8 +151,48 @@ package object connector {
   }
 
   // typed strings
-  case class GraphQl(string: String) // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
+  // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
+  case class GraphQl(string: String, resultName: String, chunk: Option[connector.Chunk] = None)
   case class Json(string: String)
+
+  case class Perf(partitionTargets: Seq[String],
+                  partitionPredicates: Option[Seq[String]],
+                  partitionUidsFirst: Option[Long],
+                  partitionUidsLength: Option[Long],
+
+                  sparkStageId: Int,
+                  sparkStageAttemptNumber: Int,
+                  sparkPartitionId: Int,
+                  sparkAttemptNumber: Int,
+                  sparkTaskAttemptId: Long,
+
+                  dgraphAssignTimestamp: Option[Long],
+                  dgraphParsing: Option[Long],
+                  dgraphProcessing: Option[Long],
+                  dgraphEncoding: Option[Long],
+                  dgraphTotal: Option[Long]
+                 )
+
+  class PerfJson(val partitionTargets: Array[String],
+                 val partitionPredicates: Array[String],
+                 val partitionUidsFirst: java.lang.Long,
+                 val partitionUidsLength: java.lang.Long,
+
+                 val chunkAfter: java.lang.Long,
+                 val chunkLength: java.lang.Long,
+
+                 val sparkStageId: Int,
+                 val sparkStageAttemptNumber: Int,
+                 val sparkPartitionId: Int,
+                 val sparkAttemptNumber: Int,
+                 val sparkTaskAttemptId: Long,
+
+                 val dgraphAssignTimestamp: java.lang.Long,
+                 val dgraphParsing: java.lang.Long,
+                 val dgraphProcessing: java.lang.Long,
+                 val dgraphEncoding: java.lang.Long,
+                 val dgraphTotal: java.lang.Long
+                )
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"

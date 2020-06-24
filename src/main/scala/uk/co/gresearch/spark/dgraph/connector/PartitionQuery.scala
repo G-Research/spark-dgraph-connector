@@ -107,7 +107,7 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
          |${predicatePaths.map(path => s"    $path\n").mkString}  }
          |}""".stripMargin
 
-    GraphQl(query)
+    GraphQl(query, resultName, chunk)
   }
 
   def getChunkString(chunk: Option[Chunk]): String =
