@@ -105,6 +105,19 @@ class TestEdgeSource extends FunSpec
       )
     }
 
+    it("should load edges in chunks") {
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .options(Map(
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            ChunkSizeOption -> "3"
+          ))
+          .dgraphEdges(cluster.grpc, cluster.grpcLocalIp)
+      )
+    }
+
     it("should encode Edge") {
       val rows =
         spark
