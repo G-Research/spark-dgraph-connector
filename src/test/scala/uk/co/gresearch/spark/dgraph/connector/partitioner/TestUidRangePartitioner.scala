@@ -45,7 +45,7 @@ class TestUidRangePartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder)
+    val model = TripleTableModel(execution, encoder, None)
 
     val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
     val group = GroupPartitioner(schema, clusterState)

@@ -59,7 +59,9 @@ package object connector {
                        objectType: String)
 
   case class Uid(uid: Long) {
+    if (uid < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
     override def toString: String = uid.toString
+    def toHexString: String = s"0x${uid.toHexString}"
   }
 
   object Uid {
@@ -88,6 +90,11 @@ package object connector {
       throw new IllegalArgumentException(s"UidRange first must be positive (is $first), length must be larger than zero (is $length)")
   }
 
+  case class Chunk(after: Uid, length: Long) {
+    if (length <= 0)
+      throw new IllegalArgumentException(s"Chunk length must be larger than zero (is $length)")
+  }
+
   // typed strings
   case class GraphQl(string: String) // technically not GraphQl but GraphQl+: https://dgraph.io/docs/query-language/
   case class Json(string: String)
@@ -102,6 +109,8 @@ package object connector {
   val NodesModeOption: String = "dgraph.nodes.mode"
   val NodesModeTypedOption: String = "typed"
   val NodesModeWideOption: String = "wide"
+
+  val ChunkSizeOption: String = "dgraph.chunkSize"
 
   val PartitionerOption: String = "dgraph.partitioner"
   val SingletonPartitionerOption: String = "singleton"
@@ -122,7 +131,7 @@ package object connector {
   val UidCountEstimatorOption: String = "count"
   val UidRangePartitionerEstimatorDefault: String = UidCountEstimatorOption
 
-  def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().build()
+  def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 
   def toStub(channel: ManagedChannel): DgraphStub = DgraphGrpc.newStub(channel)
 

@@ -108,6 +108,19 @@ class TestEdgeSource extends FunSpec
       )
     }
 
+    it("should load edges in chunks") {
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .options(Map(
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            ChunkSizeOption -> "3"
+          ))
+          .dgraphEdges(cluster.grpc, cluster.grpcLocalIp)
+      )
+    }
+
     it("should encode Edge") {
       val rows =
         spark
@@ -134,7 +147,7 @@ class TestEdgeSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = EdgeEncoder(schema.predicateMap)
-    val model = EdgeTableModel(execution, encoder)
+    val model = EdgeTableModel(execution, encoder, None)
 
     it("should load as a single partition") {
       val target = cluster.grpc

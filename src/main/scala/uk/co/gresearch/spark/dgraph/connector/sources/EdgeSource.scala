@@ -24,7 +24,7 @@ import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleScan}
+import uk.co.gresearch.spark.dgraph.connector.{ChunkSizeOption, ClusterStateProvider, SchemaProvider, TableProviderBase, TargetsConfigParser, TripleScan}
 
 class EdgeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -39,7 +39,8 @@ class EdgeSource() extends TableProviderBase
     val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = EdgeEncoder(schema.predicateMap)
     val execution = DgraphExecutorProvider()
-    val model = EdgeTableModel(execution, encoder)
+    val chunkSize = getIntOption(ChunkSizeOption, options)
+    val model = EdgeTableModel(execution, encoder, chunkSize)
     new TripleScan(partitioner, model)
   }
 

@@ -46,7 +46,7 @@ class TestGroupPartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder)
+    val model = TripleTableModel(execution, encoder, None)
 
     it("should partition") {
       val partitioner = GroupPartitioner(schema, clusterState)

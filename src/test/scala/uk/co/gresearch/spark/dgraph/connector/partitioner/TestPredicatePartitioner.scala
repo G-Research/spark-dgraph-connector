@@ -81,7 +81,7 @@ class TestPredicatePartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder)
+    val model = TripleTableModel(execution, encoder, None)
 
     it("should partition with 1 predicates per partition") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)

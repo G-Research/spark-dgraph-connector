@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import java.sql.Timestamp
 
-import com.google.gson.JsonObject
+import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
@@ -80,12 +80,11 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
   /**
    * Encodes the given Dgraph json result into InternalRows.
    *
-   * @param json Json result
-   * @param member member in the json that has the result
+   * @param result Json result
    * @return internal rows
    */
-  override def fromJson(json: Json, member: String): Iterator[InternalRow] =
-    getNodes(json, member).map(toNode)
+  override def fromJson(result: JsonArray): Iterator[InternalRow] =
+    getNodes(result).map(toNode)
 
   /**
    * Encodes a node as a wide InternalRow.

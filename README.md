@@ -341,6 +341,10 @@ The Dgraph data can be partitioned by predicates. Each partition then contains a
 Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
 locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
+Another feature of predicate partitioning is that data can be read from Dgraph in smaller chunks. This allows
+to reduce the memory footprint of Spark tasks reading large partitions. The size of each chunk can be set
+by the optional parameter `dgraph.chunkSize`. A good starting value is `10000` nodes.
+
 #### Partitioning by Uids
 
 A `uid` represents a node or vertice in Dgraph terminology. A "Uid Range" partitioning splits

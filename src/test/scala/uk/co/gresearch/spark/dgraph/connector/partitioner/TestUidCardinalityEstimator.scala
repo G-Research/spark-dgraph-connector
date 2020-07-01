@@ -12,7 +12,7 @@ class TestUidCardinalityEstimator extends FunSpec {
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
   val execution: DgraphExecutorProvider = DgraphExecutorProvider()
   val encoder: TypedTripleEncoder = TypedTripleEncoder(schema.predicateMap)
-  val model: TripleTableModel = TripleTableModel(execution, encoder)
+  val model: TripleTableModel = TripleTableModel(execution, encoder, None)
 
   def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {

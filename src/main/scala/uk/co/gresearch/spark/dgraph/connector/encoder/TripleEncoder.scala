@@ -17,7 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
-import com.google.gson.JsonObject
+import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import uk.co.gresearch.spark.dgraph.connector.{Json, Predicate, Uid}
 
@@ -33,12 +33,11 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder {
   /**
    * Encodes the given Dgraph json result into InternalRows.
    *
-   * @param json Json result
-   * @param member member in the json that has the result
+   * @param result Json result
    * @return internal rows
    */
-  override def fromJson(json: Json, member: String): Iterator[InternalRow] =
-    getNodes(json, member).flatMap(toTriples)
+  override def fromJson(result: JsonArray): Iterator[InternalRow] =
+    getNodes(result).flatMap(toTriples)
 
   /**
    * Encodes a node as InternalRows.

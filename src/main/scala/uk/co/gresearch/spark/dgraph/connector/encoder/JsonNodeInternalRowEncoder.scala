@@ -5,6 +5,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
+import org.apache.spark.sql.catalyst.InternalRow
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Uid}
 
 import scala.collection.JavaConverters._
@@ -14,13 +15,45 @@ import scala.collection.JavaConverters._
  */
 trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
 
-  def getNodes(json: Json, member: String): Iterator[JsonObject] = {
-    new Gson().fromJson(json.string, classOf[JsonObject])
-      .getAsJsonArray(member)
+
+  /**
+   * Encodes the given Dgraph json result into InternalRows.
+   *
+   * @param json Json result
+   * @param member member in the json that has the result
+   * @return internal rows
+   */
+  def fromJson(json: Json, member: String): Iterator[InternalRow] =
+    fromJson(getResult(json, member))
+
+  /**
+   * Encodes the given Dgraph json result into InternalRows.
+   *
+   * @param result Json result
+   * @return internal rows
+   */
+  def fromJson(result: JsonArray): Iterator[InternalRow]
+
+  /**
+   * Parses the given Json result and returns the result array.
+   * @param json Json result
+   * @param member member in the json that has the result
+   * @return Json array
+   */
+  def getResult(json: Json, member: String): JsonArray = {
+    new Gson().fromJson(json.string, classOf[JsonObject]).getAsJsonArray(member)
+  }
+
+  /**
+   * Provides the result elements as JsonObjects
+   * @param result Json array
+   * @return result elements
+   */
+  def getNodes(result: JsonArray): Iterator[JsonObject] =
+    result
       .iterator()
       .asScala
       .map(_.getAsJsonObject)
-  }
 
   def getValues(value: JsonElement): Iterable[JsonElement] = value match {
     case a: JsonArray => a.asScala
