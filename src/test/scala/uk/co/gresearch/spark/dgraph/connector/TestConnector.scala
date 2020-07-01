@@ -24,9 +24,9 @@ class TestConnector extends FunSpec {
   describe("Connector") {
 
     Map(
-      TriplesSource -> "triples",
-      EdgesSource -> "edges",
-      NodesSource -> "nodes"
+        TriplesSource -> "triples",
+        EdgesSource -> "edges",
+        NodesSource -> "nodes"
     ).foreach {
       case (pkg, source) =>
         it(s"should provide $source source package name") {
@@ -34,10 +34,23 @@ class TestConnector extends FunSpec {
         }
     }
 
+    it("should validate Uid") {
+      assertThrows[IllegalArgumentException] { Uid(-1) }
+      assertThrows[IllegalArgumentException] { Uid("0x-1") }
+      assertThrows[IllegalArgumentException] { Uid("123") }
+      assertThrows[IllegalArgumentException] { Uid("0xyz") }
+    }
+
     it("should validate UidRange") {
       assertThrows[IllegalArgumentException]{ UidRange(-1, 1000) }
       assertThrows[IllegalArgumentException]{ UidRange(0, 0) }
       assertThrows[IllegalArgumentException]{ UidRange(0, -1) }
+    }
+
+    it("should validate Chunk") {
+      assertThrows[IllegalArgumentException] { Chunk(Uid(0), 0) }
+      assertThrows[IllegalArgumentException] { Chunk(Uid(0), -1) }
+      assertThrows[IllegalArgumentException] { Chunk(Uid(0), Int.MinValue) }
     }
 
     it("should rotate Seq left") {

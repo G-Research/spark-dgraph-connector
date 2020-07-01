@@ -121,11 +121,12 @@ case class DgraphCluster(name: String, version: String) {
     process.foreach(_.exitValue())
   }
 
-  val dgraphLogLines = Seq("^[WE].*", "^Dgraph version.*", ".*Listening on port.*", ".*CID set for cluster:*")
+  val dgraphLogLines = Seq("^docker:", "^[WE].*", "^Dgraph version.*", ".*Listening on port.*", ".*CID set for cluster:*")
 
   def launchCluster(portOffset: Int): Option[Process] = {
     val logger = ProcessLogger(line => {
-      if (dgraphLogLines.exists(line.matches)) println(s"Docker: $line")
+      //if (dgraphLogLines.exists(line.matches))
+      println(s"Docker: $line")
       if (line.contains("CID set for cluster:")) {
         println("dgraph cluster is up")
         // notify main thread about cluster being ready
@@ -157,7 +158,7 @@ case class DgraphCluster(name: String, version: String) {
 
     sync.synchronized {
       // wait for the cluster to come up (logger above observes 'CID set for cluster:')
-      (1 to 30).foreach { _ => if (!started && process.isAlive()) sync.wait(1000) }
+      (1 to 3600).foreach { _ => if (!started && process.isAlive()) sync.wait(1000) }
     }
 
     if (started) Some(process) else None

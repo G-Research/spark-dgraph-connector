@@ -17,16 +17,21 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import uk.co.gresearch.spark.dgraph.connector
+
 case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]], uids: Option[UidRange]) {
 
   def pagination: String =
     uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
 
-  val predicateQueries: Map[String, String] =
+  def getChunkString(chunk: Option[Chunk]): String =
+    chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
+
+  def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
     predicates
       .getOrElse(Set.empty)
       .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"pred${idx+1} as var(func: has(<${pred.predicateName}>))" }
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})" }
       .toMap
 
   val predicatePaths: Seq[String] =
@@ -38,11 +43,11 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
       }
       .toSeq
 
-  def forProperties: GraphQl = {
+  def forProperties(chunk: Option[connector.Chunk]): GraphQl = {
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(dgraph.type)$pagination) {
+           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
            |    uid
            |    dgraph.graphql.schema
            |    dgraph.type
@@ -53,17 +58,17 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         // this assumes all given predicates are all properties, no edges
         // TODO: make this else branch produce a query that returns only properties even if edges are in predicates
         //       https://github.com/G-Research/spark-dgraph-connector/issues/19
-        forPropertiesAndEdges.string
+        forPropertiesAndEdges(chunk).string
       }
 
     GraphQl(query)
   }
 
-  def forPropertiesAndEdges: GraphQl = {
+  def forPropertiesAndEdges(chunk: Option[connector.Chunk]): GraphQl = {
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(dgraph.type)${pagination}) {
+           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
            |    uid
            |    dgraph.graphql.schema
            |    dgraph.type
@@ -73,8 +78,9 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
            |  }
            |}""".stripMargin
       } else {
+        val predicateQueries = getPredicateQueries(chunk)
         s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
-           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${pagination}) {
+           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}$pagination) {
            |    uid
            |${predicatePaths.map(path => s"    $path\n").mkString}  }
            |}""".stripMargin
@@ -92,6 +98,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
            |  }
            |}""".stripMargin
       } else {
+        val predicateQueries = getPredicateQueries(None)
         s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
            |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${pagination}) {
            |    count(uid)

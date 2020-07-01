@@ -161,6 +161,36 @@ class TestTriplesSource extends FunSpec
       )
     }
 
+    it("should load string-object triples in chunks") {
+      // it is hard to test data are really read in chunks, but we can test the data are correct
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .options(Map(
+            TriplesModeOption -> TriplesModeStringOption,
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            ChunkSizeOption -> "3"
+          ))
+          .dgraphTriples(cluster.grpc)
+      )
+    }
+
+    it("should load typed-object triples in chunks") {
+      // it is hard to test data are really read in chunks, but we can test the data are correct
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .options(Map(
+            TriplesModeOption -> TriplesModeTypedOption,
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            ChunkSizeOption -> "3"
+          ))
+          .dgraphTriples(cluster.grpc)
+      )
+    }
+
     it("should encode StringTriple") {
       val rows =
         spark

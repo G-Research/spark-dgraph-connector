@@ -174,6 +174,21 @@ class TestNodeSource extends FunSpec
       }
     }
 
+    it("should load typed nodes in chunks") {
+      // it is hard to test data are really read in chunks, but we can test the data are correct
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .options(Map(
+            NodesModeOption -> NodesModeTypedOption,
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            ChunkSizeOption -> "3"
+          ))
+          .dgraphNodes(cluster.grpc)
+      )
+    }
+
     it("should encode TypedNode") {
       val rows =
         spark

@@ -21,10 +21,12 @@ import org.apache.spark.sql.SparkSession
 
 trait SparkTestSession {
 
+  def cores: Int = 1
+
   val spark: SparkSession = {
     SparkSession
       .builder()
-      .master("local[1]")
+      .master(s"local[$cores]")
       .appName("spark test example")
       .config("spark.sql.shuffle.partitions", 2)
       .config("spark.local.dir", ".")
