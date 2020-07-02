@@ -178,10 +178,13 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(
+
+      val expected = Set(
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"))), None, model)),
         Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("starring", "uid"))), None, model))
-      ))
+      )
+
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
@@ -201,7 +204,7 @@ class TestEdgeSource extends FunSpec
       // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
       // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)
       val uids = Set(sw1, sw2, sw3)
-      val expected = (1L to 10L).grouped(2).map(p => p.toSet.intersect(uids)).toList
+      val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
       assert(partitions === expected)
     }
 

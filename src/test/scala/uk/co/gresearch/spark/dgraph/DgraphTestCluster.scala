@@ -19,18 +19,23 @@ package uk.co.gresearch.spark.dgraph
 
 import java.util.UUID
 
-import com.google.gson.{Gson, JsonObject}
+import com.google.gson.{Gson, JsonArray, JsonObject}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.types.StructType
 import org.scalatest.{BeforeAndAfterAll, Suite}
-import requests.RequestBlob
+import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, Target, Uid}
+import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Target, Uid}
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 import scala.sys.process.{Process, ProcessLogger}
 
 trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
 
-  val clusterVersion = "20.03.0"
+  val clusterVersion = "20.03.3"
   val clusterAlwaysStartUp = false  // ignores running cluster and starts a new if true
   val cluster: DgraphCluster = DgraphCluster(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
   def clusterTarget: String = cluster.grpc
@@ -39,6 +44,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
   if (clusterAlwaysStartUp || !testClusterRunning)
     assert(DgraphTestCluster.isDockerInstalled, "docker must be installed")
 
+  lazy val graphQlSchema: Long = cluster.uids("dgraph.graphql.schema")
   lazy val han: Long = cluster.uids("han")
   lazy val irvin: Long = cluster.uids("irvin")
   lazy val leia: Long = cluster.uids("leia")
@@ -49,6 +55,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
   lazy val sw1: Long = cluster.uids("sw1")
   lazy val sw2: Long = cluster.uids("sw2")
   lazy val sw3: Long = cluster.uids("sw3")
+  lazy val allUids: Seq[Long] = Seq(graphQlSchema, han, irvin, leia, lucas, luke, richard, st1, sw1, sw2, sw3).sorted
   lazy val highestUid: Long = cluster.uids.values.max
 
   def runningDockerDgraphCluster: List[String] =
@@ -69,11 +76,70 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
 
       cluster.start()
     }
+    cluster.uids = cluster.uids ++ lookupGraphQlSchema()
   }
 
   override protected def afterAll(): Unit = {
     if (clusterAlwaysStartUp || !testClusterRunning)
       cluster.stop()
+  }
+
+  def lookupGraphQlSchema(): Map[String, Long] = {
+    val query = GraphQl("""{
+                          |  pred as var(func: has(<dgraph.graphql.xid>)) @filter(eq(<dgraph.graphql.xid>, "dgraph.graphql.schema"))
+                          |
+                          |  result (func: uid(pred)) {
+                          |    uid
+                          |  }
+                          |}
+                          |""".stripMargin)
+
+    @tailrec
+    def attempt(no: Int, limit: Int): Uid = {
+      val json = DgraphExecutor(Seq(Target(cluster.grpc))).query(query)
+      println(s"dgraph.graphql.schema node: $json")
+
+      val encoder = TestEncoder()
+      val nodes = encoder.getNodes(encoder.getResult(json, "result")).toSeq
+      if (nodes.size === 0) {
+        if (no < limit) {
+          Thread.sleep(1000)
+          attempt(no + 1, limit)
+        } else {
+          throw new IllegalStateException("Failed read graphql schema")
+        }
+      } else {
+        val node = nodes.head
+        encoder.getValue(node, "uid").asInstanceOf[Uid]
+      }
+    }
+
+    val uid = attempt(1, 30)
+    Map("dgraph.graphql.schema" -> uid.uid)
+  }
+
+  case class TestEncoder() extends JsonNodeInternalRowEncoder {
+    /**
+     * Encodes the given Dgraph json result into InternalRows.
+     *
+     * @param result Json result
+     * @return internal rows
+     */
+    override def fromJson(result: JsonArray): Iterator[InternalRow] = ???
+
+    /**
+     * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
+     * empty schema can be returned here.
+     * From: org.apache.spark.sql.connector.catalog.Table.schema
+     */
+    override def schema(): StructType = ???
+
+    /**
+     * Returns the actual schema of this data source scan, which may be different from the physical
+     * schema of the underlying storage, as column pruning or other optimizations may happen.
+     * From: org.apache.spark.sql.connector.read.Scan.readSchema
+     */
+    override def readSchema(): StructType = ???
   }
 
 }
@@ -110,8 +176,8 @@ case class DgraphCluster(name: String, version: String) {
     }.next()
     assert(process.isDefined)
 
-    uids = insertData()
     alterSchema()
+    uids = insertData()
   }
 
   def stop(): Unit = {
@@ -162,6 +228,34 @@ case class DgraphCluster(name: String, version: String) {
     }
 
     if (started) Some(process) else None
+  }
+
+  def alterSchema(): Unit = {
+    println("altering schema")
+    val url = s"http://${http}/alter"
+    val data =
+      """  director: [uid] .
+        |  name: string @index(term) .
+        |  release_date: datetime @index(year) .
+        |  revenue: float .
+        |  running_time: int .
+        |  starring: [uid] .
+        |
+        |  type Person {
+        |    name
+        |  }
+        |
+        |  type Film {
+        |    name
+        |    release_date
+        |    revenue
+        |    running_time
+        |    starring
+        |    director
+        |  }
+        |""".stripMargin
+
+    attempt(url, data)
   }
 
   def insertData(): Map[String, Long] = {
@@ -222,41 +316,50 @@ case class DgraphCluster(name: String, version: String) {
         |  }
         |}""".stripMargin
 
-    val response = requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data))
-    assert(response.statusCode == 200)
-
     // extract the blank-node uid mapping
-    val json = response.text()
-    println(s"dgraph mutation response: ${json}")
-    getUids(json)
+    getUids(attempt(url, data, headers))
   }
 
-  def alterSchema(): Unit = {
-    println("altering schema")
-    val url = s"http://${http}/alter"
-    val data =
-      """  name: string @index(term) .
-        |  release_date: datetime @index(year) .
-        |  revenue: float .
-        |  running_time: int .
-        |
-        |  type Person {
-        |    name
-        |  }
-        |
-        |  type Film {
-        |    name
-        |    release_date
-        |    revenue
-        |    running_time
-        |    starring
-        |    director
-        |  }
-        |""".stripMargin
+  @tailrec
+  final def attempt(url: String, data: String, headers: Seq[(String,String)]=Seq.empty, no: Int=1, limit: Int=10, sleep: Int=500, maxSleep: Int=10000): String = {
+    val response = try {
+      Some(requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data), readTimeout = 60000))
+    } catch {
+      case t: Throwable =>
+        t.printStackTrace()
+        None
+    }
 
-    val response = requests.post(url, data = RequestBlob.ByteSourceRequestBlob(data))
-    assert(response.statusCode == 200)
-    println(s"dgraph schema response: ${response.text()}")
+    if (hasErrors(response)) {
+      if (no < limit) {
+        val actualSleep = math.min(sleep, maxSleep)
+        Thread.sleep(actualSleep)
+        attempt(url, data, headers, no + 1, limit, math.min(actualSleep * 2, maxSleep), maxSleep)
+      } else {
+        throw new IllegalStateException("Retry limit exceeded, giving up")
+      }
+    } else {
+      response.get.text()
+    }
+  }
+
+  def hasErrors(response: Option[Response]): Boolean = {
+    if (!response.exists(_.statusCode == 200)) {
+      if (response.isDefined) println(s"received status ${response.get.statusCode}: ${response.get.statusMessage}")
+      true
+    } else {
+      val text = response.get.text()
+      println(s"dgraph schema response: $text")
+
+      val json = new Gson().fromJson(text, classOf[JsonObject])
+      val errors =
+        Option(json.getAsJsonArray("errors"))
+          .map(_.asScala.map(_.getAsJsonObject))
+          .getOrElse(Seq.empty[JsonObject])
+      // dgraph schema response: {"errors":[{"message":"errIndexingInProgress. Please retry","extensions":{"code":"Error"}}]}
+      errors.foreach(error => println(error.getAsJsonPrimitive("message").getAsString))
+      errors.nonEmpty
+    }
   }
 
   def getUids(json: String): Map[String, Long] = {
