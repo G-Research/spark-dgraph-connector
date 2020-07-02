@@ -78,7 +78,7 @@ trait GraphTableModel {
     val json = executor.query(graphql)
     val end = Clock.systemUTC().instant().toEpochMilli
     val array = encoder.getResult(json, query.resultName)
-    println(s"stage=${TaskContext.get().stageId()} part=${TaskContext.get().partitionId()}: " +
+    println(s"stage=${Option(TaskContext.get()).map(_.stageId()).orNull} part=${Option(TaskContext.get()).map(_.partitionId()).orNull}: " +
       s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").get}${chunk.length} " +
       s"uids from ${chunk.after.toHexString} with ${array.size()} nodes in ${(end - start)/1000.0}s")
     array

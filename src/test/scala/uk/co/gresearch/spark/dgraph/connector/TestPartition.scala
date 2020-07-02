@@ -43,7 +43,7 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
         val encoder = TypedTripleEncoder(schema.predicateMap)
         val execution = DgraphExecutorProvider()
         val model = TripleTableModel(execution, encoder, None)
-        assert(model.modelPartition(partition).length === 44)
+        assert(model.modelPartition(partition).length === 47)
       }
 
     }

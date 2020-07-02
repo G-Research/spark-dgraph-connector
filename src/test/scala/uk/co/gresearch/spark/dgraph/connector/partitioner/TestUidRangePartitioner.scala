@@ -64,7 +64,6 @@ class TestUidRangePartitioner extends FunSpec {
           val uidPartitioner = UidRangePartitioner(partitioner, size, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
           val partitions = partitioner.getPartitions
           val uidPartitions = uidPartitioner.getPartitions
-          println(uidPartitions)
 
           val ranges = (0 until (10000 / size)).map(idx => UidRange(idx * size, size))
           assert(uidPartitions.length === partitions.length * ranges.length)
@@ -86,7 +85,6 @@ class TestUidRangePartitioner extends FunSpec {
         val uidPartitioner = UidRangePartitioner(partitioner, 5, UidCardinalityEstimator.forExecutor(executor))
         val partitions = partitioner.getPartitions
         val uidPartitions = uidPartitioner.getPartitions
-        println(uidPartitions)
 
         val ranges = Seq(UidRange(0, 5), UidRange(5, 5))
         assert(uidPartitions.length === partitions.length * ranges.length)
