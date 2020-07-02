@@ -40,6 +40,9 @@ trait SchemaProvider {
         .map(o => Predicate(o.get("predicate").getAsString, o.get("type").getAsString))
         .toSet
       Schema(schema)
+    } catch {
+      // this is potentially a async exception which does not include any useful stacktrace, so we add it here
+      case e: Throwable => throw e.fillInStackTrace()
     } finally {
       channels.foreach(_.shutdown())
     }

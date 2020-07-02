@@ -41,6 +41,9 @@ class TestTriplesSource extends FunSpec
     def doTestLoadStringTriples(load: () => DataFrame): Unit = {
       val triples = load().as[StringTriple].collect().toSet
       val expected = Set(
+        StringTriple(graphQlSchema, "dgraph.type", "dgraph.graphql", "string"),
+        StringTriple(graphQlSchema, "dgraph.graphql.xid", "dgraph.graphql.schema", "string"),
+        StringTriple(graphQlSchema, "dgraph.graphql.schema", "", "string"),
         StringTriple(st1, "dgraph.type", "Film", "string"),
         StringTriple(st1, "name", "Star Trek: The Motion Picture", "string"),
         StringTriple(st1, "release_date", "1979-12-07 00:00:00.0", "timestamp"),
@@ -199,8 +202,7 @@ class TestTriplesSource extends FunSpec
           .dgraphTriples(cluster.grpc)
           .as[StringTriple]
           .collectAsList()
-      rows.forEach(println)
-      assert(rows.size() == 44)
+      assert(rows.size() == 47)
     }
 
     it("should encode TypedTriple") {
@@ -211,8 +213,7 @@ class TestTriplesSource extends FunSpec
           .dgraphTriples(cluster.grpc)
           .as[TypedTriple]
           .collectAsList()
-      rows.forEach(println)
-      assert(rows.size() == 44)
+      assert(rows.size() == 47)
     }
 
     it("should fail without target") {
@@ -263,12 +264,16 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), None))
-      ))
+
+      val expected = Set(
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("starring", "uid"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), None))
+      )
+
+      assert(partitions.toSet === expected)
     }
 
     it("should load as uid-range partitions") {
@@ -285,12 +290,12 @@ class TestTriplesSource extends FunSpec
           case _ => None
         }
 
-      val expected = Seq(
+      val expected = Set(
         Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(0, 7)))),
         Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(7, 7)))),
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should load as predicate uid-range partitions") {
@@ -308,15 +313,19 @@ class TestTriplesSource extends FunSpec
           case _ => None
         }
 
-      val expected = Seq(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("revenue", "float"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("starring", "uid"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(0, 5)))),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("name", "string"))), Some(UidRange(5, 5))))
+      val expected = Set(
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("starring", "uid"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int"))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(0, 5)))),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(5, 5)))),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(10, 5)))),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), Some(UidRange(0, 5)))),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), Some(UidRange(5, 5))))
+
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
@@ -331,7 +340,7 @@ class TestTriplesSource extends FunSpec
           .dgraphTriples(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions === Seq((1 to 7).toSet, (8 to 10).toSet))
+      assert(partitions === Seq((1 to 7).toSet, (8 to 11).toSet))
     }
 
   }
@@ -342,6 +351,9 @@ object TestTriplesSource extends Assertions {
 
   def doAssertTriples(triples: Set[TypedTriple], cluster: DgraphTestCluster): Unit = {
     val expected = Set(
+      TypedTriple(cluster.graphQlSchema, "dgraph.type", None, Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.graphQlSchema, "dgraph.graphql.xid", None, Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.graphQlSchema, "dgraph.graphql.schema", None, Some(""), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),

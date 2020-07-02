@@ -36,16 +36,17 @@ class TestGraphX extends FunSpec
       val pageRank = graph.pageRank(0.0001)
       val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).toSet
       val expected = Set(
-        (st1,0.7968127490039841),
-        (leia,1.3047808764940239),
-        (lucas,0.9661354581673308),
-        (irvin,0.9661354581673308),
-        (sw1,0.7968127490039841),
-        (sw2,0.7968127490039841),
-        (luke,1.3047808764940239),
-        (han,1.3047808764940239),
-        (richard,0.9661354581673308),
-        (sw3,0.7968127490039841),
+        (1,0.8118081180811808),
+        (st1,0.8118081180811808),
+        (leia,1.3293357933579335),
+        (lucas,0.9843173431734319),
+        (irvin,0.9843173431734319),
+        (sw1,0.8118081180811808),
+        (sw2,0.8118081180811808),
+        (luke,1.3293357933579335),
+        (han,1.3293357933579335),
+        (richard,0.9843173431734319),
+        (sw3,0.8118081180811808),
       ).map(t => (t._1, t._2.toFloat))
       assert(vertices === expected)
     }
@@ -53,6 +54,9 @@ class TestGraphX extends FunSpec
     def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
       val vertices = load().collect().toSet
       val expected = Set(
+        (graphQlSchema,StringVertexProperty("dgraph.type", "dgraph.graphql")),
+        (graphQlSchema,StringVertexProperty("dgraph.graphql.xid", "dgraph.graphql.schema")),
+        (graphQlSchema,StringVertexProperty("dgraph.graphql.schema", "")),
         (st1, StringVertexProperty("dgraph.type", "Film")),
         (st1, StringVertexProperty("name", "Star Trek: The Motion Picture")),
         (st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),

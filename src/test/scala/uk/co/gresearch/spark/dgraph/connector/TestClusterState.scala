@@ -50,6 +50,10 @@ class TestClusterState extends FunSpec {
           |          "groupId": 1,
           |          "predicate": "dgraph.graphql.schema"
           |        },
+          |        "dgraph.graphql.xid": {
+          |          "groupId": 1,
+          |          "predicate": "dgraph.graphql.xid"
+          |        },
           |        "dgraph.type": {
           |          "groupId": 1,
           |          "predicate": "dgraph.type"
@@ -120,7 +124,7 @@ class TestClusterState extends FunSpec {
         "2" -> Set(Target("127.0.0.1:9080"), Target("127.0.0.1:9081"))
       ))
       assert(state.groupPredicates === Map(
-        "1" -> Set("dgraph.graphql.schema", "dgraph.type", "director"),
+        "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
         "2" -> Set("name", "release_date", "revenue")
       ))
       assert(state.maxLeaseId === 10000)

@@ -19,6 +19,9 @@ case class DgraphExecutor(targets: Seq[Target]) extends JsonGraphQlExecutor {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query.string)
       Json(response.getJson.toStringUtf8)
+    } catch {
+      // this is potentially a async exception which does not include any useful stacktrace, so we add it here
+      case e: Throwable => throw e.fillInStackTrace()
     } finally {
       channels.foreach(_.shutdown())
     }

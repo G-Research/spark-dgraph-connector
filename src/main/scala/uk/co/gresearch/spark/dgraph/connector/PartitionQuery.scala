@@ -31,7 +31,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
     predicates
       .getOrElse(Set.empty)
       .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})" }
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})""" }
       .toMap
 
   val predicatePaths: Seq[String] =
@@ -49,7 +49,6 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         s"""{
            |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
            |    uid
-           |    dgraph.graphql.schema
            |    dgraph.type
            |    expand(_all_)
            |  }
@@ -70,7 +69,6 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
         s"""{
            |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
            |    uid
-           |    dgraph.graphql.schema
            |    dgraph.type
            |    expand(_all_) {
            |      uid

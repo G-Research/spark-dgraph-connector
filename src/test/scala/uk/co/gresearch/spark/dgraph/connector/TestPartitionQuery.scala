@@ -89,7 +89,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type)) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_)
           |  }
@@ -122,7 +121,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_)
           |  }
@@ -150,7 +148,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 10, after: 0x123) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_)
           |  }
@@ -185,7 +182,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 10, after: 0x123) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_) {
           |      uid
@@ -200,7 +196,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type)) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_) {
           |      uid
@@ -216,7 +211,6 @@ class TestPartitionQuery extends FunSpec {
         """{
           |  result (func: has(dgraph.type), first: 500, offset: 1000) {
           |    uid
-          |    dgraph.graphql.schema
           |    dgraph.type
           |    expand(_all_) {
           |      uid
@@ -360,7 +354,7 @@ class TestPartitionQuery extends FunSpec {
     it("should use single predicate query for for single predicate") {
       Seq(prop, edge).foreach { preds =>
         val query = PartitionQuery("result", Some(preds), None)
-        assert(query.getPredicateQueries(None) === Map("pred1" -> s"pred1 as var(func: has(<${preds.head.predicateName}>))"))
+        assert(query.getPredicateQueries(None) === Map("pred1" -> s"""pred1 as var(func: has(<${preds.head.predicateName}>))"""))
       }
     }
 

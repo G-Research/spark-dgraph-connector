@@ -18,7 +18,6 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder}
-import uk.co.gresearch.spark.dgraph.connector.encoder.TripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
