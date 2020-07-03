@@ -20,23 +20,52 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.math.BigInteger
 import java.security.MessageDigest
 
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema}
+import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.language.implicitConversions
 
-case class PredicatePartitioner(schema: Schema, clusterState: ClusterState, predicatesPerPartition: Int)
+case class PredicatePartitioner(schema: Schema,
+                                clusterState: ClusterState,
+                                predicatesPerPartition: Int,
+                                filters: Seq[connector.Filter] = Seq.empty)
   extends Partitioner {
 
   if (predicatesPerPartition <= 0)
     throw new IllegalArgumentException(s"predicatesPerPartition must be larger than zero: $predicatesPerPartition")
 
   def getPartitionsForPredicates(predicates: Set[_]): Int =
-    if (predicates.isEmpty) 1 else 1 + (predicates.size-1) / predicatesPerPartition
+    if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
+
+  override def supportsFilter(filter: connector.Filter): Boolean = filter match {
+    case _: PredicateNameIsIn => true
+    case _: ObjectTypeIsIn => true
+    case _ => false
+  }
+
+  override def withFilters(filters: Seq[connector.Filter]): Partitioner = copy(filters = filters)
 
   override def getPartitions: Seq[Partition] = {
-    val partitionsPerGroup = clusterState.groupPredicates.mapValues(getPartitionsForPredicates)
-    PredicatePartitioner.getPartitions(schema, clusterState, partitionsPerGroup)
+    val cState = filter(clusterState, filters)
+    val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
+    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup)
   }
+
+  def filter(clusterState: ClusterState, filters: Seq[connector.Filter]): ClusterState =
+    filters.foldLeft(clusterState)(filter)
+
+  def filter(clusterState: ClusterState, filter: connector.Filter): ClusterState =
+    filter match {
+      case f: PredicateNameIsIn => clusterState.copy(
+        groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
+      )
+      case f: ObjectTypeIsIn =>
+        val predicatesWithType = schema.predicates.filter(p => f.types.contains(p.typeName)).map(_.predicateName)
+        clusterState.copy(
+          groupPredicates = clusterState.groupPredicates.mapValues(_.filter(predicatesWithType))
+        )
+      case _ => clusterState
+    }
 
 }
 

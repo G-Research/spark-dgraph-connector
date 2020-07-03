@@ -26,14 +26,15 @@ import uk.co.gresearch.spark.dgraph.connector.{Predicate, StringTriple, Uid}
 /**
  * Encodes Triple by representing objects as strings.
  **/
-case class StringTripleEncoder(predicates: Map[String, Predicate]) extends TripleEncoder {
+case class StringTripleEncoder(predicates: Map[String, Predicate])
+  extends TripleEncoder with NoColumnInfo {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = StringTripleEncoder.schema()
+  override def schema(): StructType = StringTripleEncoder.schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -61,5 +62,5 @@ case class StringTripleEncoder(predicates: Map[String, Predicate]) extends Tripl
 }
 
 object StringTripleEncoder {
-  def schema(): StructType = Encoders.product[StringTriple].schema
+  val schema: StructType = Encoders.product[StringTriple].schema
 }

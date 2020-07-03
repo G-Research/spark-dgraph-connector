@@ -29,7 +29,8 @@ import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, TypedNo
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
-case class TypedNodeEncoder(predicates: Map[String, Predicate]) extends TripleEncoder {
+case class TypedNodeEncoder(predicates: Map[String, Predicate])
+  extends TripleEncoder with NoColumnInfo {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

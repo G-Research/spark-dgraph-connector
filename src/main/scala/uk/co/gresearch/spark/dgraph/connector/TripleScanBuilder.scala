@@ -17,10 +17,35 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.connector.read.{Scan, ScanBuilder}
+import org.apache.spark.sql
+import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters}
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
-class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) extends ScanBuilder {
-  override def build(): Scan = new TripleScan(partitioner, model)
+import scala.collection.mutable
+
+case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) extends ScanBuilder
+  with SupportsPushDownFilters {
+
+  val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
+  val filters: mutable.Set[connector.Filter] = mutable.Set.empty
+  val translator: FilterTranslator = FilterTranslator(model.encoder)
+
+  override def pushFilters(filters: Array[sql.sources.Filter]): Array[sql.sources.Filter] = {
+    println(s"pushing filters: ${filters.mkString(", ")}")
+    val translated = filters.map(f => f -> translator.translate(f)).toMap
+    val (pushed, unsupported) = translated.partition(t => t._2.exists(f => f.forall(partitioner.supportsFilter)))
+    println(s"pushed filters: ${pushed.mapValues(_.get).mkString(", ")}")
+    println(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
+    println(s"applied filters: ${translated.values.flatten.flatten.mkString(", ")}")
+    this.pushed ++= translated.filter(_._2.isDefined).keys
+    this.filters ++= translated.values.flatten.flatten
+    unsupported.keys.toArray
+  }
+
+  override def pushedFilters(): Array[sql.sources.Filter] = pushed.clone().toArray
+
+  override def build(): Scan = TripleScan(partitioner.withFilters(filters.toSeq), model)
+
 }

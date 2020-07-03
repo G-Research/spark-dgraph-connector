@@ -24,14 +24,15 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Encodes nodes as wide InternalRows from Dgraph json results.
  */
-case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeInternalRowEncoder {
+case class WideNodeEncoder(predicates: Map[String, Predicate])
+  extends JsonNodeInternalRowEncoder with NoColumnInfo {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -88,6 +89,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
         val obj = getValue(o, t)
         val objectValue = t match {
           case "string" => UTF8String.fromString(obj.asInstanceOf[String])
+          case "uid" => obj.asInstanceOf[Uid].uid
           case "int" => obj
           case "float" => obj
           case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])

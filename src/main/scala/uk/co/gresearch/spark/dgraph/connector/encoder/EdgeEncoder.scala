@@ -28,7 +28,8 @@ import uk.co.gresearch.spark.dgraph.connector.{Edge, Uid}
  * Encodes only triples that represent edges, i.e. object is a uid.
  * Non-edges will be silently ignored.
  */
-case class EdgeEncoder(predicates: Map[String, connector.Predicate]) extends TripleEncoder {
+case class EdgeEncoder(predicates: Map[String, connector.Predicate])
+  extends TripleEncoder with NoColumnInfo {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

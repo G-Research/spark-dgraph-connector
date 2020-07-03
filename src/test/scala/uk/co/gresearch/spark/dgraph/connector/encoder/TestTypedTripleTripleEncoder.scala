@@ -70,7 +70,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
     val encoder = TypedTripleEncoder(Map.empty)
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType),
+      StructField("predicate", StringType, nullable = false),
       StructField("objectUid", LongType),
       StructField("objectString", StringType),
       StructField("objectLong", LongType),
@@ -79,7 +79,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
       StructField("objectBoolean", BooleanType),
       StructField("objectGeo", StringType),
       StructField("objectPassword", StringType),
-      StructField("objectType", StringType)
+      StructField("objectType", StringType, nullable = false)
     ))
     assert(encoder.readSchema() === expected)
   }
@@ -88,7 +88,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
     val encoder = TypedTripleEncoder(Map.empty)
     val expected = StructType(Seq(
       StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType),
+      StructField("predicate", StringType, nullable = false),
       StructField("objectUid", LongType),
       StructField("objectString", StringType),
       StructField("objectLong", LongType),
@@ -97,7 +97,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
       StructField("objectBoolean", BooleanType),
       StructField("objectGeo", StringType),
       StructField("objectPassword", StringType),
-      StructField("objectType", StringType)
+      StructField("objectType", StringType, nullable = false)
     ))
     assert(encoder.schema() === expected)
   }

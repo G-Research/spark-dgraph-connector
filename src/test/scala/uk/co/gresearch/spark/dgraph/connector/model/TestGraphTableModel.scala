@@ -186,17 +186,7 @@ class TestGraphTableModel extends FunSpec {
       }
 
       val rowEncoder = StringTripleEncoder(predicates)
-
-      val model = new GraphTableModel {
-        override val execution: ExecutorProvider = executionProvider
-        override val encoder: JsonNodeInternalRowEncoder = rowEncoder
-        override val chunkSize: Int = size
-
-        override def toGraphQl(query: PartitionQuery, chunk: Option[connector.Chunk]): connector.GraphQl =
-          query.forPropertiesAndEdges(chunk)
-
-      }
-
+      val model = TestModel(executionProvider, rowEncoder, size)
       val partition = Partition(targets, Some(predicates.values.toSet), uids)
 
       val rows = model.modelPartition(partition).toSeq
@@ -217,4 +207,9 @@ class TestGraphTableModel extends FunSpec {
 
   }
 
+}
+
+case class TestModel(execution: ExecutorProvider, encoder: JsonNodeInternalRowEncoder, chunkSize: Int) extends GraphTableModel {
+  override def toGraphQl(query: PartitionQuery, chunk: Option[connector.Chunk]): GraphQl =
+    query.forPropertiesAndEdges(chunk)
 }
