@@ -38,7 +38,7 @@ trait ColumnInfoProvider extends ColumnInfo {
    * @param columnName column name
    * @return true if column is the object value
    */
-  override def isObjectValueColumn(columnName: String): Boolean = objectTypes.exists(_.contains(columnName))
+  override def isObjectValueColumn(columnName: String): Boolean = objectValueColumnNames.exists(_.contains(columnName))
 
   /**
    * Provides the type of the given object value column.

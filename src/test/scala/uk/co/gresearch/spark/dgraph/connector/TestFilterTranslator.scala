@@ -23,7 +23,7 @@ class TestFilterTranslator extends FunSpec {
   val objectTypeColumn = "objectType"
 
   // string triples
-  val allObjectStringColumn = "all object' string value"
+  val allObjectStringColumn = "all object values string"
 
   // wide nodes
   val predicateValueColumn = "a predicate value"
@@ -76,7 +76,7 @@ class TestFilterTranslator extends FunSpec {
       doTest(EqualTo(objectGeoColumn, "geo"), Some(Seq(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
       doTest(EqualTo(objectPasswordColumn, "pass"), Some(Seq(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
 
-      doTest(EqualTo(allObjectStringColumn, "val"), None)
+      doTest(EqualTo(allObjectStringColumn, "val"), Some(Seq(ObjectValueIsIn("val"))))
     }
 
     it("should translate In") {
@@ -95,7 +95,7 @@ class TestFilterTranslator extends FunSpec {
       doTest(In(objectGeoColumn, Array("geo")), Some(Seq(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
       doTest(In(objectPasswordColumn, Array("pass")), Some(Seq(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
 
-      doTest(In(allObjectStringColumn, Array("val")), None)
+      doTest(In(allObjectStringColumn, Array("val")), Some(Seq(ObjectValueIsIn("val"))))
     }
 
   }
