@@ -1,9 +1,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
-import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange}
 
 class TestUidCardinalityEstimator extends FunSpec {
 
@@ -12,14 +10,14 @@ class TestUidCardinalityEstimator extends FunSpec {
 
     it("should estimate partition's uid range") {
       val range = UidRange(Uid(1), Uid(1000))
-      val partition = Partition(Seq.empty, None, Some(range))
+      val partition = Partition(Seq.empty, None, Some(range), None)
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined)
       assert(actual.get === range.length)
     }
 
     it("should estimate partition without uid range") {
-      val partition = Partition(Seq.empty, None, None)
+      val partition = Partition(Seq.empty, None, None, None)
       val actual = estimator.uidCardinality(partition)
       assert(actual === expectedEstimationWithoutRange)
     }

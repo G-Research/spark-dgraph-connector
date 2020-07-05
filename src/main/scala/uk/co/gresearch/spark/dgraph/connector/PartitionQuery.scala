@@ -19,16 +19,42 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import uk.co.gresearch.spark.dgraph.connector
 
-case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]) {
+case class PartitionQuery(resultName: String,
+                          predicates: Option[Set[Predicate]],
+                          values: Option[Map[String, Set[Any]]]) {
 
   def getChunkString(chunk: Option[Chunk]): String =
     chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
+
+  def getValueFilter(predicateName: String): String = {
+    predicates
+      .flatMap(_.find(_.predicateName.equals(predicateName)))
+      .flatMap(predicateType =>
+        values
+          .flatMap(_.get(predicateName))
+          .map { valueSet =>
+            val filter =
+              valueSet.map { value =>
+                predicateType match {
+                  case Predicate(_, "uid") => s"""uid_in(<$predicateName>, ${value.asInstanceOf[Uid].toHexString})"""
+                  case ___________________ => s"""eq(<$predicateName>, "${value.toString}")"""
+                }
+              }.mkString(" OR ")
+
+            Some(valueSet)
+              .filter(_.nonEmpty)
+              .map(_ => s" @filter($filter)")
+              .getOrElse("")
+          }
+      )
+      .getOrElse("")
+  }
 
   def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
     predicates
       .getOrElse(Set.empty)
       .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})""" }
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName)}""" }
       .toMap
 
   val predicatePaths: Seq[String] =
@@ -88,5 +114,5 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
 
 object PartitionQuery {
   def of(partition: Partition, resultName: String = "result"): PartitionQuery =
-    PartitionQuery(resultName, partition.predicates)
+    PartitionQuery(resultName, partition.predicates, partition.values)
 }

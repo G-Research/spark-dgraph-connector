@@ -217,6 +217,15 @@ package object connector {
 
   }
 
+  implicit class AnyValue(value: Any) {
+    def toLong: Long = value match {
+      case v: Int => v.toLong
+      case v: Long => v
+      case v: String => v.toLong
+      case _ => value.asInstanceOf[Long]
+    }
+  }
+
   implicit class RotatingSeq[T](seq: Seq[T]) {
 
     @scala.annotation.tailrec

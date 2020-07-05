@@ -2,7 +2,6 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
 import org.apache.spark.sql.sources.{EqualTo, In}
-import uk.co.gresearch.spark.dgraph.connector.FilterTranslator._
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
 
 case class FilterTranslator(columnInfo: ColumnInfo) {
@@ -53,15 +52,4 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
     case _ => None
   }
 
-}
-
-object FilterTranslator {
-  implicit class AnyValue(value: Any) {
-    def toLong: Long = value match {
-      case v: Int => v.toLong
-      case v: Long => v
-      case v: String => v.toLong
-      case _ => value.asInstanceOf[Long]
-    }
-  }
 }

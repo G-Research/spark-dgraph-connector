@@ -187,7 +187,7 @@ class TestGraphTableModel extends FunSpec {
 
       val rowEncoder = StringTripleEncoder(predicates)
       val model = TestModel(executionProvider, rowEncoder, size)
-      val partition = Partition(targets, Some(predicates.values.toSet), uids)
+      val partition = Partition(targets, Some(predicates.values.toSet), uids, None)
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)

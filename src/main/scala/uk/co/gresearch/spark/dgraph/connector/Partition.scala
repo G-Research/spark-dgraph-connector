@@ -21,12 +21,17 @@ import org.apache.spark.sql.connector.read.InputPartition
 
 /**
  * Partition of Dgraph data. Reads all triples with the given predicates in the given uid range.
+ * Providing object values will return only those triples that match the predicate name and value.
  *
  * @param targets Dgraph alpha nodes
  * @param predicates optional predicates to read
  * @param uids optional uid ranges
+ * @param values optional object values
  */
-case class Partition(targets: Seq[Target], predicates: Option[Set[Predicate]], uids: Option[UidRange])
+case class Partition(targets: Seq[Target],
+                     predicates: Option[Set[Predicate]],
+                     uids: Option[UidRange],
+                     values: Option[Map[String, Set[Any]]])
   extends InputPartition {
 
   // TODO: use host names of Dgraph alphas to co-locate partitions

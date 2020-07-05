@@ -48,8 +48,8 @@ class TestGroupPartitioner extends FunSpec {
 
       assert(partitions.length === 2)
       assert(partitions.toSet === Set(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None),
-        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None)
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1"), Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, None),
+        Partition(Seq(Target("host4:9080")), Some(Set(Predicate("pred4", "type4"))), None, None)
       ))
     }
 

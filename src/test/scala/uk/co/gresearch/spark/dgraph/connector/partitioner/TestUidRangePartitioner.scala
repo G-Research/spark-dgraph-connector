@@ -20,9 +20,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target, Uid, UidRange}
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -69,7 +67,7 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range))
+              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None)
             }
           )
 

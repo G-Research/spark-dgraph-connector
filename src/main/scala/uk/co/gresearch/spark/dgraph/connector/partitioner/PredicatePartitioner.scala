@@ -127,7 +127,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       val predicatesPartitions = partition(groupPredicates, partitions)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None)
+        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, None)
       }
     }.toSeq
 

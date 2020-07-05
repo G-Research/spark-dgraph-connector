@@ -25,7 +25,7 @@ import org.apache.spark.sql.types.StructType
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
-import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Target, Uid}
 
@@ -118,7 +118,8 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
     Map("dgraph.graphql.schema" -> uid.uid)
   }
 
-  case class TestEncoder() extends JsonNodeInternalRowEncoder {
+  case class TestEncoder() extends JsonNodeInternalRowEncoder with NoColumnInfo {
+
     /**
      * Encodes the given Dgraph json result into InternalRows.
      *
@@ -140,6 +141,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
      * From: org.apache.spark.sql.connector.read.Scan.readSchema
      */
     override def readSchema(): StructType = ???
+
   }
 
 }

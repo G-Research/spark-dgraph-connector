@@ -251,7 +251,7 @@ class TestNodeSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, None, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None, None))))
     }
 
     it("should load as a predicate partitions") {
@@ -269,11 +269,11 @@ class TestNodeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("dgraph.graphql.xid", "string"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("running_time", "int"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("name", "string"))), None))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"))), None, None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None, None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("dgraph.graphql.xid", "string"))), None, None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("running_time", "int"))), None, None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("name", "string"))), None, None))
       )
 
       assert(partitions.toSet === expected)
