@@ -37,19 +37,42 @@ case class PredicatePartitioner(schema: Schema,
   def getPartitionsForPredicates(predicates: Set[_]): Int =
     if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
 
-  override def supportsFilter(filter: connector.Filter): Boolean = filter match {
+  override def supportsFilters(filters: Seq[connector.Filter]): Boolean = filters.map {
     case _: PredicateNameIsIn => true
     case _: ObjectTypeIsIn => true
+    // only supported together with PredicateNameIsIn or ObjectTypeIsIn
+    case _: ObjectValueIsIn => filters.exists {
+      case _: PredicateNameIsIn => true
+      case _: ObjectTypeIsIn => true
+      case _ => false
+    }
     case _ => false
-  }
+  }.forall(identity)
 
   override def withFilters(filters: Seq[connector.Filter]): Partitioner = copy(filters = filters)
 
   override def getPartitions: Seq[Partition] = {
-    val cState = filter(clusterState, filters)
+    val processedFilters = replaceObjectTypeIsInFilter(filters)
+    // TODO: interset filters again
+    val cState = filter(clusterState, processedFilters)
+    val values = getValues(processedFilters)
     val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
-    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup)
+    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, values)
   }
+
+  /**
+   * Replaces ObjectTypeIsIn filter with PredicateNameIsIn filter having all predicate names
+   * of the respective type. Only with PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   * @param filters filters
+   * @return filters with ObjectTypeIsIn replaced
+   */
+  def replaceObjectTypeIsInFilter(filters: Seq[Filter]): Seq[Filter] =
+    filters.map {
+      case ObjectTypeIsIn(types) =>
+        val predicateNames = schema.predicates.filter(p => types.contains(p.typeName)).map(_.predicateName)
+        PredicateNameIsIn(predicateNames)
+      case f: Filter => f
+    }
 
   def filter(clusterState: ClusterState, filters: Seq[connector.Filter]): ClusterState =
     filters.foldLeft(clusterState)(filter)
@@ -60,12 +83,23 @@ case class PredicatePartitioner(schema: Schema,
         groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
       )
       case f: ObjectTypeIsIn =>
-        val predicatesWithType = schema.predicates.filter(p => f.types.contains(p.typeName)).map(_.predicateName)
-        clusterState.copy(
-          groupPredicates = clusterState.groupPredicates.mapValues(_.filter(predicatesWithType))
-        )
+        throw new IllegalArgumentException("there should be no ObjectTypeIsIn in filters, use replaceObjectTypeIsInFilter")
       case _ => clusterState
     }
+
+  def getValues(filters: Seq[Filter]): Map[String, Set[Any]] = {
+    val predicates = filters.flatMap {
+      case PredicateNameIsIn(predicateNames) => Some(predicateNames)
+      case _ => None
+    }.headOption.getOrElse(Set.empty)
+
+    val values = filters.flatMap {
+      case ObjectValueIsIn(values) => Some(values)
+      case _ => None
+    }.headOption.getOrElse(Set.empty)
+
+    predicates.map(predicate => predicate -> values).toMap.filter(_._2.nonEmpty)
+  }
 
 }
 
@@ -119,15 +153,19 @@ object PredicatePartitioner extends ClusterStateHelper {
       .map(_._2.map(_._1).toSet)
   }
 
-  def getPartitions(schema: Schema, clusterState: ClusterState, partitionsInGroup: (String) => Int): Seq[Partition] =
+  def getPartitions(schema: Schema,
+                    clusterState: ClusterState,
+                    partitionsInGroup: (String) => Int,
+                    values: Map[String, Set[Any]]): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
       val predicatesPartitions = partition(groupPredicates, partitions)
+      val valuesOpt = if (values.isEmpty) None else Some(values)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, None)
+        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, valuesOpt)
       }
     }.toSeq
 

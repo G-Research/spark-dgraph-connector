@@ -32,7 +32,7 @@ trait Partitioner {
    * @param filter filter
    * @return true if supported, false otherwise
    */
-  def supportsFilter(filter: connector.Filter): Boolean = false
+  def supportsFilters(filters: Seq[connector.Filter]): Boolean = false
 
   /**
    * Sets the filters to be used by the partitioner. Returns a copy of this partitioner with the filters set.

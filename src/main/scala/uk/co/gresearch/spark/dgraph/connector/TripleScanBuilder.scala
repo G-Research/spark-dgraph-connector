@@ -35,7 +35,7 @@ case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) e
   override def pushFilters(filters: Array[sql.sources.Filter]): Array[sql.sources.Filter] = {
     println(s"pushing filters: ${filters.mkString(", ")}")
     val translated = filters.map(f => f -> translator.translate(f)).toMap
-    val (pushed, unsupported) = translated.partition(t => t._2.exists(f => f.forall(partitioner.supportsFilter)))
+    val (pushed, unsupported) = translated.partition(t => t._2.exists(partitioner.supportsFilters))
     println(s"pushed filters: ${pushed.mapValues(_.get).mkString(", ")}")
     println(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
     println(s"applied filters: ${translated.values.flatten.flatten.mkString(", ")}")

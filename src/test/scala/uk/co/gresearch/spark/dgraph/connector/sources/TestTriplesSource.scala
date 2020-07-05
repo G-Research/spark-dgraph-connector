@@ -374,33 +374,26 @@ class TestTriplesSource extends FunSpec
         $"objectString" === "Person",
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
-          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
         )
       )
       doTestFilterPushDown(
         $"objectString".isin("Person"),
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
-          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
         )
       )
       doTestFilterPushDown(
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
-        Seq(
-          In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
-        )
+        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string"))
       )
       doTestFilterPushDown(
         $"objectString" === "Person" && $"objectUid" === 1,
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
-          IsNotNull(AttributeReference("objectUid", StringType, nullable = true)()),
-          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person")),
-          EqualTo(AttributeReference("objectUid", StringType, nullable = true)(), Literal(1L))
+          IsNotNull(AttributeReference("objectUid", StringType, nullable = true)())
         )
       )
     }
