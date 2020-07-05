@@ -359,21 +359,21 @@ class TestTriplesSource extends FunSpec
         .dgraphTriples(cluster.grpc)
 
     it("should push predicate filters") {
-      doTestFilterPushDown($"predicate" === "name", Seq(PredicateNameIsIn(Set("name"))))
-      doTestFilterPushDown($"predicate".isin("name"), Seq(PredicateNameIsIn(Set("name"))))
-      doTestFilterPushDown($"predicate".isin("name", "starring"), Seq(PredicateNameIsIn(Set("name", "starring"))))
+      doTestFilterPushDown($"predicate" === "name", Seq(PredicateNameIsIn("name")))
+      doTestFilterPushDown($"predicate".isin("name"), Seq(PredicateNameIsIn("name")))
+      doTestFilterPushDown($"predicate".isin("name", "starring"), Seq(PredicateNameIsIn("name", "starring")))
     }
 
     it("should push object type filters") {
-      doTestFilterPushDown($"objectType" === "string", Seq(ObjectTypeIsIn(Set("string"))))
-      doTestFilterPushDown($"objectType".isin("string"), Seq(ObjectTypeIsIn(Set("string"))))
-      doTestFilterPushDown($"objectType".isin("string", "uid"), Seq(ObjectTypeIsIn(Set("string", "uid"))))
+      doTestFilterPushDown($"objectType" === "string", Seq(ObjectTypeIsIn("string")))
+      doTestFilterPushDown($"objectType".isin("string"), Seq(ObjectTypeIsIn("string")))
+      doTestFilterPushDown($"objectType".isin("string", "uid"), Seq(ObjectTypeIsIn("string", "uid")))
     }
 
     it("should push object value filters") {
       doTestFilterPushDown(
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn(Set("Person")), ObjectTypeIsIn(Set("string"))),
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
@@ -381,7 +381,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDown(
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn(Set("Person")), ObjectTypeIsIn(Set("string"))),
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
@@ -389,14 +389,14 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDown(
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn(Set("Person", "Film")), ObjectTypeIsIn(Set("string"))),
+        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         )
       )
       doTestFilterPushDown(
         $"objectString" === "Person" && $"objectUid" === 1,
-        Seq(ObjectValueIsIn(Set("Person")), ObjectTypeIsIn(Set("string")), ObjectValueIsIn(Set("1")), ObjectTypeIsIn(Set("uid"))),
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
           IsNotNull(AttributeReference("objectUid", StringType, nullable = true)()),
