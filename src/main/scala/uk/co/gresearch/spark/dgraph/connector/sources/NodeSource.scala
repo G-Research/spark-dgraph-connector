@@ -50,9 +50,9 @@ class NodeSource() extends TableProviderBase
       }
 
       new CaseInsensitiveStringMap(
-        (options.asScala.filterKeys(!_.equals(PredicatePartitionerPredicatesOption)) ++
+        (options.asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
           Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
-          ).toMap.asJava
+          ).asJava
       )
     } else {
       options

@@ -165,28 +165,28 @@ class TestNodeSource extends FunSpec
       )
     }
 
-    it("should load wide nodes with a single predicate partition") {
+    it("should load wide nodes with predicate partitioner") {
       doTestLoadWideNodes(() =>
         spark
           .read
           .options(Map(
             NodesModeOption -> NodesModeWideOption,
             PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> PredicatePartitionerPredicatesDefault.toString
+            PredicatePartitionerPredicatesOption -> "1"
           ))
           .dgraphNodes(cluster.grpc)
       )
     }
 
-    it("should load wide nodes with a single predicate partition and uid ranges") {
+    it("should load wide nodes with predicate partitioner and uid ranges") {
       doTestLoadWideNodes(() =>
         spark
           .read
           .options(Map(
             NodesModeOption -> NodesModeWideOption,
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
-            PredicatePartitionerPredicatesOption -> PredicatePartitionerPredicatesDefault.toString,
-            UidRangePartitionerUidsPerPartOption -> "3"
+            PredicatePartitionerPredicatesOption -> "1",
+            UidRangePartitionerUidsPerPartOption -> "1"
           ))
           .dgraphNodes(cluster.grpc)
       )
