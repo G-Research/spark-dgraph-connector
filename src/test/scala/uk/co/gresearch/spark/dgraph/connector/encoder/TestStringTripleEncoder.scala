@@ -25,7 +25,7 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Schema, Uid}
 
-class TestStringTripleTripleEncoder extends FunSpec {
+class TestStringTripleEncoder extends FunSpec {
 
   Seq(
     (Uid(1), "1", "uid", "edges"),
