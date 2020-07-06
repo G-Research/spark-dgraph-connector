@@ -22,16 +22,11 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 class DefaultPartitionerOption extends ConfigPartitionerOption {
 
-  // for wide nodes we use uid range partitioner, for all other sources we use predicate + uid range
   val defaultPartitionerName = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
-  val wideNodeDefaultPartitionerName = s"$UidRangePartitionerOption"
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption))
-      Some(getPartitioner(wideNodeDefaultPartitionerName, schema, clusterState, options))
-    else
-      Some(getPartitioner(defaultPartitionerName, schema, clusterState, options))
+    Some(getPartitioner(defaultPartitionerName, schema, clusterState, options))
 
 }

@@ -8,8 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Improve performance of `PredicatePartitioner` for multiple predicates per partition. Restoring
   default number of predicates per partition of `1000` from before 0.3.0 ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)).
-- The `PredicatePartitioner` combined with `UidRangePartitioner` is the default partitioner now,
-  except for loading wide nodes, which still uses `PredicatePartitioner` as the default.
+- The `PredicatePartitioner` combined with `UidRangePartitioner` is the default partitioner now.
 - Add stream-like reading of partitions from Dgraph. Partitions are slip into smaller chunks.
   Works with predicate partitioning only, so it cannot be combined with uid partitioning.
 
