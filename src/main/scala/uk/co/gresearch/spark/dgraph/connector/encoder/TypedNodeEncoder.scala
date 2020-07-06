@@ -30,14 +30,14 @@ import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, TypedNo
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
 case class TypedNodeEncoder(predicates: Map[String, Predicate])
-  extends TripleEncoder with NoColumnInfo {
+  extends TripleEncoder with ColumnInfoProvider {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = TypedNodeEncoder.schema()
+  override def schema(): StructType = TypedNodeEncoder.schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -45,6 +45,22 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
    * From: org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
+
+  override val subjectColumnName: Option[String] = Some(schema().fields.head.name)
+  override val predicateColumnName: Option[String] = Some(schema().fields(1).name)
+  override val objectTypeColumnName: Option[String] = Some(schema().fields.last.name)
+  override val objectValueColumnNames: Option[Set[String]] =
+    Some(schema().fields.drop(2).dropRight(1).map(_.name).toSet)
+  override val objectTypes: Option[Map[String, String]] =
+    Some(
+      schema()
+        .fields.map(_.name)
+        .filter(f => f.startsWith("object") && !f.equals("objectType"))
+        .map(f => f -> f.substring(6).toLowerCase())
+        .toMap
+    )
+
+  override def isPredicateValueColumn(columnName: String): Boolean = false
 
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
@@ -96,5 +112,9 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
 }
 
 object TypedNodeEncoder {
-  def schema(): StructType = Encoders.product[TypedNode].schema
+  private val fields = Encoders.product[TypedNode].schema.fields
+  private val nullableIdx = (2 to (fields.length-2)).toSet
+  val schema: StructType = StructType(fields.zipWithIndex.map { case (field, idx) =>
+    if (nullableIdx.contains(idx)) field.copy(nullable = true) else field.copy(nullable = false)
+  })
 }

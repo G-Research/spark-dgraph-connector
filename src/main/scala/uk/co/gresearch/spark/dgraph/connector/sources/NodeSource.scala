@@ -65,10 +65,10 @@ class NodeSource() extends TableProviderBase
     val targets = getTargets(adjustedOptions)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     getNodeMode(adjustedOptions) match {
-      case Some(NodesModeTypedOption) => TypedNodeEncoder.schema()
+      case Some(NodesModeTypedOption) => TypedNodeEncoder.schema
       case Some(NodesModeWideOption) => WideNodeEncoder.schema(schema.predicateMap)
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
-      case None => TypedNodeEncoder.schema()
+      case None => TypedNodeEncoder.schema
     }
   }
 
