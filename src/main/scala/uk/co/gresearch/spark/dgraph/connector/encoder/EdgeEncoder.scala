@@ -29,14 +29,14 @@ import uk.co.gresearch.spark.dgraph.connector.{Edge, Uid}
  * Non-edges will be silently ignored.
  */
 case class EdgeEncoder(predicates: Map[String, connector.Predicate])
-  extends TripleEncoder with NoColumnInfo {
+  extends TripleEncoder with ColumnInfoProvider {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema
    */
-  override def schema(): StructType = EdgeEncoder.schema()
+  override def schema(): StructType = EdgeEncoder.schema
 
   /**
    * Returns the actual schema of this data source scan, which may be different from the physical
@@ -44,6 +44,14 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate])
    * From: org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
+
+  override val subjectColumnName: Option[String] = Some(schema().fields.head.name)
+  override val predicateColumnName: Option[String] = Some(schema().fields(1).name)
+  override val objectTypeColumnName: Option[String] = None
+  override val objectValueColumnNames: Option[Set[String]] = Some(Set(schema().fields.last.name))
+  override val objectTypes: Option[Map[String, String]] = Some(Map(schema().fields.last.name -> "uid"))
+
+  override def isPredicateValueColumn(columnName: String): Boolean = false
 
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
@@ -61,5 +69,6 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate])
 }
 
 object EdgeEncoder {
-  def schema(): StructType = Encoders.product[Edge].schema
+  private val fields = Encoders.product[Edge].schema.fields
+  val schema: StructType = StructType(fields.map(_.copy(nullable = false)))
 }

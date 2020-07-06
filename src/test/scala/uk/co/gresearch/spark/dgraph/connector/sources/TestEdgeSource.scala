@@ -17,12 +17,15 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.catalyst.expressions.{And, Expression}
+import org.apache.spark.sql.catalyst.plans.logical
+import org.apache.spark.sql.execution.datasources.v2.{DataSourceRDDPartition, DataSourceV2ScanRelation}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 class TestEdgeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster {
@@ -196,6 +199,54 @@ class TestEdgeSource extends FunSpec
       val uids = Set(sw1, sw2, sw3)
       val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
       assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
+    }
+
+    val edges =
+      spark
+        .read
+        .options(Map(
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "2"
+        ))
+        .dgraphEdges(cluster.grpc)
+
+    it("should push predicate filters") {
+      doTestFilterPushDown($"predicate" === "name", Seq(PredicateNameIsIn("name")))
+      doTestFilterPushDown($"predicate".isin("name"), Seq(PredicateNameIsIn("name")))
+      doTestFilterPushDown($"predicate".isin("name", "starring"), Seq(PredicateNameIsIn("name", "starring")))
+    }
+
+    it("should push object value filters") {
+      doTestFilterPushDown($"objectUid" === 1, Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid")))
+      doTestFilterPushDown($"objectUid".isin(1), Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid")))
+      doTestFilterPushDown($"objectUid".isin(1,2L), Seq(ObjectValueIsIn("1", "2"), ObjectTypeIsIn("uid")))
+    }
+
+    def doTestFilterPushDown(condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
+      val df = edges.where(condition)
+      val plan = df.queryExecution.optimizedPlan
+      val relationNode = plan match {
+        case filter: logical.Filter =>
+          val unpushedFilters = getFilterNodes(filter.condition)
+          assert(unpushedFilters.map(_.sql) === expectedUnpushed.map(_.sql))
+          filter.child
+        case _ => plan
+      }
+      assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
+
+      val relation = relationNode.asInstanceOf[DataSourceV2ScanRelation]
+      assert(relation.scan.isInstanceOf[TripleScan])
+
+      val scan = relation.scan.asInstanceOf[TripleScan]
+      assert(scan.partitioner.isInstanceOf[PredicatePartitioner])
+
+      val partitioner = scan.partitioner.asInstanceOf[PredicatePartitioner]
+      assert(partitioner.filters.toSet === expected.toSet)
+    }
+
+    def getFilterNodes(node: Expression): Seq[Expression] = node match {
+      case And(left, right) => getFilterNodes(left) ++ getFilterNodes(right)
+      case _ => Seq(node)
     }
 
   }
