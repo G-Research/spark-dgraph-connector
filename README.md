@@ -261,8 +261,7 @@ Note: The graph schema could become very large and therefore the `DataFrame` cou
 |9      |null                 |Person     |Richard Marquand                              |null               |null   |null        |
 |10     |null                 |Film       |Star Wars: Episode V - The Empire Strikes Back|1980-05-21 00:00:00|5.34E8 |124         |
 
-Note: Wide nodes do not work with predicate partitioner.
-Default partitioner for wide nodes is `UidRangePartitioner`.
+Note: Wide nodes source enforce the predicate partitioner to produce a single partition.
 
 #### Edges
 

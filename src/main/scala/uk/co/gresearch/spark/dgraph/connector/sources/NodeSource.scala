@@ -26,14 +26,33 @@ import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
+import scala.collection.JavaConverters._
+
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider {
 
-  def assertOptions(options: DataSourceOptions): Unit = {
+  /**
+   * Sets the number of predicates per partition to max int when predicate partitioner is used
+   * in conjunction with wide node mode. Otherwise wide nodes cannot be properly loaded.
+   *
+   * @param options original options
+   * @return modified options
+   */
+  def adjustOptions(options: DataSourceOptions): DataSourceOptions = {
     if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
-      getStringOption(PartitionerOption, options).contains(PredicatePartitionerOption)) {
-      throw new IllegalArgumentException("wide nodes cannot be read with predicate partitioner")
+      getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))) {
+      if (getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)) {
+        println("WARN: predicate partitioner enforced to a single partition to support wide node source")
+      }
+
+      new DataSourceOptions(
+        (options.asMap().asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
+          Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
+          ).asJava
+      )
+    } else {
+      options
     }
   }
 
@@ -43,13 +62,13 @@ class NodeSource() extends TableProviderBase
     getStringOption(NodesModeOption, options)
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
-    assertOptions(options)
+    val adjustedOptions = adjustOptions(options)
 
-    val targets = getTargets(options)
+    val targets = getTargets(adjustedOptions)
     val schema = getSchema(targets).filter(_.typeName != "uid")
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, options)
-    val nodeMode = getNodeMode(options)
+    val partitioner = getPartitioner(schema, clusterState, adjustedOptions)
+    val nodeMode = getNodeMode(adjustedOptions)
     val encoder = nodeMode match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
       case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicateMap)
@@ -57,7 +76,7 @@ class NodeSource() extends TableProviderBase
       case None => TypedNodeEncoder(schema.predicateMap)
     }
     val execution = DgraphExecutorProvider()
-    val chunkSize = getIntOption(ChunkSizeOption, options)
+    val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions)
     val model = NodeTableModel(execution, encoder, chunkSize)
     new TripleScan(partitioner, model)
   }

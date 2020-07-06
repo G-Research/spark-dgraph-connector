@@ -168,16 +168,31 @@ class TestNodeSource extends FunSpec
       )
     }
 
-    it("should not load wide nodes with predicate partitioner") {
-      assertThrows[IllegalArgumentException] {
+    it("should load wide nodes with predicate partitioner") {
+      doTestLoadWideNodes(() =>
         spark
           .read
           .options(Map(
             NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "1"
           ))
           .dgraphNodes(cluster.grpc)
-      }
+      )
+    }
+
+    it("should load wide nodes with predicate partitioner and uid ranges") {
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .options(Map(
+            NodesModeOption -> NodesModeWideOption,
+            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PredicatePartitionerPredicatesOption -> "1",
+            UidRangePartitionerUidsPerPartOption -> "1"
+          ))
+          .dgraphNodes(cluster.grpc)
+      )
     }
 
     it("should load typed nodes in chunks") {
