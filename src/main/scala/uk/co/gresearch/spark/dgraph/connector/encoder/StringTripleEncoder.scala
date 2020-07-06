@@ -27,7 +27,7 @@ import uk.co.gresearch.spark.dgraph.connector.{Predicate, StringTriple, Uid}
  * Encodes Triple by representing objects as strings.
  **/
 case class StringTripleEncoder(predicates: Map[String, Predicate])
-  extends TripleEncoder with NoColumnInfo {
+  extends TripleEncoder with ColumnInfoProvider {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -42,6 +42,15 @@ case class StringTripleEncoder(predicates: Map[String, Predicate])
    * From: org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
+
+  override val subjectColumnName: Option[String] = Some(schema().fields.head.name)
+  override val predicateColumnName: Option[String] = Some(schema().fields(1).name)
+  override val objectTypeColumnName: Option[String] = Some(schema().fields.last.name)
+  override val objectValueColumnNames: Option[Set[String]] =
+    Some(Set(schema().fields.drop(2).head.name))
+  override val objectTypes: Option[Map[String, String]] = None
+
+  override def isPredicateValueColumn(columnName: String): Boolean = false
 
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
@@ -62,5 +71,6 @@ case class StringTripleEncoder(predicates: Map[String, Predicate])
 }
 
 object StringTripleEncoder {
-  val schema: StructType = Encoders.product[StringTriple].schema
+  private val fields = Encoders.product[StringTriple].schema.fields
+  val schema: StructType = StructType(fields.map(_.copy(nullable = false)))
 }

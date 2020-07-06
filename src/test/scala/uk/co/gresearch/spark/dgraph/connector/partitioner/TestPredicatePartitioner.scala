@@ -163,15 +163,17 @@ class TestPredicatePartitioner extends FunSpec {
       val partitions1 = partitioner.withFilters(Seq(PredicateNameIsIn("pred3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, Some(Map("pred3" -> Set("value"))))))
 
-      val values: Map[String, Set[Any]] = Map(
+      val valuesGroup2: Map[String, Set[Any]] = Map(
         "pred2" -> Set("value1", "value2"),
-        "pred3" -> Set("value1", "value2"),
+        "pred3" -> Set("value1", "value2")
+      )
+      val valuesGroup3: Map[String, Set[Any]] = Map(
         "pred4" -> Set("value1", "value2")
       )
       val partitions2 = partitioner.withFilters(Seq(PredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(values)),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(values))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(valuesGroup2)),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(valuesGroup3))
       ))
     }
 
@@ -180,15 +182,17 @@ class TestPredicatePartitioner extends FunSpec {
       val partitions1 = partitioner.withFilters(Seq(ObjectTypeIsIn("type3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, Some(Map("pred3" -> Set("value"))))))
 
-      val values: Map[String, Set[Any]] = Map(
+      val valuesGroup2: Map[String, Set[Any]] = Map(
         "pred2" -> Set("value1", "value2"),
-        "pred3" -> Set("value1", "value2"),
+        "pred3" -> Set("value1", "value2")
+      )
+      val valuesGroup3: Map[String, Set[Any]] = Map(
         "pred4" -> Set("value1", "value2")
       )
       val partitions2 = partitioner.withFilters(Seq(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(values)),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(values))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(valuesGroup2)),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(valuesGroup3))
       ))
       partitions2.foreach(p => println(p.query.forPropertiesAndEdges(None).string))
     }

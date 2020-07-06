@@ -161,11 +161,12 @@ object PredicatePartitioner extends ClusterStateHelper {
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
+      val groupPredicateNames = groupPredicates.map(_.predicateName)
       val predicatesPartitions = partition(groupPredicates, partitions)
-      val valuesOpt = if (values.isEmpty) None else Some(values)
+      val groupValues = Some(values.filterKeys(groupPredicateNames.contains)).filter(_.nonEmpty)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, valuesOpt)
+        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, groupValues)
       }
     }.toSeq
 

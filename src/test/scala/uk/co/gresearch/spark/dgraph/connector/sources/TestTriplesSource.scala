@@ -350,9 +350,18 @@ class TestTriplesSource extends FunSpec
       assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
     }
 
-    val triples =
+    val typedTriples =
       spark
         .read
+        .option(TriplesModeOption, TriplesModeTypedOption)
+        .option(PartitionerOption, PredicatePartitionerOption)
+        .option(PredicatePartitionerPredicatesOption, "2")
+        .dgraphTriples(cluster.grpc)
+
+    val stringTriples =
+      spark
+        .read
+        .option(TriplesModeOption, TriplesModeStringOption)
         .option(PartitionerOption, PredicatePartitionerOption)
         .option(PredicatePartitionerPredicatesOption, "2")
         .dgraphTriples(cluster.grpc)
@@ -369,26 +378,29 @@ class TestTriplesSource extends FunSpec
       doTestFilterPushDown($"objectType".isin("string", "uid"), Seq(ObjectTypeIsIn("string", "uid")))
     }
 
-    it("should push object value filters") {
-      doTestFilterPushDown(
+    it("should push object value filters for typed triples") {
+      doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person",
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
         )
       )
-      doTestFilterPushDown(
+
+      doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person"),
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         Seq(
           IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
         )
       )
-      doTestFilterPushDown(
+
+      doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person", "Film"),
         Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string"))
       )
-      doTestFilterPushDown(
+
+      doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person" && $"objectUid" === 1,
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid")),
         Seq(
@@ -398,10 +410,46 @@ class TestTriplesSource extends FunSpec
       )
     }
 
-    def doTestFilterPushDown(condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
-      val df =triples.where(condition)
+    it("should push object value filters for string triples") {
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString" === "Person",
+        Seq(ObjectValueIsIn("Person")),
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        )
+      )
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString" === "Person" && $"objectType" === "string",
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        )
+      )
 
-      val plan = df.queryExecution.optimizedPlan
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString".isin("Person"),
+        Seq(ObjectValueIsIn("Person")),
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        )
+      )
+
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString".isin("Person", "Film"),
+        Seq(ObjectValueIsIn("Person", "Film")),
+        Seq(
+          In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
+        )
+      )
+    }
+
+    def doTestFilterPushDown(condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
+      doTestFilterPushDownDf(typedTriples, condition, expected, expectedUnpushed)
+      doTestFilterPushDownDf(stringTriples, condition, expected, expectedUnpushed)
+    }
+
+    def doTestFilterPushDownDf(df: DataFrame, condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
+      val plan = df.where(condition).queryExecution.optimizedPlan
       val relationNode = plan match {
         case filter: logical.Filter =>
           val unpushedFilters = getFilterNodes(filter.condition)

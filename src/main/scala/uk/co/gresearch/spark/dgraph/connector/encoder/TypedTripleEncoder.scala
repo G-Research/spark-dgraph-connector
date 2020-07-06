@@ -47,7 +47,7 @@ case class TypedTripleEncoder(predicates: Map[String, Predicate])
   override def readSchema(): StructType = schema()
 
   override val subjectColumnName: Option[String] = Some(schema().fields.head.name)
-  override val predicateColumnName: Option[String] = Some(schema().fields.drop(1).head.name)
+  override val predicateColumnName: Option[String] = Some(schema().fields(1).name)
   override val objectTypeColumnName: Option[String] = Some(schema().fields.last.name)
   override val objectValueColumnNames: Option[Set[String]] =
     Some(schema().fields.drop(2).dropRight(1).map(_.name).toSet)
