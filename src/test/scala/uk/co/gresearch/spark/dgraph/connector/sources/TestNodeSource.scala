@@ -302,7 +302,7 @@ class TestNodeSource extends FunSpec
       assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
     }
 
-    val typedNodes =
+    lazy val typedNodes =
       spark
         .read
         .options(Map(
@@ -312,7 +312,7 @@ class TestNodeSource extends FunSpec
         ))
         .dgraphNodes(cluster.grpc)
 
-    val wideNodes =
+    lazy val wideNodes =
       spark
         .read
         .options(Map(
@@ -341,7 +341,7 @@ class TestNodeSource extends FunSpec
       )
       doTestFilterPushDown(typedNodes,
         $"objectString".isNotNull && $"objectLong".isNotNull,
-        Seq(ObjectTypeIsIn("string"), ObjectTypeIsIn("long"))
+        Seq(AlwaysFalse)
       )
 
       doTestFilterPushDown(typedNodes,
@@ -361,7 +361,7 @@ class TestNodeSource extends FunSpec
 
       doTestFilterPushDown(typedNodes,
         $"objectString" === "Person" && $"objectLong" === 1,
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("long"))
+        Seq(AlwaysFalse)
       )
     }
 
@@ -372,7 +372,7 @@ class TestNodeSource extends FunSpec
       )
       doTestFilterPushDown(wideNodes,
         $"name".isNotNull && $"running_time".isNotNull,
-        Seq(PredicateNameIsIn("name"), PredicateNameIsIn("running_time"))
+        Seq(AlwaysFalse)
       )
 
       doTestFilterPushDown(wideNodes,
@@ -392,12 +392,7 @@ class TestNodeSource extends FunSpec
 
       doTestFilterPushDown(wideNodes,
         $"name" === "Luke Skywalker" && $"running_time" === 121,
-        Seq(
-          PredicateNameIsIn("name"),
-          PredicateNameIsIn("running_time"),
-          ObjectValueIsIn("Luke Skywalker"),
-          ObjectValueIsIn(121L)
-        )
+        Seq(AlwaysFalse)
       )
     }
 

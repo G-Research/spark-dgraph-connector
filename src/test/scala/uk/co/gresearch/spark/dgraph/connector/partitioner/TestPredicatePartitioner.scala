@@ -136,10 +136,10 @@ class TestPredicatePartitioner extends FunSpec {
 
     it("should apply PredicateNameIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
-      val partitions1 = partitioner.withFilters(Seq(PredicateNameIsIn("pred3"))).getPartitions
+      val partitions1 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred3"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, None)))
 
-      val partitions2 = partitioner.withFilters(Seq(PredicateNameIsIn("pred2", "pred3", "pred4"))).getPartitions
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred2", "pred3", "pred4"))).getPartitions
       assert(partitions2 === Seq(
         Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, None),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, None)
@@ -148,10 +148,10 @@ class TestPredicatePartitioner extends FunSpec {
 
     it("should apply ObjectTypeIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
-      val partitions1 = partitioner.withFilters(Seq(ObjectTypeIsIn("type3"))).getPartitions
+      val partitions1 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type3"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, None)))
 
-      val partitions2 = partitioner.withFilters(Seq(ObjectTypeIsIn("type2", "type3", "type4"))).getPartitions
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"))).getPartitions
       assert(partitions2 === Seq(
         Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, None),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, None)
@@ -160,7 +160,7 @@ class TestPredicatePartitioner extends FunSpec {
 
     it("should apply ObjectValueIsIn with PredicateNameIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
-      val partitions1 = partitioner.withFilters(Seq(PredicateNameIsIn("pred3"), ObjectValueIsIn("value"))).getPartitions
+      val partitions1 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, Some(Map("pred3" -> Set("value"))))))
 
       val valuesGroup2: Map[String, Set[Any]] = Map(
@@ -170,7 +170,7 @@ class TestPredicatePartitioner extends FunSpec {
       val valuesGroup3: Map[String, Set[Any]] = Map(
         "pred4" -> Set("value1", "value2")
       )
-      val partitions2 = partitioner.withFilters(Seq(PredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
         Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(valuesGroup2)),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(valuesGroup3))
@@ -179,7 +179,7 @@ class TestPredicatePartitioner extends FunSpec {
 
     it("should apply ObjectValueIsIn with ObjectTypeIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
-      val partitions1 = partitioner.withFilters(Seq(ObjectTypeIsIn("type3"), ObjectValueIsIn("value"))).getPartitions
+      val partitions1 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred3", "type3"))), None, Some(Map("pred3" -> Set("value"))))))
 
       val valuesGroup2: Map[String, Set[Any]] = Map(
@@ -189,7 +189,7 @@ class TestPredicatePartitioner extends FunSpec {
       val valuesGroup3: Map[String, Set[Any]] = Map(
         "pred4" -> Set("value1", "value2")
       )
-      val partitions2 = partitioner.withFilters(Seq(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
         Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2"), Predicate("pred3", "type3"))), None, Some(valuesGroup2)),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred4", "type4"))), None, Some(valuesGroup3))
@@ -199,7 +199,7 @@ class TestPredicatePartitioner extends FunSpec {
 
     it("should not apply ObjectValueIsIn filter only") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
-      val partitions = partitioner.withFilters(Seq(ObjectValueIsIn("value"))).getPartitions
+      val partitions = partitioner.withFilters(Filters.fromOptional(ObjectValueIsIn("value"))).getPartitions
 
       // same as in s"should partition with $predsPerPart predicates per partition" above
       assert(partitions === Seq(
@@ -210,6 +210,21 @@ class TestPredicatePartitioner extends FunSpec {
 
         Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6"))), None, None)
       ))
+    }
+
+    it("should simplify promised with optional filters") {
+      val partitions =
+        PredicatePartitioner(schema, clusterState, 5)
+          .withFilters(Filters(
+            Seq(PredicateNameIsIn("pred3"), ObjectValueIsIn("value")),
+            Seq(ObjectTypeIsIn("type2"))
+          ))
+          .getPartitions
+
+      // optional ObjectTypeIsIn("type2") is replaced with PredicateNameIsIn("pred2")
+      // which simplifies woth promised PredicateNameIsIn("pred3") to AlwaysFalse,
+      // which results in no partitions empty result)
+      assert(partitions === Seq())
     }
 
   }

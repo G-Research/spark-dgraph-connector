@@ -200,7 +200,7 @@ class TestEdgeSource extends FunSpec
       assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
     }
 
-    val edges =
+    lazy val edges =
       spark
         .read
         .options(Map(

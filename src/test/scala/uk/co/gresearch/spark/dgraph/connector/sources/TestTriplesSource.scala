@@ -349,7 +349,7 @@ class TestTriplesSource extends FunSpec
       assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
     }
 
-    val typedTriples =
+    lazy val typedTriples =
       spark
         .read
         .option(TriplesModeOption, TriplesModeTypedOption)
@@ -357,7 +357,7 @@ class TestTriplesSource extends FunSpec
         .option(PredicatePartitionerPredicatesOption, "2")
         .dgraphTriples(cluster.grpc)
 
-    val stringTriples =
+    lazy val stringTriples =
       spark
         .read
         .option(TriplesModeOption, TriplesModeStringOption)
@@ -384,7 +384,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull && $"objectUid".isNotNull,
-        Seq(ObjectTypeIsIn("string"), ObjectTypeIsIn("uid"))
+        Seq(AlwaysFalse)
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -404,7 +404,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person" && $"objectUid" === 1,
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid"))
+        Seq(AlwaysFalse)
       )
     }
 

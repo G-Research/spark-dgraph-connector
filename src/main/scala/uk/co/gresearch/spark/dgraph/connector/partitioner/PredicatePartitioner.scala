@@ -28,7 +28,7 @@ import scala.language.implicitConversions
 case class PredicatePartitioner(schema: Schema,
                                 clusterState: ClusterState,
                                 predicatesPerPartition: Int,
-                                filters: Seq[connector.Filter] = Seq.empty)
+                                filters: Filters = EmptyFilters)
   extends Partitioner {
 
   if (predicatesPerPartition <= 0)
@@ -38,6 +38,7 @@ case class PredicatePartitioner(schema: Schema,
     if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
 
   override def supportsFilters(filters: Seq[connector.Filter]): Boolean = filters.map {
+    case _: AlwaysFalse => true
     case _: PredicateNameIsIn => true
     case _: ObjectTypeIsIn => true
     // only supported together with PredicateNameIsIn or ObjectTypeIsIn
@@ -49,16 +50,28 @@ case class PredicatePartitioner(schema: Schema,
     case _ => false
   }.forall(identity)
 
-  override def withFilters(filters: Seq[connector.Filter]): Partitioner = copy(filters = filters)
+  override def withFilters(filters: Filters): Partitioner = copy(filters = filters)
 
   override def getPartitions: Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
-    // TODO: interset filters again
-    val cState = filter(clusterState, processedFilters)
-    val values = getValues(processedFilters)
+    val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
+    val cState = filter(clusterState, simplifiedFilters)
+    val values = getValues(simplifiedFilters)
     val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
     PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, values)
   }
+
+  /**
+   * Replaces ObjectTypeIsIn filter in required and optional filters
+   * using replaceObjectTypeIsInFilter(filters: Seq[Filter]).
+   * @param filters filters
+   * @return filters with ObjectTypeIsIn replaced
+   */
+  def replaceObjectTypeIsInFilter(filters: Filters): Filters =
+    Filters(
+      replaceObjectTypeIsInFilter(filters.promised),
+      replaceObjectTypeIsInFilter(filters.optional)
+    )
 
   /**
    * Replaces ObjectTypeIsIn filter with PredicateNameIsIn filter having all predicate names
@@ -79,11 +92,12 @@ case class PredicatePartitioner(schema: Schema,
 
   def filter(clusterState: ClusterState, filter: connector.Filter): ClusterState =
     filter match {
+      case _: AlwaysFalse => clusterState.copy(groupPredicates = Map.empty)
       case f: PredicateNameIsIn => clusterState.copy(
         groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
       )
-      case f: ObjectTypeIsIn =>
-        throw new IllegalArgumentException("there should be no ObjectTypeIsIn in filters, use replaceObjectTypeIsInFilter")
+      case _: ObjectTypeIsIn =>
+        throw new IllegalArgumentException("any ObjectTypeIsIn filter should have been replaced in replaceObjectTypeIsInFilter")
       case _ => clusterState
     }
 

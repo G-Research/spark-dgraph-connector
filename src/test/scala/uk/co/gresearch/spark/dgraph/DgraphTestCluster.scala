@@ -25,7 +25,7 @@ import org.apache.spark.sql.types.StructType
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
-import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo, StringTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Target, Uid}
 

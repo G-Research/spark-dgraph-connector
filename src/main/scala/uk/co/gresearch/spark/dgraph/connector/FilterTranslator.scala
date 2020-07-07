@@ -1,7 +1,8 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
-import org.apache.spark.sql.sources.{EqualTo, In, IsNotNull}
+import org.apache.spark.sql.sources._
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
 
 case class FilterTranslator(columnInfo: ColumnInfo) {
@@ -54,7 +55,67 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Seq(ObjectTypeIsIn(values.map(_.toString): _*)))
 
+    case sql.sources.AlwaysTrue => Some(Seq(AlwaysTrue))
+    case sql.sources.AlwaysFalse => Some(Seq(AlwaysFalse))
+
     case _ => None
   }
 
+}
+
+object FilterTranslator {
+  def simplify(filters: Seq[Filter]): Seq[Filter] = {
+    val simplified = filters.groupBy(_.getClass).flatMap { case (cls, filters) =>
+      cls match {
+        case cls if cls == classOf[SubjectIsIn] => Seq[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
+        case cls if cls == classOf[PredicateNameIsIn] => Seq[Filter](filters.map(_.asInstanceOf[PredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
+        case cls if cls == classOf[ObjectTypeIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
+        case cls if cls == classOf[ObjectValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
+        case _ => filters
+      }
+    }.flatMap {
+      case AlwaysTrue => None
+      case SubjectIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+      case PredicateNameIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+      case ObjectTypeIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+      case ObjectValueIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+      case f => Some(f)
+    }.toSeq
+
+    if (simplified.contains(AlwaysFalse))
+      Seq(AlwaysFalse)
+    else
+      simplified
+  }
+
+  /**
+   * Simplifies given promised and optional filters. This method
+   * guarantees that all returned filters are supported and cover all given prmised filters.
+   * @param filters filters
+   * @return simplified filters
+   */
+  // TODO: make sure simplified filters are supported, test!
+  // TODO: test that object type string and non-string predicate name simplifies to AlwaysFalse in partitioner, not FilterTranlator
+  def simplify(filters: Filters, supported: Seq[Filter] => Boolean): Filters = {
+    val allSimplified = simplify(filters)
+    val promisedSimplified = simplify(filters.promised)
+    val optionalSimplified = simplify(filters.optional)
+
+    if (supported(allSimplified)) {
+      Filters.from(allSimplified)
+    } else {
+      Filters.from(
+        if (supported(promisedSimplified)) promisedSimplified else filters.promised,
+        if (supported(optionalSimplified)) optionalSimplified else filters.optional
+      )
+    }
+  }
+
+  def intersectSubjectIsIn(left: SubjectIsIn, right: SubjectIsIn): SubjectIsIn = SubjectIsIn(left.uids.intersect(right.uids))
+
+  def intersectPredicateNameIsIn(left: PredicateNameIsIn, right: PredicateNameIsIn): PredicateNameIsIn = PredicateNameIsIn(left.names.intersect(right.names))
+
+  def intersectObjectTypeIsIn(left: ObjectTypeIsIn, right: ObjectTypeIsIn): ObjectTypeIsIn = ObjectTypeIsIn(left.types.intersect(right.types))
+
+  def intersectObjectValueIsIn(left: ObjectValueIsIn, right: ObjectValueIsIn): ObjectValueIsIn = ObjectValueIsIn(left.values.intersect(right.values))
 }

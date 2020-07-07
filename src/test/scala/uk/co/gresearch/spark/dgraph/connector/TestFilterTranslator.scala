@@ -115,6 +115,98 @@ class TestFilterTranslator extends FunSpec {
       doTest(In(allObjectStringColumn, Array("val")), Some(Seq(ObjectValueIsIn("val"))))
     }
 
+    it("should translate AlwaysTrue") {
+      doTest(sql.sources.AlwaysTrue, Some(Seq(AlwaysTrue)))
+    }
+
+    it("should translate AlwaysFalse") {
+      doTest(sql.sources.AlwaysFalse, Some(Seq(AlwaysFalse)))
+    }
+
+    it("should simplify AlwaysTrue filters by deletion") {
+      val simplified = FilterTranslator.simplify(Seq(AlwaysTrue, AlwaysTrue, SubjectIsIn(Uid(1))))
+      assert(simplified === Seq(SubjectIsIn(Uid(1))))
+    }
+
+    it("should simplify filters having AlwaysFalse by single AlwaysFalse") {
+      val simplified = FilterTranslator.simplify(Seq(AlwaysTrue, AlwaysFalse, SubjectIsIn(Uid(1))))
+      assert(simplified === Seq(AlwaysFalse))
+    }
+
+    it("should simplify SubjectIsIn filters by intersection") {
+      val simplified = FilterTranslator.simplify(Seq(SubjectIsIn(Uid(1), Uid(2)), SubjectIsIn(Uid(2), Uid(3))))
+      assert(simplified === Seq(SubjectIsIn(Uid(2))))
+    }
+
+    it("should simplify PredicateNameIsIn filters by intersection") {
+      val simplified = FilterTranslator.simplify(Seq(PredicateNameIsIn("a", "b"), PredicateNameIsIn("b", "c")))
+      assert(simplified === Seq(PredicateNameIsIn("b")))
+    }
+
+    it("should simplify ObjectTypeIsIn filters by intersection") {
+      val simplified = FilterTranslator.simplify(Seq(ObjectTypeIsIn("a", "b"), ObjectTypeIsIn("b", "c")))
+      assert(simplified === Seq(ObjectTypeIsIn("b")))
+    }
+
+    it("should simplify ObjectValueIsIn filters by intersection") {
+      val simplified = FilterTranslator.simplify(Seq(ObjectValueIsIn("a", "b"), ObjectValueIsIn("b", "c")))
+      assert(simplified === Seq(ObjectValueIsIn("b")))
+    }
+
+    describe("simplify Filters") {
+
+      it("should simplify promised with optional only when simplification is supported") {
+        def supported(filters: Seq[Filter]): Boolean = true
+
+        def notSupported(filters: Seq[Filter]): Boolean = {
+          !filters.contains(AlwaysFalse)
+        }
+
+        // PredicateNameIsIn is required, its simplification is not supported
+        val filters = Filters.from(Seq(PredicateNameIsIn("a")), Seq(PredicateNameIsIn("b")))
+        val simplified1 = FilterTranslator.simplify(filters, notSupported)
+        assert(simplified1 === filters)
+
+        // contradicting PredicateNameIsIn simplify to AlwaysFalse, when it is supported
+        val simplified2 = FilterTranslator.simplify(filters, supported)
+        assert(simplified2 === Filters.fromPromised(AlwaysFalse))
+      }
+
+      it("should simplify promised only when simplification is supported") {
+        def supported(filters: Seq[Filter]): Boolean = true
+
+        def notSupported(filters: Seq[Filter]): Boolean = {
+          !filters.contains(AlwaysFalse)
+        }
+
+        // PredicateNameIsIn is required, its simplification is not supported
+        val filters = Filters.fromPromised(PredicateNameIsIn("a"), PredicateNameIsIn("b"))
+        val simplified1 = FilterTranslator.simplify(filters, notSupported)
+        assert(simplified1 === filters)
+
+        // contradicting PredicateNameIsIn simplify to AlwaysFalse, when it is supported
+        val simplified2 = FilterTranslator.simplify(filters, supported)
+        assert(simplified2 === Filters.fromPromised(AlwaysFalse))
+      }
+
+      it("should simplify optional only when simplification is supported") {
+        def supported(filters: Seq[Filter]): Boolean = true
+
+        def notSupported(filters: Seq[Filter]): Boolean = {
+          !filters.contains(AlwaysFalse)
+        }
+
+        // PredicateNameIsIn is required, its simplification is not supported
+        val filters = Filters.fromOptional(PredicateNameIsIn("a"), PredicateNameIsIn("b"))
+        val simplified1 = FilterTranslator.simplify(filters, notSupported)
+        assert(simplified1 === filters)
+
+        // contradicting PredicateNameIsIn simplify to AlwaysFalse, when it is supported
+        val simplified2 = FilterTranslator.simplify(filters, supported)
+        assert(simplified2 === Filters.fromOptional(AlwaysFalse))
+      }
+
+    }
   }
 
 }
