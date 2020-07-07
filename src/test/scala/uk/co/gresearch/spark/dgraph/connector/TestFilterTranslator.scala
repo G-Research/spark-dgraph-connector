@@ -3,7 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector
 import java.sql.Timestamp
 
 import org.apache.spark.sql
-import org.apache.spark.sql.sources.{EqualTo, In}
+import org.apache.spark.sql.sources._
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfoProvider
 
@@ -58,6 +58,23 @@ class TestFilterTranslator extends FunSpec {
     def doTest(filter: sql.sources.Filter, expected: Option[Seq[Filter]]): Unit = {
       val actual = translator.translate(filter)
       assert(actual === expected)
+    }
+
+    it("should translate IsNotNull") {
+      doTest(IsNotNull(subjectColumn), None)
+      doTest(IsNotNull(predicateColumn), None)
+      doTest(IsNotNull(predicateValueColumn), Some(List(PredicateNameIsIn(predicateValueColumn))))
+
+      doTest(IsNotNull(objectUidColumn), Some(Seq(ObjectTypeIsIn("uid"))))
+      doTest(IsNotNull(objectStringColumn), Some(Seq(ObjectTypeIsIn("string"))))
+      doTest(IsNotNull(objectLongColumn), Some(Seq(ObjectTypeIsIn("long"))))
+      doTest(IsNotNull(objectDoubleColumn), Some(Seq(ObjectTypeIsIn("double"))))
+      doTest(IsNotNull(objectTimestampColumn), Some(Seq(ObjectTypeIsIn("timestamp"))))
+      doTest(IsNotNull(objectBooleanColumn), Some(Seq(ObjectTypeIsIn("boolean"))))
+      doTest(IsNotNull(objectGeoColumn), Some(Seq(ObjectTypeIsIn("geo"))))
+      doTest(IsNotNull(objectPasswordColumn), Some(Seq(ObjectTypeIsIn("password"))))
+
+      doTest(IsNotNull(allObjectStringColumn), None)
     }
 
     it("should translate EqualTo") {

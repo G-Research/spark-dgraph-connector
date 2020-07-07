@@ -19,19 +19,18 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, In, IsNotNull, Literal}
-import org.apache.spark.sql.catalyst.plans.logical
-import org.apache.spark.sql.execution.datasources.v2.{DataSourceRDDPartition, DataSourceV2ScanRelation}
-import org.apache.spark.sql.types.{IntegerType, StringType}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Expression, IsNotNull}
+import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 class TestNodeSource extends FunSpec
-  with SparkTestSession with DgraphTestCluster {
+  with SparkTestSession with DgraphTestCluster
+  with FilterPushDownTestHelper {
 
   import spark.implicits._
 
@@ -337,19 +336,22 @@ class TestNodeSource extends FunSpec
 
     it("should push object value filters") {
       doTestFilterPushDown(typedNodes,
+        $"objectString".isNotNull,
+        Seq(ObjectTypeIsIn("string"))
+      )
+      doTestFilterPushDown(typedNodes,
+        $"objectString".isNotNull && $"objectLong".isNotNull,
+        Seq(ObjectTypeIsIn("string"), ObjectTypeIsIn("long"))
+      )
+
+      doTestFilterPushDown(typedNodes,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"))
       )
 
       doTestFilterPushDown(typedNodes,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"))
       )
 
       doTestFilterPushDown(typedNodes,
@@ -359,37 +361,33 @@ class TestNodeSource extends FunSpec
 
       doTestFilterPushDown(typedNodes,
         $"objectString" === "Person" && $"objectLong" === 1,
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("long")),
-        Seq(
-          IsNotNull(AttributeReference("objectLong", StringType, nullable = true)()),
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("long"))
       )
     }
 
     it("should push predicate value filters") {
       doTestFilterPushDown(wideNodes,
+        $"name".isNotNull,
+        Seq(PredicateNameIsIn("name"))
+      )
+      doTestFilterPushDown(wideNodes,
+        $"name".isNotNull && $"running_time".isNotNull,
+        Seq(PredicateNameIsIn("name"), PredicateNameIsIn("running_time"))
+      )
+
+      doTestFilterPushDown(wideNodes,
         $"name" === "Luke Skywalker",
-        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker")),
-        Seq(
-          IsNotNull(AttributeReference("name", StringType, nullable = true)())
-        )
+        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker"))
       )
 
       doTestFilterPushDown(wideNodes,
         $"name".isin("Luke Skywalker"),
-        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker")),
-        Seq(
-          IsNotNull(AttributeReference("name", StringType, nullable = true)())
-        )
+        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker"))
       )
 
       doTestFilterPushDown(wideNodes,
         $"name".isin("Luke Skywalker", "Princess Leia"),
-        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker", "Princess Leia")),
-        Seq(
-          IsNotNull(AttributeReference("name", StringType, nullable = true)())
-        )
+        Seq(PredicateNameIsIn("name"), ObjectValueIsIn("Luke Skywalker", "Princess Leia"))
       )
 
       doTestFilterPushDown(wideNodes,
@@ -399,38 +397,12 @@ class TestNodeSource extends FunSpec
           PredicateNameIsIn("running_time"),
           ObjectValueIsIn("Luke Skywalker"),
           ObjectValueIsIn(121L)
-        ),
-        Seq(
-          IsNotNull(AttributeReference("running_time", IntegerType, nullable = true)()),
-          IsNotNull(AttributeReference("name", StringType, nullable = true)())
         )
       )
     }
 
-    def doTestFilterPushDown(df: DataFrame, condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
-      val plan = df.where(condition).queryExecution.optimizedPlan
-      val relationNode = plan match {
-        case filter: logical.Filter =>
-          val unpushedFilters = getFilterNodes(filter.condition)
-          assert(unpushedFilters.map(_.sql) === expectedUnpushed.map(_.sql))
-          filter.child
-        case _ => plan
-      }
-      assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
-
-      val relation = relationNode.asInstanceOf[DataSourceV2ScanRelation]
-      assert(relation.scan.isInstanceOf[TripleScan])
-
-      val scan = relation.scan.asInstanceOf[TripleScan]
-      assert(scan.partitioner.isInstanceOf[PredicatePartitioner])
-
-      val partitioner = scan.partitioner.asInstanceOf[PredicatePartitioner]
-      assert(partitioner.filters.toSet === expected.toSet)
-    }
-
-    def getFilterNodes(node: Expression): Seq[Expression] = node match {
-      case And(left, right) => getFilterNodes(left) ++ getFilterNodes(right)
-      case _ => Seq(node)
+    def doTestFilterPushDown(df: DataFrame, condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty): Unit = {
+      doTestFilterPushDownDf(df, condition, expected, expectedUnpushed)
     }
 
   }

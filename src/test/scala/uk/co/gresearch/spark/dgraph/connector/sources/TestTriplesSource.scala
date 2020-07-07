@@ -19,19 +19,18 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
-import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, In, IsNotNull, Literal}
-import org.apache.spark.sql.catalyst.plans.logical
-import org.apache.spark.sql.execution.datasources.v2.{DataSourceRDDPartition, DataSourceV2ScanRelation}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
+import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame}
 import org.scalatest.{Assertions, FunSpec}
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 class TestTriplesSource extends FunSpec
-  with SparkTestSession with DgraphTestCluster {
+  with SparkTestSession with DgraphTestCluster
+  with FilterPushDownTestHelper {
 
   import spark.implicits._
 
@@ -380,19 +379,22 @@ class TestTriplesSource extends FunSpec
 
     it("should push object value filters for typed triples") {
       doTestFilterPushDownDf(typedTriples,
+        $"objectString".isNotNull,
+        Seq(ObjectTypeIsIn("string"))
+      )
+      doTestFilterPushDownDf(typedTriples,
+        $"objectString".isNotNull && $"objectUid".isNotNull,
+        Seq(ObjectTypeIsIn("string"), ObjectTypeIsIn("uid"))
+      )
+
+      doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"))
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -402,11 +404,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person" && $"objectUid" === 1,
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid")),
-        Seq(
-          IsNotNull(AttributeReference("objectString", StringType, nullable = true)()),
-          IsNotNull(AttributeReference("objectUid", StringType, nullable = true)())
-        )
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string"), ObjectValueIsIn("1"), ObjectTypeIsIn("uid"))
       )
     }
 
@@ -421,6 +419,8 @@ class TestTriplesSource extends FunSpec
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person" && $"objectType" === "string",
         Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
+        // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         )
@@ -433,10 +433,28 @@ class TestTriplesSource extends FunSpec
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         )
       )
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString".isin("Person") && $"objectType" === "string",
+        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
+        // the partitioner will efficiently read but spark will still filter on top, which is fine
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        )
+      )
 
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film"),
         Seq(ObjectValueIsIn("Person", "Film")),
+        Seq(
+          In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
+        )
+      )
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString".isin("Person", "Film") && $"objectType" === "string",
+        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
+        // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         )
@@ -446,32 +464,6 @@ class TestTriplesSource extends FunSpec
     def doTestFilterPushDown(condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
       doTestFilterPushDownDf(typedTriples, condition, expected, expectedUnpushed)
       doTestFilterPushDownDf(stringTriples, condition, expected, expectedUnpushed)
-    }
-
-    def doTestFilterPushDownDf(df: DataFrame, condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression]=Seq.empty): Unit = {
-      val plan = df.where(condition).queryExecution.optimizedPlan
-      val relationNode = plan match {
-        case filter: logical.Filter =>
-          val unpushedFilters = getFilterNodes(filter.condition)
-          assert(unpushedFilters.map(_.sql) === expectedUnpushed.map(_.sql))
-          filter.child
-        case _ => plan
-      }
-      assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
-
-      val relation = relationNode.asInstanceOf[DataSourceV2ScanRelation]
-      assert(relation.scan.isInstanceOf[TripleScan])
-
-      val scan = relation.scan.asInstanceOf[TripleScan]
-      assert(scan.partitioner.isInstanceOf[PredicatePartitioner])
-
-      val partitioner = scan.partitioner.asInstanceOf[PredicatePartitioner]
-      assert(partitioner.filters.toSet === expected.toSet)
-    }
-
-    def getFilterNodes(node: Expression): Seq[Expression] = node match {
-      case And(left, right) => getFilterNodes(left) ++ getFilterNodes(right)
-      case _ => Seq(node)
     }
 
   }

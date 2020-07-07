@@ -1,7 +1,7 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
-import org.apache.spark.sql.sources.{EqualTo, In}
+import org.apache.spark.sql.sources.{EqualTo, In, IsNotNull}
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
 
 case class FilterTranslator(columnInfo: ColumnInfo) {
@@ -12,6 +12,11 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
    * @return Some dgraph filters
    */
   def translate(filter: sql.sources.Filter): Option[Seq[Filter]] = filter match {
+    case IsNotNull(column) if columnInfo.isPredicateValueColumn(column) =>
+      Some(Seq(PredicateNameIsIn(column)))
+    case IsNotNull(column) if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
+      Some(Seq(ObjectTypeIsIn(columnInfo.getObjectType(column).get)))
+
     case EqualTo(column, value) if columnInfo.isSubjectColumn(column) && Option(value).isDefined =>
       Some(Seq(SubjectIsIn(Uid(value.toLong))))
     case EqualTo(column, value) if columnInfo.isPredicateColumn(column) && Option(value).isDefined =>
