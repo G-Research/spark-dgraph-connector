@@ -24,17 +24,17 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Schema, Uid}
+import uk.co.gresearch.spark.dgraph.connector._
 
 class TestTypedTripleEncoder extends FunSpec {
 
   Seq(
     (Uid(1), "1", "uid", "edges"),
     ("value", "value", "string", "string properties"),
-    (123L, "123", "long", "long properties"),
-    (123.456, "123.456", "double", "double properties"),
-    (Timestamp.valueOf("2020-01-02 12:34:56.789"), "2020-01-02 12:34:56.789", "timestamp", "dateTime properties"),
-    (true, "true", "boolean", "boolean properties"),
+    (123L, "123", "int", "long properties"),
+    (123.456, "123.456", "float", "double properties"),
+    (Timestamp.valueOf("2020-01-02 12:34:56.789"), "2020-01-02 12:34:56.789", "datetime", "dateTime properties"),
+    (true, "true", "bool", "boolean properties"),
     (Geo("geo"), "geo", "geo", "geo properties"),
     (Password("secret"), "secret", "password", "password properties"),
     (new Object() {
@@ -55,13 +55,13 @@ class TestTypedTripleEncoder extends FunSpec {
       assert(row.getString(1) === "predicate")
       if (encType == "uid") assert(row.getLong(2) === value.asInstanceOf[Uid].uid) else assert(row.get(2, StringType) === null)
       if (encType == "string" || encType == "default") assert(row.getUTF8String(3).toString === value.toString) else assert(row.get(3, StringType) === null)
-      if (encType == "long") assert(row.getLong(4) === value) else assert(row.get(4, StringType) === null)
-      if (encType == "double") assert(row.getDouble(5) === value) else assert(row.get(5, StringType) === null)
-      if (encType == "timestamp") assert(row.get(6, TimestampType) === DateTimeUtils.fromJavaTimestamp(value.asInstanceOf[Timestamp])) else assert(row.get(6, StringType) === null)
-      if (encType == "boolean") assert(row.getBoolean(7) === value) else assert(row.get(7, StringType) === null)
+      if (encType == "int") assert(row.getLong(4) === value) else assert(row.get(4, StringType) === null)
+      if (encType == "float") assert(row.getDouble(5) === value) else assert(row.get(5, StringType) === null)
+      if (encType == "datetime") assert(row.get(6, TimestampType) === DateTimeUtils.fromJavaTimestamp(value.asInstanceOf[Timestamp])) else assert(row.get(6, StringType) === null)
+      if (encType == "bool") assert(row.getBoolean(7) === value) else assert(row.get(7, StringType) === null)
       if (encType == "geo") assert(row.getUTF8String(8).toString === value.asInstanceOf[Geo].geo) else assert(row.get(8, StringType) === null)
       if (encType == "password") assert(row.getUTF8String(9).toString === value.asInstanceOf[Password].password) else assert(row.get(9, StringType) === null)
-      assert(row.getString(10) === encType)
+      assert(row.getString(10) === sparkDataType(encType))
     }
 
   }

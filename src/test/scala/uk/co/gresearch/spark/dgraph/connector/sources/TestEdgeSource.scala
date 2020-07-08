@@ -33,23 +33,24 @@ class TestEdgeSource extends FunSpec
 
   describe("EdgeDataSource") {
 
+    lazy val expectedEdges = Set(
+      Row(sw1, "director", lucas),
+      Row(sw1, "starring", leia),
+      Row(sw1, "starring", luke),
+      Row(sw1, "starring", han),
+      Row(sw2, "director", irvin),
+      Row(sw2, "starring", leia),
+      Row(sw2, "starring", luke),
+      Row(sw2, "starring", han),
+      Row(sw3, "director", richard),
+      Row(sw3, "starring", leia),
+      Row(sw3, "starring", luke),
+      Row(sw3, "starring", han),
+    )
+
     def doTestLoadEdges(load: () => DataFrame): Unit = {
       val edges = load().collect().toSet
-      val expected = Set(
-        Row(sw1, "director", lucas),
-        Row(sw1, "starring", leia),
-        Row(sw1, "starring", luke),
-        Row(sw1, "starring", han),
-        Row(sw2, "director", irvin),
-        Row(sw2, "starring", leia),
-        Row(sw2, "starring", luke),
-        Row(sw2, "starring", han),
-        Row(sw3, "director", richard),
-        Row(sw3, "starring", leia),
-        Row(sw3, "starring", luke),
-        Row(sw3, "starring", han),
-      )
-      assert(edges === expected)
+      assert(edges === expectedEdges)
     }
 
     it("should load edges via path") {
@@ -210,19 +211,19 @@ class TestEdgeSource extends FunSpec
         .dgraphEdges(cluster.grpc)
 
     it("should push predicate filters") {
-      doTestFilterPushDown($"predicate" === "name", Seq(PredicateNameIsIn("name")))
-      doTestFilterPushDown($"predicate".isin("name"), Seq(PredicateNameIsIn("name")))
-      doTestFilterPushDown($"predicate".isin("name", "starring"), Seq(PredicateNameIsIn("name", "starring")))
+      doTestFilterPushDown($"predicate" === "director", Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director"), Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director", "starring"), Seq(PredicateNameIsIn("director", "starring")), expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1))))
     }
 
     it("should push object value filters") {
-      doTestFilterPushDown($"objectUid" === 1, Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid")))
-      doTestFilterPushDown($"objectUid".isin(1), Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid")))
-      doTestFilterPushDown($"objectUid".isin(1, 2L), Seq(ObjectValueIsIn("1", "2"), ObjectTypeIsIn("uid")))
+      doTestFilterPushDown($"objectUid" === leia, Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
+      doTestFilterPushDown($"objectUid".isin(leia), Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
+      doTestFilterPushDown($"objectUid".isin(leia, lucas), Seq(ObjectValueIsIn(leia, lucas), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(r => Set(leia, lucas).contains(r.getLong(2))))
     }
 
-    def doTestFilterPushDown(condition: Column, expected: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty): Unit = {
-      doTestFilterPushDownDf(edges, condition, expected, expectedUnpushed)
+    def doTestFilterPushDown(condition: Column, expectedFilters: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
+      doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
     }
 
   }

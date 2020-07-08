@@ -63,7 +63,6 @@ class TestFilterTranslator extends FunSpec {
     it("should translate IsNotNull") {
       doTest(IsNotNull(subjectColumn), None)
       doTest(IsNotNull(predicateColumn), None)
-      doTest(IsNotNull(predicateValueColumn), Some(List(PredicateNameIsIn(predicateValueColumn))))
 
       doTest(IsNotNull(objectUidColumn), Some(Seq(ObjectTypeIsIn("uid"))))
       doTest(IsNotNull(objectStringColumn), Some(Seq(ObjectTypeIsIn("string"))))
@@ -80,16 +79,15 @@ class TestFilterTranslator extends FunSpec {
     it("should translate EqualTo") {
       doTest(EqualTo(subjectColumn, 1), Some(List(SubjectIsIn(Uid(1)))))
       doTest(EqualTo(predicateColumn, "val"), Some(Seq(PredicateNameIsIn("val"))))
-      doTest(EqualTo(predicateValueColumn, "val"), Some(List(PredicateNameIsIn(predicateValueColumn), ObjectValueIsIn("val"))))
 
       doTest(EqualTo(objectTypeColumn, "type"), Some(Seq(ObjectTypeIsIn("type"))))
 
-      doTest(EqualTo(objectUidColumn, 1L), Some(Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid"))))
+      doTest(EqualTo(objectUidColumn, 1L), Some(Seq(ObjectValueIsIn(1L), ObjectTypeIsIn("uid"))))
       doTest(EqualTo(objectStringColumn, "val"), Some(Seq(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
-      doTest(EqualTo(objectLongColumn, 1L), Some(Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("long"))))
-      doTest(EqualTo(objectDoubleColumn, 1.0), Some(Seq(ObjectValueIsIn("1.0"), ObjectTypeIsIn("double"))))
-      doTest(EqualTo(objectTimestampColumn, timestamp), Some(Seq(ObjectValueIsIn(timestamp.toString), ObjectTypeIsIn("timestamp"))))
-      doTest(EqualTo(objectBooleanColumn, true), Some(Seq(ObjectValueIsIn("true"), ObjectTypeIsIn("boolean"))))
+      doTest(EqualTo(objectLongColumn, 1L), Some(Seq(ObjectValueIsIn(1L), ObjectTypeIsIn("long"))))
+      doTest(EqualTo(objectDoubleColumn, 1.0), Some(Seq(ObjectValueIsIn(1.0), ObjectTypeIsIn("double"))))
+      doTest(EqualTo(objectTimestampColumn, timestamp), Some(Seq(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp"))))
+      doTest(EqualTo(objectBooleanColumn, true), Some(Seq(ObjectValueIsIn(true), ObjectTypeIsIn("boolean"))))
       doTest(EqualTo(objectGeoColumn, "geo"), Some(Seq(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
       doTest(EqualTo(objectPasswordColumn, "pass"), Some(Seq(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
 
@@ -99,16 +97,15 @@ class TestFilterTranslator extends FunSpec {
     it("should translate In") {
       doTest(In(subjectColumn, Array(1)), Some(List(SubjectIsIn(Uid(1)))))
       doTest(In(predicateColumn, Array("val")), Some(Seq(PredicateNameIsIn("val"))))
-      doTest(In(predicateValueColumn, Array("val")), Some(List(PredicateNameIsIn(predicateValueColumn), ObjectValueIsIn("val"))))
 
       doTest(In(objectTypeColumn, Array("type")), Some(Seq(ObjectTypeIsIn("type"))))
 
-      doTest(In(objectUidColumn, Array(1L)), Some(Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("uid"))))
+      doTest(In(objectUidColumn, Array(1L)), Some(Seq(ObjectValueIsIn(1L), ObjectTypeIsIn("uid"))))
       doTest(In(objectStringColumn, Array("val")), Some(Seq(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
-      doTest(In(objectLongColumn, Array(1L)), Some(Seq(ObjectValueIsIn("1"), ObjectTypeIsIn("long"))))
-      doTest(In(objectDoubleColumn, Array(1.0)), Some(Seq(ObjectValueIsIn("1.0"), ObjectTypeIsIn("double"))))
-      doTest(In(objectTimestampColumn, Array(timestamp)), Some(Seq(ObjectValueIsIn(timestamp.toString), ObjectTypeIsIn("timestamp"))))
-      doTest(In(objectBooleanColumn, Array(true)), Some(Seq(ObjectValueIsIn("true"), ObjectTypeIsIn("boolean"))))
+      doTest(In(objectLongColumn, Array(1L)), Some(Seq(ObjectValueIsIn(1L), ObjectTypeIsIn("long"))))
+      doTest(In(objectDoubleColumn, Array(1.0)), Some(Seq(ObjectValueIsIn(1.0), ObjectTypeIsIn("double"))))
+      doTest(In(objectTimestampColumn, Array(timestamp)), Some(Seq(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp"))))
+      doTest(In(objectBooleanColumn, Array(true)), Some(Seq(ObjectValueIsIn(true), ObjectTypeIsIn("boolean"))))
       doTest(In(objectGeoColumn, Array("geo")), Some(Seq(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
       doTest(In(objectPasswordColumn, Array("pass")), Some(Seq(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
 

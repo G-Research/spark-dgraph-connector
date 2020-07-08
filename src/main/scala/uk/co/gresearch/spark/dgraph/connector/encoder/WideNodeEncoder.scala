@@ -88,7 +88,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate])
       .map { e =>
         (
           columns.get(e.getKey),
-          predicates.get(e.getKey).map(_.typeName),
+          predicates.get(e.getKey).map(_.dgraphType),
           e.getValue,
         )
       }
@@ -132,7 +132,7 @@ object WideNodeEncoder {
    * @return spark type
    */
   def toStructField(predicate: Predicate): StructField = {
-    val dType = predicate.typeName match {
+    val dType = predicate.dgraphType match {
       case "uid" => LongType
       case "string" => StringType
       case "int" => LongType

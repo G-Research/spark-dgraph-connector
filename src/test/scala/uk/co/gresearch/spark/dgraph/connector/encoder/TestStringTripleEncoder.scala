@@ -23,17 +23,17 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Schema, Uid}
+import uk.co.gresearch.spark.dgraph.connector._
 
 class TestStringTripleEncoder extends FunSpec {
 
   Seq(
     (Uid(1), "1", "uid", "edges"),
     ("value", "value", "string", "string properties"),
-    (123L, "123", "long", "long properties"),
-    (123.456, "123.456", "double", "double properties"),
-    (Timestamp.valueOf("2020-01-02 12:34:56.789"), "2020-01-02 12:34:56.789", "timestamp", "dateTime properties"),
-    (true, "true", "boolean", "boolean properties"),
+    (123L, "123", "int", "long properties"),
+    (123.456, "123.456", "float", "double properties"),
+    (Timestamp.valueOf("2020-01-02 12:34:56.789"), "2020-01-02 12:34:56.789", "datetime", "dateTime properties"),
+    (true, "true", "bool", "boolean properties"),
     (Geo("geo"), "geo", "geo", "geo properties"),
     (Password("secret"), "secret", "password", "password properties"),
     (new Object() {
@@ -51,7 +51,7 @@ class TestStringTripleEncoder extends FunSpec {
       assert(row.get.getLong(0) === 1)
       assert(row.get.getString(1) === "predicate")
       assert(row.get.getString(2) === encoded)
-      assert(row.get.getString(3) === encType)
+      assert(row.get.getString(3) === sparkDataType(encType))
     }
 
   }

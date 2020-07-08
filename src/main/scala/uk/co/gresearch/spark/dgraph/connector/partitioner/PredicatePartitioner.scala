@@ -54,6 +54,7 @@ case class PredicatePartitioner(schema: Schema,
 
   override def getPartitions: Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
+    println(s"replaced filters: $processedFilters")
     val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
     val cState = filter(clusterState, simplifiedFilters)
     val values = getValues(simplifiedFilters)
@@ -82,7 +83,11 @@ case class PredicatePartitioner(schema: Schema,
   def replaceObjectTypeIsInFilter(filters: Seq[Filter]): Seq[Filter] =
     filters.map {
       case ObjectTypeIsIn(types) =>
-        val predicateNames = schema.predicates.filter(p => types.contains(p.typeName)).map(_.predicateName)
+        println(types)
+        println(schema.predicates.map(_.dgraphType))
+        println(schema.predicates.map(_.sparkType))
+        val predicateNames = schema.predicates.filter(p => types.contains(p.sparkType)).map(_.predicateName)
+        println(predicateNames)
         PredicateNameIsIn(predicateNames)
       case f: Filter => f
     }
@@ -177,7 +182,9 @@ object PredicatePartitioner extends ClusterStateHelper {
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
       val groupPredicateNames = groupPredicates.map(_.predicateName)
       val predicatesPartitions = partition(groupPredicates, partitions)
-      val groupValues = Some(values.filterKeys(groupPredicateNames.contains)).filter(_.nonEmpty)
+      // using filter here because result of filter keys is not serializable in Scala < 2.13
+      // https://github.com/scala/bug/issues/6654
+      val groupValues = Some(values.filter(v => groupPredicateNames.contains(v._1))).filter(_.nonEmpty)
 
       predicatesPartitions.indices.map { index =>
         Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, groupValues)

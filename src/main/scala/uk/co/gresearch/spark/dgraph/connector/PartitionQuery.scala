@@ -26,24 +26,32 @@ case class PartitionQuery(resultName: String,
   def getChunkString(chunk: Option[Chunk]): String =
     chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
 
-  def getValueFilter(predicateName: String): String = {
+  def getValueFilter(predicateName: String, filterMode: String): String = {
     predicates
       .flatMap(_.find(_.predicateName.equals(predicateName)))
       .flatMap(predicateType =>
         values
           .flatMap(_.get(predicateName))
           .map { valueSet =>
-            val filter =
-              valueSet.map { value =>
+            val filter = predicateType match {
+              case Predicate(_, "uid", _) if filterMode.equals("vals") =>
+                s"""uid(${valueSet.map(Uid(_).toHexString).mkString(", ")})"""
+              case _ => valueSet.map { value =>
                 predicateType match {
-                  case Predicate(_, "uid") => s"""uid_in(<$predicateName>, ${value.asInstanceOf[Uid].toHexString})"""
-                  case ___________________ => s"""eq(<$predicateName>, "${value.toString}")"""
+                  case Predicate(_, "uid", _) => filterMode match {
+                    // not needed
+                    // case "vals" => s"""uid(${Uid(value).toHexString})"""
+                    case "uids" => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})"""
+                    case _ => throw new IllegalArgumentException(s"unsupported filter mode: $filterMode")
+                  }
+                  case ______________________ => s"""eq(<$predicateName>, "${value.toString}")"""
                 }
               }.mkString(" OR ")
+            }
 
-            Some(valueSet)
+            Some(filter)
               .filter(_.nonEmpty)
-              .map(_ => s" @filter($filter)")
+              .map(f => s" @filter($f)")
               .getOrElse("")
           }
       )
@@ -54,15 +62,15 @@ case class PartitionQuery(resultName: String,
     predicates
       .getOrElse(Set.empty)
       .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName)}""" }
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName, "uids")}""" }
       .toMap
 
   val predicatePaths: Seq[String] =
     predicates
       .getOrElse(Set.empty)
       .map {
-        case Predicate(predicate, "uid") => s"<$predicate> { uid }"
-        case Predicate(predicate, _____) => s"<$predicate>"
+        case Predicate(predicate, "uid", _) => s"<$predicate> { uid }${getValueFilter(predicate, "vals")}"
+        case Predicate(predicate, _____, _) => s"<$predicate>${getValueFilter(predicate, "vals")}"
       }
       .toSeq
 

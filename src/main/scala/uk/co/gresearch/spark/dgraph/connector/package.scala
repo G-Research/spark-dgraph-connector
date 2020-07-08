@@ -18,6 +18,8 @@
 package uk.co.gresearch.spark.dgraph
 
 import java.sql.Timestamp
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.{DgraphClient, DgraphGrpc}
@@ -71,6 +73,12 @@ package object connector {
   object Uid {
     def apply(uid: String): Uid = Uid(toLong(uid))
 
+    def apply(uid: Any): Uid = uid match {
+      case l: Long => Uid(l)
+      case i: Int => Uid(i.toLong)
+      case a => Uid(a.toString)
+    }
+
     private def toLong(uid: String): Long =
       Some(uid)
         .filter(_.startsWith("0x"))
@@ -86,7 +94,25 @@ package object connector {
     override def toString: String = password
   }
 
-  case class Predicate(predicateName: String, typeName: String)
+  case class Predicate(predicateName: String, dgraphType: String, sparkType: String)
+
+  object Predicate {
+    def apply(predicateName: String, dgraphType: String): Predicate =
+      Predicate(predicateName, dgraphType, sparkDataType(dgraphType))
+  }
+
+  def sparkDataType(dgraphDataType: String): String = dgraphDataType match {
+    case "uid" => "uid"
+    case "string" => "string"
+    case "int" => "long"
+    case "float" => "double"
+    case "datetime" => "timestamp"
+    case "bool" => "boolean"
+    case "geo" => "geo"
+    case "password" => "password"
+    case "default" => "default"
+    case s => throw new IllegalArgumentException(s"unknown dgraph type: $s")
+  }
 
   /**
    * Range of uids.

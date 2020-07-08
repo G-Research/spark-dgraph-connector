@@ -17,7 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
 
 case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
 
@@ -32,6 +32,10 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
   if (partitions.exists(_.uids.isDefined))
     throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
       s"another uid partitioner: ${partitioner.getClass.getSimpleName}")
+
+  override def supportsFilters(filters: Seq[Filter]): Boolean = partitioner.supportsFilters(filters)
+
+  override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
 
   override def getPartitions: Seq[Partition] = {
     partitions.flatMap { partition =>

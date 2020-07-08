@@ -340,7 +340,7 @@ The following table lists all supported Spark filters:
 |:----------:|-------|-------|
 |`EqualTo`   |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectLong" === 123)`</li><li>`.where($"objectType" === "string")`</li></ul>|
 |`In`        |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
-|`IsNotNull` |<ul><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
+|`IsNotNull` |<ul><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
 
 
 ## Special Use Cases
@@ -403,6 +403,11 @@ The space of existing `uids` is split into ranges of `N` `uids` per partition. T
 and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
 partitions in ascending order. If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
 
+Note: With uid partitioning, the chunk size configured via `dgraph.chunkSize` should be at least a 10th of
+the number of uids per partition configured via `dgraph.partitioner.uidRange.uidsPerPartition` to avoid
+inefficiency due to chunks overlapping with partition borders. When your result is sparse w.r.t. the uid space
+set the chunk size to 100th or less.
+
 <!-- there is only one estimator left, no need to mention this until we have another
 The estimator can be selected with the `dgraph.partitioner.uidRange.estimator` option. These estimators are available:
 
@@ -416,7 +421,7 @@ This estimator can be selected with the `maxLeaseId` value.
 
 ### Streamed Partitions
 
-The connector reads single partitions from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
+The connector reads each partition from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
 where each chunk contains `100000` uids. This chunk size can be configured via `dgraph.chunkSize`.
 Each chunk sends a single query sent to Dgraph. The chunk size limits the size of the result.
 Due to the low memory footprint of the connector, Spark could read your entire graph via a single partition

@@ -36,21 +36,21 @@ class EdgeSource() extends TableProviderBase
   override def shortName(): String = "dgraph-edges"
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType =
-    EdgeEncoder.schema()
+    EdgeEncoder.schema
 
   override def getTable(schema: StructType,
                         partitioning: Array[Transform],
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
-    val schema = getSchema(targets).filter(_.typeName == "uid")
+    val schema = getSchema(targets).filter(_.dgraphType == "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = EdgeEncoder(schema.predicateMap)
     val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = EdgeTableModel(execution, encoder, chunkSize)
-    new TripleTable(partitioner, model, clusterState.cid)
+    TripleTable(partitioner, model, clusterState.cid)
   }
 
 }

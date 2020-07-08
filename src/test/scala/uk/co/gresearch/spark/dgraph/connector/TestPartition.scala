@@ -51,7 +51,7 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
     it("should return partition query") {
       val partition = Partition(
         Seq(Target("localhost:9080")),
-        Some(Set(Predicate("pred", "type"))),
+        Some(Set(Predicate("pred", "type", "type"))),
         Some(UidRange(Uid(10), Uid(20))),
         Some(Map("pred" -> Set("value")))
       )

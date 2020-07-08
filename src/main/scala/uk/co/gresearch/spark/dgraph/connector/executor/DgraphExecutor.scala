@@ -17,7 +17,6 @@ case class DgraphExecutor(targets: Seq[Target]) extends JsonGraphQlExecutor {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
       val client: DgraphClient = getClientFromChannel(channels)
-      println(query.string)
       val response: Response = client.newReadOnlyTransaction().query(query.string)
       Json(response.getJson.toStringUtf8)
     } catch {
