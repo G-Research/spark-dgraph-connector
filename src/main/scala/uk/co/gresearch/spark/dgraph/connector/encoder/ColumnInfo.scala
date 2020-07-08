@@ -4,7 +4,7 @@ trait ColumnInfo {
 
   /**
    * Indicates whether the column name refers to the subject column.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return true if column is the subject
    */
@@ -12,7 +12,7 @@ trait ColumnInfo {
 
   /**
    * Indicates whether the column name refers to the predicate column.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return true if column is the predicate
    */
@@ -20,7 +20,7 @@ trait ColumnInfo {
 
   /**
    * Indicates whether the column name refers to a specific predicate and its (object) value.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return true if column is a predicate's value
    */
@@ -28,7 +28,7 @@ trait ColumnInfo {
 
   /**
    * Indicates whether the column name refers to the object type.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return true if column is the object type
    */
@@ -36,7 +36,7 @@ trait ColumnInfo {
 
   /**
    * Indicates whether the column name refers to the object value.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return true if column is the object value
    */
@@ -44,7 +44,7 @@ trait ColumnInfo {
 
   /**
    * Provides the type of the given object value column.
-   * Must be implemented to support filter push down.
+   * Must be implemented to support filter pushdown.
    * @param columnName column name
    * @return object type
    */
