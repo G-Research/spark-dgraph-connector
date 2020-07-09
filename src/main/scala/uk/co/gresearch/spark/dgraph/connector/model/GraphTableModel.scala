@@ -6,9 +6,11 @@ import com.google.gson.JsonArray
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.encoder.{InternalRowEncoder, JsonNodeInternalRowEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionQuery}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionQuery, Uid}
+
+import scala.collection.JavaConverters._
 
 /**
  * Represents a specific model of graph data in a tabular form.
@@ -16,8 +18,8 @@ import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, Partit
 trait GraphTableModel {
 
   val execution: ExecutorProvider
-  val encoder: InternalRowEncoder
-  val chunkSize: Option[Int]
+  val encoder: JsonNodeInternalRowEncoder
+  val chunkSize: Int
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -39,50 +41,40 @@ trait GraphTableModel {
    * @param partition a partition
    * @return graph data in tabular form
    */
-  def modelPartition(partition: Partition): Iterator[InternalRow] = chunkSize match {
-    case Some(size) => readChunks(partition, size)
-    case None => readSingleChunk(partition)
-  }
-
-  def readSingleChunk(partition: Partition): Iterator[InternalRow] = {
-    val query = partition.query
-    val graphql = toGraphQl(query, None)
-    val executor = execution.getExecutor(partition)
-    val json = executor.query(graphql)
-    encoder.fromJson(json, query.resultName)
-  }
-
-  def readChunks(partition: Partition, size: Int): Iterator[InternalRow] = {
-    encoder match {
-      case e: JsonNodeInternalRowEncoder =>
-        readChunks(partition, execution.getExecutor(partition), e, size)
-      case _ => throw new IllegalArgumentException(s"Partitions can only be read in chunks " +
-        s"with a ${classOf[JsonNodeInternalRowEncoder].getSimpleName}, not ${encoder.getClass.getSimpleName}")
-    }
-  }
-
-  def readChunks(partition: Partition,
-                 executor: JsonGraphQlExecutor,
-                 encoder: JsonNodeInternalRowEncoder,
-                 size: Int): Iterator[InternalRow] =
-    ChunkIterator(size, readChunk(partition, executor, encoder))
+  def modelPartition(partition: Partition): Iterator[InternalRow] = {
+    val executor: JsonGraphQlExecutor = execution.getExecutor(partition)
+    val after = partition.uids.map(range => range.first.before).getOrElse(Uid("0x0"))
+    val until = partition.uids.map(range => range.until)
+    ChunkIterator(after, chunkSize, readChunk(partition, executor, encoder, until))
       .flatMap(encoder.fromJson)
+  }
 
   def readChunk(partition: Partition,
                 executor: JsonGraphQlExecutor,
-                encoder: JsonNodeInternalRowEncoder)
+                encoder: JsonNodeInternalRowEncoder,
+                end: Option[Uid])
                (chunk: Chunk): JsonArray = {
     val query = partition.query
-    val start = Clock.systemUTC().instant().toEpochMilli
+    val startTs = Clock.systemUTC().instant().toEpochMilli
     val graphql = toGraphQl(query, Some(chunk))
     val json = executor.query(graphql)
-    val end = Clock.systemUTC().instant().toEpochMilli
-    val array = encoder.getResult(json, query.resultName)
+    val endTs = Clock.systemUTC().instant().toEpochMilli
+    val array = end.foldLeft(encoder.getResult(json, query.resultName))(filter)
     println(s"stage=${Option(TaskContext.get()).map(_.stageId()).orNull} part=${Option(TaskContext.get()).map(_.partitionId()).orNull}: " +
-      s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").get}${chunk.length} " +
-      s"uids from ${chunk.after.toHexString} with ${array.size()} nodes in ${(end - start)/1000.0}s")
+      s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").getOrElse("")}" +
+      s"${chunk.length} uids after ${chunk.after.toHexString} ${end.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
+      s"with ${array.size()} nodes in ${(endTs - startTs)/1000.0}s")
     array
   }
+
+  def filter(array: JsonArray, end: Uid): JsonArray =
+    if (array.size() == 0 || ChunkIterator.getUid(array.get(array.size()-1)) < end) {
+      array
+    } else {
+      array.asScala
+        .filter(e => ChunkIterator.getUid(e) < end)
+        .foldLeft(new JsonArray()) { case (array, element) => array.add(element); array }
+    }
 
   /**
    * Turn a partition query into a GraphQl query.

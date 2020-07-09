@@ -23,7 +23,7 @@ import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Dataset, Encoder, Encoders}
+import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoder, Encoders}
 
 package object connector {
 
@@ -62,6 +62,10 @@ package object connector {
     if (uid < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
     override def toString: String = uid.toString
     def toHexString: String = s"0x${uid.toHexString}"
+    def <(other: Uid): Boolean = uid < other.uid
+    def >=(other: Uid): Boolean = uid >= other.uid
+    def next: Uid = Uid(uid+1)
+    def before: Uid = Uid(uid-1)
   }
 
   object Uid {
@@ -72,7 +76,6 @@ package object connector {
         .filter(_.startsWith("0x"))
         .map(uid => java.lang.Long.valueOf(uid.substring(2), 16))
         .getOrElse(throw new IllegalArgumentException("Dgraph uid is not a long prefixed with '0x': " + uid))
-
   }
 
   case class Geo(geo: String) {
@@ -85,14 +88,27 @@ package object connector {
 
   case class Predicate(predicateName: String, typeName: String)
 
-  case class UidRange(first: Long, length: Long) {
-    if (first < 0 || length <= 0)
-      throw new IllegalArgumentException(s"UidRange first must be positive (is $first), length must be larger than zero (is $length)")
+  /**
+   * Range of uids.
+   * @param first first uid of range (inclusive)
+   * @param until last uid of range (exclusive)
+   */
+  case class UidRange(first: Uid, until: Uid) {
+    if (first >= until)
+      throw new IllegalArgumentException(s"UidRange first uid (is $first) must be before until (is $until)")
+    def length: Long = until.uid - first.uid
   }
 
   case class Chunk(after: Uid, length: Long) {
     if (length <= 0)
       throw new IllegalArgumentException(s"Chunk length must be larger than zero (is $length)")
+
+    /**
+     * Returns a new Chunk with the same length but given after.
+     * @param after after
+     * @return chunk with new after
+     */
+    def withAfter(after: Uid): Chunk = copy(after = after)
   }
 
   // typed strings
@@ -111,6 +127,7 @@ package object connector {
   val NodesModeWideOption: String = "wide"
 
   val ChunkSizeOption: String = "dgraph.chunkSize"
+  val ChunkSizeDefault: Int = 100000
 
   val PartitionerOption: String = "dgraph.partitioner"
   val SingletonPartitionerOption: String = "singleton"
@@ -118,18 +135,19 @@ package object connector {
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
   val UidRangePartitionerOption: String = "uid-range"
-  val PartitionerDefault: String = UidRangePartitionerOption
+  val PartitionerDefault: String = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
 
   val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
   val AlphaPartitionerPartitionsDefault: Int = 1
   val PredicatePartitionerPredicatesOption: String = "dgraph.partitioner.predicate.predicatesPerPartition"
   val PredicatePartitionerPredicatesDefault: Int = 1000
   val UidRangePartitionerUidsPerPartOption: String = "dgraph.partitioner.uidRange.uidsPerPartition"
-  val UidRangePartitionerUidsPerPartDefault: Int = 1000
+  val UidRangePartitionerUidsPerPartDefault: Int = 1000000
   val UidRangePartitionerEstimatorOption: String = "dgraph.partitioner.uidRange.estimator"
   val MaxLeaseIdEstimatorOption: String = "maxLeaseId"
-  val UidCountEstimatorOption: String = "count"
-  val UidRangePartitionerEstimatorDefault: String = UidCountEstimatorOption
+  val UidRangePartitionerEstimatorDefault: String = MaxLeaseIdEstimatorOption
+  // for testing purposes only
+  val MaxLeaseIdEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxLeaseIdEstimatorOption.id"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 

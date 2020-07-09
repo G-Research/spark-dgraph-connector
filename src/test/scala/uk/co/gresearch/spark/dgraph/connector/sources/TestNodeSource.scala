@@ -186,7 +186,8 @@ class TestNodeSource extends FunSpec
             NodesModeOption -> NodesModeWideOption,
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "1",
-            UidRangePartitionerUidsPerPartOption -> "1"
+            UidRangePartitionerUidsPerPartOption -> "1",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphNodes(cluster.grpc)
       )
@@ -285,7 +286,8 @@ class TestNodeSource extends FunSpec
           .read
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "7"
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphNodes(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))

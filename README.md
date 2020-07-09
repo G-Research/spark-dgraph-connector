@@ -339,7 +339,7 @@ and will therefore not "see" those predicates ([issue #5](https://github.com/G-R
 Partitioning your Dgraph graph is essential to be able to load large quantities of graph data into Spark.
 Spark splits data into partitions, where ideally all partitions have the same size and are of decent size.
 Partitions that are too large will kill your Spark executor as they won't fit into memory. When partitions
-are too small your Spark jobs becomes inefficient and slow, but will not fail.
+are too small your Spark job becomes inefficient and slow, but will not fail.
 
 Each partition connects to the Dgraph cluster and reads a specific sub-graph. Partitions are non-overlapping.
 
@@ -354,7 +354,7 @@ The following `Partitioner` implementations are available:
 |:---------------------------------:|:-------------------------:|-------------|----------|
 | Singleton                         | _nothing_                 | Provides a single partition for the entire graph. | Unit Tests and small graphs that fit into a single partition. Can be used for large graphs if combined with a "by uid" partitioner. |
 | Predicate                         | predicate                 | Provides multiple partitions with at most `P` predicates per partition where `P` defaults to `1000`. Picks multiple predicates from the same Dgraph group. | Large graphs where each predicate fits into a partition, otherwise combine with Uid Range partitioner. Skewness of predicates reflects skewness of partitions. |
-| Uid Range                         | uids                      | Each partition has at most `N` uids where `N` defaults to `1000`. | Large graphs where single `uid`s fit into a partition. Can be combined with any "by predicate" partitioner, otherwise induces internal Dgraph cluster communication across groups. Combine with Predicate partitioner and set `P` to `1` if some uids do not fit into a partition. |
+| Uid Range                         | uids                      | Each partition has at most `N` uids where `N` defaults to `1000000`. | Large graphs where single `uid`s fit into a partition. Can be combined with any predicate partitioner, otherwise induces internal Dgraph cluster communication across groups. |
 | Predicate + Uid Range _(default)_ | predicates + uids         | Partitions by predicate first (see Predicate Partitioner), then each partition gets partitioned by uid (see Uid Partitioner) | Graphs of any size. |
 
 
@@ -363,10 +363,6 @@ The following `Partitioner` implementations are available:
 The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
 Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
 locally to the alpha nodes and induce no Dgraph cluster internal communication.
-
-Another feature of predicate partitioning is that data can be read from Dgraph in smaller chunks. This allows
-to reduce the memory footprint of Spark tasks reading large partitions. The size of each chunk can be set
-by the optional parameter `dgraph.chunkSize`. A good starting value is `10000` nodes.
 
 #### Partitioning by Uids
 
@@ -379,10 +375,11 @@ The uid partitioning always works on top of a predicate partitioner. If none is 
 The number of uids of each underlying partition has to be estimated. Once the number of uids is estimated,
 the partition is further split into ranges of that uid space.
 
-The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000`
+The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000000`
 and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
 partitions in ascending order. If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
 
+<!-- there is only one estimator left, no need to mention this until we have another
 The estimator can be selected with the `dgraph.partitioner.uidRange.estimator` option. These estimators are available:
 
 ##### Cluster MaxLeaseId
@@ -391,11 +388,16 @@ The Dgraph cluster [maintains a maxLeaseId](https://dgraph.io/docs/deploy/#more-
 It grows as new uids are added to the cluster, so it serves as an upper estimate of the actual largest uid.
 Compared to the count estimator it is very cheap to retrieve this value.
 This estimator can be selected with the `maxLeaseId` value.
+-->
 
-##### Count Uid Estimator
+### Streamed Partitions
 
-The count estimator counts the distinct uids within each underlying partition first. With many or large predicate partitions, this can become expensive.
-This estimator is the default estimator for uid partitioning and can be selected with the `count` value.
+The connector reads single partitions from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
+where each chunk contains `100000` uids. This chunk size can be configured via `dgraph.chunkSize`.
+Each chunk sends a single query sent to Dgraph. The chunk size limits the size of the result.
+Due to the low memory footprint of the connector, Spark could read your entire graph via a single partition
+(you would have to `repartition` the read DataFrame to make Spark shuffle the data properly).
+However, this would be would slow, but it proves the connector can handle any size of graph with fixed executor memory requirement.
 
 ## Dependencies
 

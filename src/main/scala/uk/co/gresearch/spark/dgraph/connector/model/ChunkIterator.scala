@@ -1,14 +1,15 @@
 package uk.co.gresearch.spark.dgraph.connector.model
 
-import com.google.gson.JsonArray
+import com.google.gson.{JsonArray, JsonElement}
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Uid}
+import uk.co.gresearch.spark.dgraph.connector.model.ChunkIterator.getLastUid
 
-case class ChunkIterator(chunkSize: Int, readChunk: Chunk => JsonArray) extends Iterator[JsonArray] {
+case class ChunkIterator(after: Uid, chunkSize: Int, readChunk: Chunk => JsonArray) extends Iterator[JsonArray] {
 
   if (chunkSize <= 0)
     throw new IllegalArgumentException(s"Chunk size must be larger than zero: $chunkSize")
 
-  var nextChunk: Option[Chunk] = Some(Chunk(Uid("0x0"), chunkSize))
+  var nextChunk: Option[Chunk] = Some(Chunk(after, chunkSize))
   var nextValue: JsonArray = _
 
   // read first chunk
@@ -23,7 +24,7 @@ case class ChunkIterator(chunkSize: Int, readChunk: Chunk => JsonArray) extends 
       nextValue = readChunk(nextChunk.get)
       nextChunk =
         if (nextValue.size() >= nextChunk.get.length) {
-          Some(nextChunk.get.copy(after = getLastUid(nextValue)))
+          Some(nextChunk.get.withAfter(getLastUid(nextValue)))
         } else {
           None
         }
@@ -35,14 +36,10 @@ case class ChunkIterator(chunkSize: Int, readChunk: Chunk => JsonArray) extends 
     value
   }
 
-  /**
-   * Extracts the uid of the last element of the Json array.
-   * @param array Json array
-   * @return uid of the last element
-   */
-  private def getLastUid(array: JsonArray): Uid = {
-    val uidString = array.get(array.size()-1).getAsJsonObject.get("uid").getAsString
-    Uid(uidString)
-  }
+}
 
+object ChunkIterator {
+  def getLastUid(array: JsonArray): Uid = getUid(array.get(array.size() - 1))
+
+  def getUid(element: JsonElement): Uid = Uid(element.getAsJsonObject.get("uid").getAsString)
 }

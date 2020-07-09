@@ -19,10 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import uk.co.gresearch.spark.dgraph.connector
 
-case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]], uids: Option[UidRange]) {
-
-  def pagination: String =
-    uids.map(range => s", first: ${range.length}, offset: ${range.first}").getOrElse("")
+case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]) {
 
   def getChunkString(chunk: Option[Chunk]): String =
     chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
@@ -47,7 +44,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
+           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}) {
            |    uid
            |    dgraph.type
            |    expand(_all_)
@@ -67,7 +64,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
     val query =
       if (predicates.isEmpty) {
         s"""{
-           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}$pagination) {
+           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}) {
            |    uid
            |    dgraph.type
            |    expand(_all_) {
@@ -78,7 +75,7 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
       } else {
         val predicateQueries = getPredicateQueries(chunk)
         s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
-           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}$pagination) {
+           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}) {
            |    uid
            |${predicatePaths.map(path => s"    $path\n").mkString}  }
            |}""".stripMargin
@@ -87,28 +84,9 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
     GraphQl(query)
   }
 
-  def countUids: GraphQl = {
-    val query =
-      if (predicates.isEmpty) {
-        s"""{
-           |  ${resultName} (func: has(dgraph.type)${pagination}) {
-           |    count(uid)
-           |  }
-           |}""".stripMargin
-      } else {
-        val predicateQueries = getPredicateQueries(None)
-        s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
-           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${pagination}) {
-           |    count(uid)
-           |  }
-           |}""".stripMargin
-      }
-    GraphQl(query)
-  }
-
 }
 
 object PartitionQuery {
   def of(partition: Partition, resultName: String = "result"): PartitionQuery =
-    PartitionQuery(resultName, partition.predicates, partition.uids)
+    PartitionQuery(resultName, partition.predicates)
 }

@@ -184,7 +184,8 @@ class TestEdgeSource extends FunSpec
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
-            UidRangePartitionerEstimatorOption -> UidCountEstimatorOption,
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphEdges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
