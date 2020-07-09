@@ -109,6 +109,13 @@ package object connector {
      * @return chunk with new after
      */
     def withAfter(after: Uid): Chunk = copy(after = after)
+
+    /**
+     * Returns a new Chunk with the same after but given length.
+     * @param length length
+     * @return chunk with new length
+     */
+    def withLength(length: Long): Chunk = copy(length = length)
   }
 
   // typed strings

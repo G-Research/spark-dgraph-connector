@@ -1,12 +1,15 @@
 package uk.co.gresearch.spark.dgraph.connector.model
 
+import com.google.gson.JsonArray
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.encoder.{InternalRowEncoder, JsonNodeInternalRowEncoder, StringTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
+import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
 import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Partition, PartitionQuery, Predicate, Target, Uid, UidRange}
+
 
 class TestGraphTableModel extends FunSpec {
 
@@ -198,6 +201,18 @@ class TestGraphTableModel extends FunSpec {
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)
+    }
+
+    it("should filter array") {
+      val array = getChunk((1 to 10).map(id => Uid(id * 7)))
+      println(array)
+      assert(GraphTableModel.filter(array, Uid(100)) === getChunk((1 to 10).map(id => Uid(id * 7))))
+      assert(GraphTableModel.filter(array, Uid(71)) === getChunk((1 to 10).map(id => Uid(id * 7))))
+      assert(GraphTableModel.filter(array, Uid(70)) === getChunk((1 to 9).map(id => Uid(id * 7))))
+      assert(GraphTableModel.filter(array, Uid(15)) === getChunk((1 to 2).map(id => Uid(id * 7))))
+      assert(GraphTableModel.filter(array, Uid(14)) === getChunk((1 to 1).map(id => Uid(id * 7))))
+      assert(GraphTableModel.filter(array, Uid(7)) === new JsonArray())
+      assert(GraphTableModel.filter(array, Uid(0)) === new JsonArray())
     }
 
   }

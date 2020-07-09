@@ -8,6 +8,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionQuery, Uid}
 
 import scala.collection.JavaConverters._
@@ -45,36 +46,27 @@ trait GraphTableModel {
     val executor: JsonGraphQlExecutor = execution.getExecutor(partition)
     val after = partition.uids.map(range => range.first.before).getOrElse(Uid("0x0"))
     val until = partition.uids.map(range => range.until)
-    ChunkIterator(after, chunkSize, readChunk(partition, executor, encoder, until))
+    ChunkIterator(after, until, chunkSize, readChunk(partition, executor, encoder, until))
       .flatMap(encoder.fromJson)
   }
 
   def readChunk(partition: Partition,
                 executor: JsonGraphQlExecutor,
                 encoder: JsonNodeInternalRowEncoder,
-                end: Option[Uid])
+                until: Option[Uid])
                (chunk: Chunk): JsonArray = {
     val query = partition.query
     val startTs = Clock.systemUTC().instant().toEpochMilli
     val graphql = toGraphQl(query, Some(chunk))
     val json = executor.query(graphql)
     val endTs = Clock.systemUTC().instant().toEpochMilli
-    val array = end.foldLeft(encoder.getResult(json, query.resultName))(filter)
+    val array = until.foldLeft(encoder.getResult(json, query.resultName))(filter)
     println(s"stage=${Option(TaskContext.get()).map(_.stageId()).orNull} part=${Option(TaskContext.get()).map(_.partitionId()).orNull}: " +
       s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").getOrElse("")}" +
-      s"${chunk.length} uids after ${chunk.after.toHexString} ${end.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
+      s"${chunk.length} uids after ${chunk.after.toHexString} ${until.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
       s"with ${array.size()} nodes in ${(endTs - startTs)/1000.0}s")
     array
   }
-
-  def filter(array: JsonArray, end: Uid): JsonArray =
-    if (array.size() == 0 || ChunkIterator.getUid(array.get(array.size()-1)) < end) {
-      array
-    } else {
-      array.asScala
-        .filter(e => ChunkIterator.getUid(e) < end)
-        .foldLeft(new JsonArray()) { case (array, element) => array.add(element); array }
-    }
 
   /**
    * Turn a partition query into a GraphQl query.
@@ -83,5 +75,18 @@ trait GraphTableModel {
    * @return graphql query
    */
   def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl
+
+}
+
+object GraphTableModel {
+
+  def filter(array: JsonArray, until: Uid): JsonArray =
+    if (array.size() == 0 || ChunkIterator.getUid(array.get(array.size()-1)) < until) {
+      array
+    } else {
+      array.asScala
+        .filter(e => ChunkIterator.getUid(e) < until)
+        .foldLeft(new JsonArray()) { case (array, element) => array.add(element); array }
+    }
 
 }

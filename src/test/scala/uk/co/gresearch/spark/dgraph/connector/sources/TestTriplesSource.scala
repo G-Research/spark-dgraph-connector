@@ -34,7 +34,7 @@ class TestTriplesSource extends FunSpec
   describe("TriplesDataSource") {
 
     def doTestLoadTypedTriples(load: () => DataFrame): Unit = {
-      val triples = load().repar.as[TypedTriple].collect().toSet
+      val triples = load().as[TypedTriple].collect().toSet
       TestTriplesSource.doAssertTriples(triples, this)
     }
 
