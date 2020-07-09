@@ -20,10 +20,10 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema, Target}
 
 class TestAlphaPartitioner extends FunSpec {
 
@@ -48,7 +48,7 @@ class TestAlphaPartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, None)
+    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should partition with 1 partition per alpha") {
       val partitioner = AlphaPartitioner(schema, clusterState, 1)

@@ -36,10 +36,7 @@ class TestPartitionerProvider extends FunSpec {
     10000,
     UUID.randomUUID()
   )
-  val countEstimator: UidCardinalityEstimator = MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId)
-  val queryEstimator: UidCardinalityEstimator = QueryUidCardinalityEstimator(DgraphExecutor(target))
-
-  assert(UidRangePartitionerEstimatorDefault === UidCountEstimatorOption, "tests assume this default estimator")
+  val maxLeaseEstimator: UidCardinalityEstimator = MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId)
 
   describe("PartitionerProvider") {
 
@@ -47,7 +44,7 @@ class TestPartitionerProvider extends FunSpec {
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, queryEstimator)
+    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
 
     Seq(
       ("singleton", singleton),
@@ -77,7 +74,7 @@ class TestPartitionerProvider extends FunSpec {
       val partitioner = provider.getPartitioner(schema, state, options)
 
       val predicatePart = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, queryEstimator)
+      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
       assert(partitioner === expected)
     }
 
@@ -135,7 +132,7 @@ class TestPartitionerProvider extends FunSpec {
         UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, options)
-      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = countEstimator))
+      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
     }
 
     it(s"should provide alpha uid-range partitioner with non-default values via option") {
@@ -148,7 +145,7 @@ class TestPartitionerProvider extends FunSpec {
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === uidRange.copy(partitioner = alpha.copy(partitionsPerAlpha = 2),
-        uidsPerPartition = 2, uidCardinalityEstimator = countEstimator))
+        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
     }
 
     it(s"should provide predicate partitioner with non-default values via option") {
@@ -161,7 +158,7 @@ class TestPartitionerProvider extends FunSpec {
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, options)
       assert(partitioner === uidRange.copy(partitioner = pred.copy(predicatesPerPartition = 2),
-        uidsPerPartition = 2, uidCardinalityEstimator = countEstimator))
+        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
     }
 
   }

@@ -20,11 +20,10 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, JsonGraphQlExecutor}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, UidRange}
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -45,7 +44,7 @@ class TestUidRangePartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, None)
+    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
     val group = GroupPartitioner(schema, clusterState)
@@ -71,7 +70,7 @@ class TestUidRangePartitioner extends FunSpec {
           val uidPartitions = uidPartitioner.getPartitions(model)
           println(uidPartitions)
 
-          val ranges = (0 until (10000 / size)).map(idx => UidRange(idx * size, size))
+          val ranges = (0 until (10000 / size)).map(idx => UidRange(Uid(1 + idx * size), Uid(1 + (idx+1) * size)))
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
@@ -82,26 +81,6 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions === expectedPartitions)
         }
 
-      }
-
-      it(s"should decorate $label partitioner with uid count estimator") {
-        val executor = new JsonGraphQlExecutor {
-          override def query(query: connector.GraphQl): connector.Json = Json("""{ "result": [ { "count": 8 } ] }""")
-        }
-        val uidPartitioner = UidRangePartitioner(partitioner, 5, UidCardinalityEstimator.forExecutor(executor))
-        val partitions = partitioner.getPartitions(model)
-        val uidPartitions = uidPartitioner.getPartitions(model)
-        println(uidPartitions)
-
-        val ranges = Seq(UidRange(0, 5), UidRange(5, 5))
-        assert(uidPartitions.length === partitions.length * ranges.length)
-        val expectedPartitions = partitions.flatMap( partition =>
-          ranges.zipWithIndex.map { case (range, idx) =>
-            Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
-          }
-        )
-
-        assert(uidPartitions === expectedPartitions)
       }
 
     }

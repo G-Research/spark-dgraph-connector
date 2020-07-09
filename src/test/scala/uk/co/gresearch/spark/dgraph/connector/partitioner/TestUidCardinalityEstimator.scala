@@ -1,27 +1,27 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, JsonGraphQlExecutor}
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, Predicate, Schema, UidRange}
 
 class TestUidCardinalityEstimator extends FunSpec {
 
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
   val execution: DgraphExecutorProvider = DgraphExecutorProvider()
   val encoder: TypedTripleEncoder = TypedTripleEncoder(schema.predicateMap)
-  val model: TripleTableModel = TripleTableModel(execution, encoder, None)
+  val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
   def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {
 
     it("should estimate partition's uid range") {
-      val partition = Partition(Seq.empty, None, Some(UidRange(0, 1000)), model)
+      val range = UidRange(Uid(1), Uid(1000))
+      val partition = Partition(Seq.empty, None, Some(range), model)
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined)
-      assert(actual.get === 1000)
+      assert(actual.get === range.length)
     }
 
     it("should estimate partition without uid range") {
@@ -49,46 +49,6 @@ class TestUidCardinalityEstimator extends FunSpec {
       }
     }
 
-  }
-
-  describe("QueryUidCardinalityEstimator") {
-    val executor = new JsonGraphQlExecutor {
-      override def query(query: connector.GraphQl): connector.Json =
-        Json(
-          """{
-            |  "result": [
-            |    {
-            |      "count": 1234
-            |    }
-            |  ]
-            |}
-            |""".stripMargin)
-    }
-    val estimator = new QueryUidCardinalityEstimator(executor)
-
-    doTestUidCardinalityEstimatorBase(estimator, Some(1234))
-
-    it("should return no estimation and warn for multiple cardinality results") {
-      val executor = new JsonGraphQlExecutor {
-        override def query(query: connector.GraphQl): connector.Json =
-          Json(
-            """{
-              |  "result": [
-              |    {
-              |      "count": 10
-              |    },
-              |    {
-              |      "count": 20
-              |    }
-              |  ]
-              |}
-              |""".stripMargin)
-      }
-      val estimator = new QueryUidCardinalityEstimator(executor)
-      val partition = Partition(Seq.empty, None, None, model)
-      val actual = estimator.uidCardinality(partition)
-      assert(actual.isEmpty)
-    }
   }
 
 }

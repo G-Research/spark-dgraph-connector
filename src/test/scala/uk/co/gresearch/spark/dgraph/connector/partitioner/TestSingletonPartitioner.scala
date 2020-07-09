@@ -18,10 +18,10 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Predicate, Schema, Target}
 
 class TestSingletonPartitioner extends FunSpec {
 
@@ -31,7 +31,7 @@ class TestSingletonPartitioner extends FunSpec {
     val schema = Schema(Set(Predicate("predicate", "string")))
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, None)
+    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should partition") {
       val partitioner = SingletonPartitioner(targets)

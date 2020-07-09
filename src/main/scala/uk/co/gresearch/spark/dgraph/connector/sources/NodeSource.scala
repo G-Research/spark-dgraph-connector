@@ -76,7 +76,7 @@ class NodeSource() extends TableProviderBase
       case None => TypedNodeEncoder(schema.predicateMap)
     }
     val execution = DgraphExecutorProvider()
-    val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions)
+    val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)
     new TripleScan(partitioner, model)
   }

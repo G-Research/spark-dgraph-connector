@@ -189,7 +189,8 @@ class TestNodeSource extends FunSpec
             NodesModeOption -> NodesModeWideOption,
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "1",
-            UidRangePartitionerUidsPerPartOption -> "1"
+            UidRangePartitionerUidsPerPartOption -> "1",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphNodes(cluster.grpc)
       )
@@ -251,7 +252,7 @@ class TestNodeSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = TypedNodeEncoder(schema.predicateMap)
-    val model = NodeTableModel(execution, encoder, None)
+    val model = NodeTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -301,7 +302,8 @@ class TestNodeSource extends FunSpec
           .read
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "7"
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphNodes(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))

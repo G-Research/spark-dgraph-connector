@@ -147,7 +147,7 @@ class TestEdgeSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = EdgeEncoder(schema.predicateMap)
-    val model = EdgeTableModel(execution, encoder, None)
+    val model = EdgeTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -195,7 +195,8 @@ class TestEdgeSource extends FunSpec
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
-            UidRangePartitionerEstimatorOption -> UidCountEstimatorOption,
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphEdges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))

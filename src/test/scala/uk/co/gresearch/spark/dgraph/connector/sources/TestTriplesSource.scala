@@ -251,7 +251,7 @@ class TestTriplesSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, None)
+    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -299,8 +299,11 @@ class TestTriplesSource extends FunSpec
       val partitions =
         spark
           .read
-          .option(PartitionerOption, s"$UidRangePartitionerOption")
-          .option(UidRangePartitionerUidsPerPartOption, "7")
+          .options(Map(
+            PartitionerOption -> s"$UidRangePartitionerOption",
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+          ))
           .dgraphTriples(target)
           .rdd
           .partitions.map {
@@ -309,8 +312,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(0, 7)), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(7, 7)), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(Uid(1), Uid(8))), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), None, Some(UidRange(Uid(8), Uid(15))), model)),
       )
 
       assert(partitions.toSet === expected)
@@ -321,9 +324,12 @@ class TestTriplesSource extends FunSpec
       val partitions =
         spark
           .read
-          .option(PartitionerOption, s"$PredicatePartitionerOption+$UidRangePartitionerOption")
-          .option(PredicatePartitionerPredicatesOption, "2")
-          .option(UidRangePartitionerUidsPerPartOption, "5")
+          .options(Map(
+            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PredicatePartitionerPredicatesOption -> "2",
+            UidRangePartitionerUidsPerPartOption -> "5",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+          ))
           .dgraphTriples(target)
           .rdd
           .partitions.map {
@@ -331,16 +337,15 @@ class TestTriplesSource extends FunSpec
           case _ => None
         }
 
+      val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
+
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("starring", "uid"))), None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int"))), None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(0, 5)), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(5, 5)), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), Some(UidRange(10, 5)), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), Some(UidRange(0, 5)), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), Some(UidRange(5, 5)), model))
-      )
+        Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("starring", "uid"))), None, model),
+        Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None, model),
+        Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int"))), None, model),
+        Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string"))), None, model),
+        Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"), Predicate("name", "string"))), None, model)
+      ).flatMap(partition => ranges.map(range => Some(partition.copy(uids = Some(range)))))
 
       assert(partitions.toSet === expected)
     }
@@ -352,7 +357,8 @@ class TestTriplesSource extends FunSpec
           .read
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "7"
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> highestUid.toString
           ))
           .dgraphTriples(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
