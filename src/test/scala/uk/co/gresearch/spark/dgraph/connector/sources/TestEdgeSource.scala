@@ -17,9 +17,8 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import org.apache.spark.sql.{DataFrame, Encoders, Row}
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.{DataFrame, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
@@ -190,12 +189,13 @@ class TestEdgeSource extends FunSpec
           .dgraphEdges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
+
       // we can only count and retrieve triples, not edges only, and filter for edges in the connector
       // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
       // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)
       val uids = Set(sw1, sw2, sw3)
       val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
-      assert(partitions === expected)
+      assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
     }
 
   }
