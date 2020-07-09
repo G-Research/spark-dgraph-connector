@@ -32,7 +32,7 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
    * @return estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[Long] = partition match {
-    case Partition(_, _, Some(UidRange(_, length))) => Some(length)
+    case Partition(_, _, Some(range)) => Some(range.length)
     case _ => None
   }
 
@@ -55,48 +55,7 @@ case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Long) extends UidCardin
 
 }
 
-case class QueryUidCardinalityEstimator(executor: JsonGraphQlExecutor) extends UidCardinalityEstimatorBase {
-
-  /**
-   * Estimates the cardinality of uids in the given partition,
-   * or None if an estimation is not available.
-   *
-   * @param partition a partition
-   * @return estimated number of uids or None
-   */
-  override def uidCardinality(partition: Partition): Option[Long] = {
-    super.uidCardinality(partition).orElse(queryUidCardinality(partition))
-  }
-
-  def queryUidCardinality(partition: Partition): Option[Long] = {
-    val query = partition.query
-    val graphql = query.countUids
-    val json = executor.query(graphql)
-    getCardinality(json, query.resultName)
-  }
-
-  def getCardinality(json: Json, member: String): Option[Long] = {
-    val cardinality =
-      new Gson().fromJson(json.string, classOf[JsonObject])
-        .getAsJsonArray(member)
-        .iterator()
-        .asScala
-        .map(_.getAsJsonObject.getAsJsonPrimitive("count").getAsLong)
-        .toSeq
-
-    if (cardinality.size > 1) {
-      println(s"retrieved multiple cardinality information:\n${json.string}")
-      None
-    } else {
-      cardinality.headOption
-    }
-  }
-
-}
-
 object UidCardinalityEstimator {
   def forMaxLeaseId(maxLeaseId: Long): UidCardinalityEstimator =
     MaxLeaseIdUidCardinalityEstimator(maxLeaseId)
-  def forExecutor(executor: JsonGraphQlExecutor): UidCardinalityEstimator =
-    QueryUidCardinalityEstimator(executor)
 }

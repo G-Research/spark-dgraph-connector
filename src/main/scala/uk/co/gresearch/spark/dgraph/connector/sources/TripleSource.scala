@@ -62,7 +62,7 @@ class TripleSource() extends TableProviderBase
       case None => TypedTripleEncoder(schema.predicateMap)
     }
     val execution = DgraphExecutorProvider()
-    val chunkSize = getIntOption(ChunkSizeOption, options)
+    val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)
     new TripleTable(partitioner, model, clusterState.cid)
   }

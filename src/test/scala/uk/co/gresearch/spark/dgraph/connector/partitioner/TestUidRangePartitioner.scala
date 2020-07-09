@@ -22,7 +22,7 @@ import java.util.UUID
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Json, Partition, Predicate, Schema, Target, Uid, UidRange}
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -65,7 +65,7 @@ class TestUidRangePartitioner extends FunSpec {
           val partitions = partitioner.getPartitions
           val uidPartitions = uidPartitioner.getPartitions
 
-          val ranges = (0 until (10000 / size)).map(idx => UidRange(idx * size, size))
+          val ranges = (0 until (10000 / size)).map(idx => UidRange(Uid(1 + idx * size), Uid(1 + (idx+1) * size)))
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
@@ -76,25 +76,6 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions === expectedPartitions)
         }
 
-      }
-
-      it(s"should decorate $label partitioner with uid count estimator") {
-        val executor = new JsonGraphQlExecutor {
-          override def query(query: connector.GraphQl): connector.Json = Json("""{ "result": [ { "count": 8 } ] }""")
-        }
-        val uidPartitioner = UidRangePartitioner(partitioner, 5, UidCardinalityEstimator.forExecutor(executor))
-        val partitions = partitioner.getPartitions
-        val uidPartitions = uidPartitioner.getPartitions
-
-        val ranges = Seq(UidRange(0, 5), UidRange(5, 5))
-        assert(uidPartitions.length === partitions.length * ranges.length)
-        val expectedPartitions = partitions.flatMap( partition =>
-          ranges.zipWithIndex.map { case (range, idx) =>
-            Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range))
-          }
-        )
-
-        assert(uidPartitions === expectedPartitions)
       }
 
     }

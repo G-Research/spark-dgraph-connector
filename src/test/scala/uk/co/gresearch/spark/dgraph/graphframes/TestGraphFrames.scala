@@ -98,7 +98,6 @@ class TestGraphFrames extends FunSpec
           Row(richard, null, null, "Person", "Richard Marquand", null, null, null, 0.9843173431734319.toFloat),
         )
       )
-      doubleTriples.show(100, false)
       assert(triplets === expected)
     }
 

@@ -17,7 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{Partition, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange}
 
 case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
 
@@ -44,10 +44,14 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
             s"with uidCardinality of ${uidCardinality.get} " +
             s"leads to more then ${Integer.MAX_VALUE} partitions: ${parts.get}")
 
-        (0 until parts.get.toInt)
-          .map(idx => idx -> UidRange(idx * uidsPerPartition, uidsPerPartition))
+        (0 to parts.get.toInt)
+          .map(idx => 1 + idx * uidsPerPartition)
+          .map(Uid(_))
+          .sliding(2)
+          .map(uids => UidRange(uids.head, uids.last))
+          .zipWithIndex
           .map {
-            case (idx, range) =>
+            case (range, idx) =>
               Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range))
           }
       } else {

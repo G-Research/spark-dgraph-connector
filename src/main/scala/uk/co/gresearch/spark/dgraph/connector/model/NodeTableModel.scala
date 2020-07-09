@@ -1,13 +1,13 @@
 package uk.co.gresearch.spark.dgraph.connector.model
-import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, PartitionQuery}
-import uk.co.gresearch.spark.dgraph.connector.encoder.InternalRowEncoder
+
+import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.ExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, PartitionQuery}
 
 /**
  * Models only the nodes of a graph as a table.
  */
-case class NodeTableModel(execution: ExecutorProvider, encoder: InternalRowEncoder, chunkSize: Option[Int]) extends GraphTableModel {
+case class NodeTableModel(execution: ExecutorProvider, encoder: JsonNodeInternalRowEncoder, chunkSize: Int) extends GraphTableModel {
 
   /**
    * Turn a partition query into a GraphQl query.

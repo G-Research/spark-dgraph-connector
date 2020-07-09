@@ -3,7 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
-import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, Uid, UidRange}
 
 class TestUidCardinalityEstimator extends FunSpec {
 
@@ -11,10 +11,11 @@ class TestUidCardinalityEstimator extends FunSpec {
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {
 
     it("should estimate partition's uid range") {
-      val partition = Partition(Seq.empty, None, Some(UidRange(0, 1000)))
+      val range = UidRange(Uid(1), Uid(1000))
+      val partition = Partition(Seq.empty, None, Some(range))
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined)
-      assert(actual.get === 1000)
+      assert(actual.get === range.length)
     }
 
     it("should estimate partition without uid range") {
@@ -42,46 +43,6 @@ class TestUidCardinalityEstimator extends FunSpec {
       }
     }
 
-  }
-
-  describe("QueryUidCardinalityEstimator") {
-    val executor = new JsonGraphQlExecutor {
-      override def query(query: connector.GraphQl): connector.Json =
-        Json(
-          """{
-            |  "result": [
-            |    {
-            |      "count": 1234
-            |    }
-            |  ]
-            |}
-            |""".stripMargin)
-    }
-    val estimator = new QueryUidCardinalityEstimator(executor)
-
-    doTestUidCardinalityEstimatorBase(estimator, Some(1234))
-
-    it("should return no estimation and warn for multiple cardinality results") {
-      val executor = new JsonGraphQlExecutor {
-        override def query(query: connector.GraphQl): connector.Json =
-          Json(
-            """{
-              |  "result": [
-              |    {
-              |      "count": 10
-              |    },
-              |    {
-              |      "count": 20
-              |    }
-              |  ]
-              |}
-              |""".stripMargin)
-      }
-      val estimator = new QueryUidCardinalityEstimator(executor)
-      val partition = Partition(Seq.empty, None, None)
-      val actual = estimator.uidCardinality(partition)
-      assert(actual.isEmpty)
-    }
   }
 
 }

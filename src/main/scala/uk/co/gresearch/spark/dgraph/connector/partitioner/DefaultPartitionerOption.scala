@@ -22,11 +22,9 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 class DefaultPartitionerOption extends ConfigPartitionerOption {
 
-  val defaultPartitionerName = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
-
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Some(getPartitioner(defaultPartitionerName, schema, clusterState, options))
+    Some(getPartitioner(PartitionerDefault, schema, clusterState, options))
 
 }
