@@ -219,11 +219,13 @@ class TestTypedTripleTripleEncoder extends FunSpec {
         |    ]
         |  }""".stripMargin
 
+    def ts(string: String): Long = DateTimeUtils.fromJavaTimestamp(Timestamp.valueOf(string))
+
     val encoder = TypedTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(json), "result")
     assert(rows.toSeq === Seq(
       InternalRow(1L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), null, null, null, null, null, null, UTF8String.fromString("string")),
-      InternalRow(1L, UTF8String.fromString("release_date"), null, null, null, null, 233362800000000L, null, null, null, UTF8String.fromString("timestamp")),
+      InternalRow(1L, UTF8String.fromString("release_date"), null, null, null, null, ts("1977-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
       InternalRow(1L, UTF8String.fromString("revenue"), null, null, null, 775000000.0, null, null, null, null, UTF8String.fromString("double")),
       InternalRow(1L, UTF8String.fromString("running_time"), null, null, 121L, null, null, null, null, null, UTF8String.fromString("long")),
       InternalRow(1L, UTF8String.fromString("starring"), 2L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
@@ -237,7 +239,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
       InternalRow(6L, UTF8String.fromString("name"), null, UTF8String.fromString("Richard Marquand"), null, null, null, null, null, null, UTF8String.fromString("string")),
       InternalRow(7L, UTF8String.fromString("name"), null, UTF8String.fromString("Princess Leia"), null, null, null, null, null, null, UTF8String.fromString("string")),
       InternalRow(8L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"), null, null, null, null, null, null, UTF8String.fromString("string")),
-      InternalRow(8L, UTF8String.fromString("release_date"), null, null, null, null, 327708000000000L, null, null, null, UTF8String.fromString("timestamp")),
+      InternalRow(8L, UTF8String.fromString("release_date"), null, null, null, null, ts("1980-05-21 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
       InternalRow(8L, UTF8String.fromString("revenue"), null, null, null, 534000000.0, null, null, null, null, UTF8String.fromString("double")),
       InternalRow(8L, UTF8String.fromString("running_time"), null, null, 124L, null, null, null, null, null, UTF8String.fromString("long")),
       InternalRow(8L, UTF8String.fromString("starring"), 2L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
@@ -245,7 +247,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
       InternalRow(8L, UTF8String.fromString("starring"), 7L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
       InternalRow(8L, UTF8String.fromString("director"), 5L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
       InternalRow(9L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"), null, null, null, null, null, null, UTF8String.fromString("string")),
-      InternalRow(9L, UTF8String.fromString("release_date"), null, null, null, null, 422661600000000L, null, null, null, UTF8String.fromString("timestamp")),
+      InternalRow(9L, UTF8String.fromString("release_date"), null, null, null, null, ts("1983-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
       InternalRow(9L, UTF8String.fromString("revenue"), null, null, null, 572000000.0, null, null, null, null, UTF8String.fromString("double")),
       InternalRow(9L, UTF8String.fromString("running_time"), null, null, 131L, null, null, null, null, null, UTF8String.fromString("long")),
       InternalRow(9L, UTF8String.fromString("starring"), 2L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
@@ -253,7 +255,7 @@ class TestTypedTripleTripleEncoder extends FunSpec {
       InternalRow(9L, UTF8String.fromString("starring"), 7L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
       InternalRow(9L, UTF8String.fromString("director"), 6L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
       InternalRow(10L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Trek: The Motion Picture"), null, null, null, null, null, null, UTF8String.fromString("string")),
-      InternalRow(10L, UTF8String.fromString("release_date"), null, null, null, null, 313369200000000L, null, null, null, UTF8String.fromString("timestamp")),
+      InternalRow(10L, UTF8String.fromString("release_date"), null, null, null, null, ts("1979-12-07 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
       InternalRow(10L, UTF8String.fromString("revenue"), null, null, null, 139000000.0, null, null, null, null, UTF8String.fromString("double")),
       InternalRow(10L, UTF8String.fromString("running_time"), null, null, 132L, null, null, null, null, null, UTF8String.fromString("long")),
     ))

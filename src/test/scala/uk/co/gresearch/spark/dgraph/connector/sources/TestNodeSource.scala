@@ -308,7 +308,11 @@ class TestNodeSource extends FunSpec
           .dgraphNodes(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions === allUids.grouped(7).map(_.toSet).toSeq)
+
+      // ignore the existence or absence of graphQlSchema in the result, otherwise flaky test:
+      // - should partition data *** FAILED ***
+      //  Array(Set(5, 6, 2, 7, 3, 4), Set(10, 9, 12, 11, 8)) did not equal Stream(Set(5, 6, 2, 7, 3, 8, 4), Set(9, 10, 11, 12)) (TestNodeSource.scala:295)
+      assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
     }
 
   }

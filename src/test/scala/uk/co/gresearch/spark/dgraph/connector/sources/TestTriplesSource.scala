@@ -363,7 +363,9 @@ class TestTriplesSource extends FunSpec
           .dgraphTriples(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
-      assert(partitions === allUids.grouped(7).map(_.toSet).toSeq)
+
+      // ignore the existence or absence of graphQlSchema in the result, otherwise flaky test, see TestNodeSource
+      assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
     }
 
   }
