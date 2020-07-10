@@ -49,7 +49,7 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder {
     val uidString = node.remove("uid").getAsString
     val uid = Uid(uidString)
     node.entrySet().iterator().asScala
-      .flatMap(e => predicates.get(e.getKey).map(_.typeName).map(t => (e.getKey, e.getValue, t)))
+      .flatMap(e => predicates.get(e.getKey).map(_.dgraphType).map(t => (e.getKey, e.getValue, t)))
       .flatMap{ case (p, v, t) =>
         getValues(v).flatMap(v =>
           asInternalRow(uid, p, getValue(v, t))

@@ -1,10 +1,6 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import com.google.gson.{Gson, JsonObject}
-import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
-import uk.co.gresearch.spark.dgraph.connector.{Json, Partition, UidRange}
-
-import scala.collection.JavaConverters._
+import uk.co.gresearch.spark.dgraph.connector.Partition
 
 trait UidCardinalityEstimator {
 
@@ -32,7 +28,7 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
    * @return estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[Long] = partition match {
-    case Partition(_, _, Some(range)) => Some(range.length)
+    case Partition(_, _, Some(range), _) => Some(range.length)
     case _ => None
   }
 

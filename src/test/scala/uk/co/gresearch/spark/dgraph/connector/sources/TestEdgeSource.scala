@@ -17,41 +17,44 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
 
 class TestEdgeSource extends FunSpec
-  with SparkTestSession with DgraphTestCluster {
+  with SparkTestSession with DgraphTestCluster
+  with FilterPushDownTestHelper {
 
   import spark.implicits._
 
   describe("EdgeDataSource") {
 
+    lazy val expectedEdges = Set(
+      Row(sw1, "director", lucas),
+      Row(sw1, "starring", leia),
+      Row(sw1, "starring", luke),
+      Row(sw1, "starring", han),
+      Row(sw2, "director", irvin),
+      Row(sw2, "starring", leia),
+      Row(sw2, "starring", luke),
+      Row(sw2, "starring", han),
+      Row(sw3, "director", richard),
+      Row(sw3, "starring", leia),
+      Row(sw3, "starring", luke),
+      Row(sw3, "starring", han),
+    )
+
     def doTestLoadEdges(load: () => DataFrame): Unit = {
       val edges = load().collect().toSet
-      val expected = Set(
-        Row(sw1, "director", lucas),
-        Row(sw1, "starring", leia),
-        Row(sw1, "starring", luke),
-        Row(sw1, "starring", han),
-        Row(sw2, "director", irvin),
-        Row(sw2, "starring", leia),
-        Row(sw2, "starring", luke),
-        Row(sw2, "starring", han),
-        Row(sw3, "director", richard),
-        Row(sw3, "starring", leia),
-        Row(sw3, "starring", luke),
-        Row(sw3, "starring", han),
-      )
-      assert(edges === expected)
+      assert(edges === expectedEdges)
     }
 
     it("should load edges via path") {
-      doTestLoadEdges( () =>
+      doTestLoadEdges(() =>
         spark
           .read
           .format(EdgesSource)
@@ -89,10 +92,10 @@ class TestEdgeSource extends FunSpec
     }
 
     it("should load edges via implicit dgraph target") {
-      doTestLoadEdges( () =>
-      spark
-        .read
-        .dgraphEdges(cluster.grpc)
+      doTestLoadEdges(() =>
+        spark
+          .read
+          .dgraphEdges(cluster.grpc)
       )
     }
 
@@ -150,7 +153,7 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, None, None))))
+      assert(partitions === Seq(Some(Partition(targets, None, None, None))))
     }
 
     it("should load as a predicate partitions") {
@@ -168,8 +171,8 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("starring", "uid"))), None))
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("director", "uid"))), None, None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("starring", "uid"))), None, None))
       )
 
       assert(partitions.toSet === expected)
@@ -196,6 +199,31 @@ class TestEdgeSource extends FunSpec
       val uids = Set(sw1, sw2, sw3)
       val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
       assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
+    }
+
+    lazy val edges =
+      spark
+        .read
+        .options(Map(
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "2"
+        ))
+        .dgraphEdges(cluster.grpc)
+
+    it("should push predicate filters") {
+      doTestFilterPushDown($"predicate" === "director", Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director"), Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director", "starring"), Seq(PredicateNameIsIn("director", "starring")), expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1))))
+    }
+
+    it("should push object value filters") {
+      doTestFilterPushDown($"objectUid" === leia, Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
+      doTestFilterPushDown($"objectUid".isin(leia), Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
+      doTestFilterPushDown($"objectUid".isin(leia, lucas), Seq(ObjectValueIsIn(leia, lucas), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(r => Set(leia, lucas).contains(r.getLong(2))))
+    }
+
+    def doTestFilterPushDown(condition: Column, expectedFilters: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
+      doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
     }
 
   }

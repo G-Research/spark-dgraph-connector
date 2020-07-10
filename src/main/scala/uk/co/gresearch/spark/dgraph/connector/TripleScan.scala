@@ -22,7 +22,7 @@ import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
-class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends Scan with Batch {
+case class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends Scan with Batch {
 
   override def readSchema(): StructType = model.readSchema()
 

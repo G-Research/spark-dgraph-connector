@@ -285,7 +285,7 @@ Note: The graph schema could become very large and therefore the `DataFrame` cou
 |9      |null                 |Person     |Richard Marquand                              |null               |null   |null        |
 |10     |null                 |Film       |Star Wars: Episode V - The Empire Strikes Back|1980-05-21 00:00:00|5.34E8 |124         |
 
-Note: Wide nodes source enforce the predicate partitioner to produce a single partition.
+Note: The Wide Nodes source enforces the [predicate partitioner](#partitioning-by-predicates) to produce a single partition.
 
 #### Edges
 
@@ -318,6 +318,30 @@ Though there is only a single `object` column for the destination node, it is ca
 |10     |starring |2        |
 |10     |starring |6        |
 |10     |director |8        |
+
+## Filter Pushdown
+
+The connector supports filter pushdown to improve its efficiency when reading only sub-graphs.
+This is supported only in conjunction with the [predicate partitioner](#partitioning-by-predicates).
+Spark filters cannot be pushed for any column and any data source because columns have different meaning.
+Columns can be of the following types:
+
+|Column Type|Description|Type |Columns|Sources|
+|:---------:|-----------|:---:|:-----:|-------|
+|subject column|the subject of the row|`long`|`subject`|all [DataFrame sources](#dataframe)|
+|predicate column|the predicate of the row|`string`|`predicate`|all but [Wide Nodes source](#wide-nodes)|
+|predicate value column|the value of a specific predicate, column name is predicate name|*any*|one column for each predicate in the schema, e.g. `dgraph.type`|[Wide Nodes source](#wide-nodes)|
+|object value columns|object value of the row|`long`<br/>`string`<br/>`long`<br/>`double`<br/>`timestamp`<br/>`boolean`<br/>`geo`<br/>`password`|`objectUid`<br>`objectString`<br>`objectLong`<br>`objectDouble`<br>`objectTimestamp`<br>`objectBoolean`<br>`objectGeo`<br>`objectPassword`|all but [Wide Nodes source](#Wide-nodes)<br>the [String Triples source](#string-triples) has only `objectString`<br>the [Typed Triples source](#typed-triples) lacks the `objectUid`<br>the [Edges source](#edges) has only `objectUid`|
+|object type column|the type of the object|`string`|`objectType`|all but [Wide Nodes](#wide-nodes) and [Edges](#edges) source|
+
+The following table lists all supported Spark filters:
+
+|Spark Filter|Supported Columns|Example|
+|:----------:|-------|-------|
+|`EqualTo`   |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectLong" === 123)`</li><li>`.where($"objectType" === "string")`</li></ul>|
+|`In`        |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
+|`IsNotNull` |<ul><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
+
 
 ## Special Use Cases
 
@@ -379,6 +403,11 @@ The space of existing `uids` is split into ranges of `N` `uids` per partition. T
 and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
 partitions in ascending order. If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
 
+Note: With uid partitioning, the chunk size configured via `dgraph.chunkSize` should be at least a 10th of
+the number of uids per partition configured via `dgraph.partitioner.uidRange.uidsPerPartition` to avoid
+inefficiency due to chunks overlapping with partition borders. When your result is sparse w.r.t. the uid space
+set the chunk size to 100th or less.
+
 <!-- there is only one estimator left, no need to mention this until we have another
 The estimator can be selected with the `dgraph.partitioner.uidRange.estimator` option. These estimators are available:
 
@@ -392,7 +421,7 @@ This estimator can be selected with the `maxLeaseId` value.
 
 ### Streamed Partitions
 
-The connector reads single partitions from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
+The connector reads each partition from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
 where each chunk contains `100000` uids. This chunk size can be configured via `dgraph.chunkSize`.
 Each chunk sends a single query sent to Dgraph. The chunk size limits the size of the result.
 Due to the low memory footprint of the connector, Spark could read your entire graph via a single partition

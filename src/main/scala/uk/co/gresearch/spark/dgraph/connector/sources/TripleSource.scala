@@ -37,10 +37,10 @@ class TripleSource() extends TableProviderBase
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType =
     getTripleMode(options) match {
-      case Some(TriplesModeStringOption) => StringTripleEncoder.schema()
-      case Some(TriplesModeTypedOption) => TypedTripleEncoder.schema()
+      case Some(TriplesModeStringOption) => StringTripleEncoder.schema
+      case Some(TriplesModeTypedOption) => TypedTripleEncoder.schema
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => TypedTripleEncoder.schema()
+      case None => TypedTripleEncoder.schema
     }
 
   def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
@@ -64,7 +64,7 @@ class TripleSource() extends TableProviderBase
     val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)
-    new TripleTable(partitioner, model, clusterState.cid)
+    TripleTable(partitioner, model, clusterState.cid)
   }
 
 }

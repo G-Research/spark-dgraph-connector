@@ -15,7 +15,6 @@ import scala.collection.JavaConverters._
  */
 trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
 
-
   /**
    * Encodes the given Dgraph json result into InternalRows.
    *

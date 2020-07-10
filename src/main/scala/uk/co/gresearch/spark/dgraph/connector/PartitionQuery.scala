@@ -19,24 +19,58 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import uk.co.gresearch.spark.dgraph.connector
 
-case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]) {
+case class PartitionQuery(resultName: String,
+                          predicates: Option[Set[Predicate]],
+                          values: Option[Map[String, Set[Any]]]) {
 
   def getChunkString(chunk: Option[Chunk]): String =
     chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
+
+  def getValueFilter(predicateName: String, filterMode: String): String = {
+    predicates
+      .flatMap(_.find(_.predicateName.equals(predicateName)))
+      .flatMap(predicateType =>
+        values
+          .flatMap(_.get(predicateName))
+          .map { valueSet =>
+            val filter = predicateType match {
+              case Predicate(_, "uid", _) if filterMode.equals("vals") =>
+                s"""uid(${valueSet.map(Uid(_).toHexString).mkString(", ")})"""
+              case _ => valueSet.map { value =>
+                predicateType match {
+                  case Predicate(_, "uid", _) => filterMode match {
+                    // not needed
+                    // case "vals" => s"""uid(${Uid(value).toHexString})"""
+                    case "uids" => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})"""
+                    case _ => throw new IllegalArgumentException(s"unsupported filter mode: $filterMode")
+                  }
+                  case ______________________ => s"""eq(<$predicateName>, "${value.toString}")"""
+                }
+              }.mkString(" OR ")
+            }
+
+            Some(filter)
+              .filter(_.nonEmpty)
+              .map(f => s" @filter($f)")
+              .getOrElse("")
+          }
+      )
+      .getOrElse("")
+  }
 
   def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
     predicates
       .getOrElse(Set.empty)
       .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})""" }
+      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName, "uids")}""" }
       .toMap
 
   val predicatePaths: Seq[String] =
     predicates
       .getOrElse(Set.empty)
       .map {
-        case Predicate(predicate, "uid") => s"<$predicate> { uid }"
-        case Predicate(predicate, _____) => s"<$predicate>"
+        case Predicate(predicate, "uid", _) => s"<$predicate> { uid }${getValueFilter(predicate, "vals")}"
+        case Predicate(predicate, _____, _) => s"<$predicate>${getValueFilter(predicate, "vals")}"
       }
       .toSeq
 
@@ -88,5 +122,5 @@ case class PartitionQuery(resultName: String, predicates: Option[Set[Predicate]]
 
 object PartitionQuery {
   def of(partition: Partition, resultName: String = "result"): PartitionQuery =
-    PartitionQuery(resultName, partition.predicates)
+    PartitionQuery(resultName, partition.predicates, partition.values)
 }

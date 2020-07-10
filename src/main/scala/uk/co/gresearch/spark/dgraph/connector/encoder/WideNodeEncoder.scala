@@ -24,14 +24,15 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Encodes nodes as wide InternalRows from Dgraph json results.
  */
-case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeInternalRowEncoder {
+case class WideNodeEncoder(predicates: Map[String, Predicate])
+  extends JsonNodeInternalRowEncoder with ColumnInfoProvider {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -51,6 +52,14 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
    * 1-based dense column indices for predicate names.
    */
   val columns: Map[String, Int] = schema.fields.zipWithIndex.map{ case (p, i) => (p.name, i) }.drop(1).toMap
+
+  override val subjectColumnName: Option[String] = Some(schema.fields.head.name)
+  override val predicateColumnName: Option[String] = None
+  override val objectTypeColumnName: Option[String] = None
+  override val objectValueColumnNames: Option[Set[String]] = Some(columns.keys.toSet)
+  override val objectTypes: Option[Map[String, String]] = None
+
+  override def isPredicateValueColumn(columnName: String): Boolean = columns.contains(columnName)
 
   /**
    * Encodes the given Dgraph json result into InternalRows.
@@ -79,7 +88,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
       .map { e =>
         (
           columns.get(e.getKey),
-          predicates.get(e.getKey).map(_.typeName),
+          predicates.get(e.getKey).map(_.dgraphType),
           e.getValue,
         )
       }
@@ -88,6 +97,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
         val obj = getValue(o, t)
         val objectValue = t match {
           case "string" => UTF8String.fromString(obj.asInstanceOf[String])
+          case "uid" => obj.asInstanceOf[Uid].uid
           case "int" => obj
           case "float" => obj
           case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])
@@ -117,12 +127,12 @@ object WideNodeEncoder {
     )
 
   /**
-   * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, repectively)
+   * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, respectively)
    * @param predicate predicate
    * @return spark type
    */
   def toStructField(predicate: Predicate): StructField = {
-    val dType = predicate.typeName match {
+    val dType = predicate.dgraphType match {
       case "uid" => LongType
       case "string" => StringType
       case "int" => LongType

@@ -21,7 +21,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
-class TriplePartitionReaderFactory(model: GraphTableModel) extends PartitionReaderFactory {
+case class TriplePartitionReaderFactory(model: GraphTableModel) extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] =
     partition match {
       case p: Partition => new TriplePartitionReader(p, model)
