@@ -20,16 +20,17 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, PredicateNameIsIn, Schema, SubjectIsIn, Target, Uid, UidRange, _}
 
 class TestUidRangePartitioner extends FunSpec {
 
   describe("UidRangePartitioner") {
 
-    val schema = Schema(Set(Predicate(s"pred1", s"type1"), Predicate(s"pred2", s"type2")))
+    val schema = Schema(Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2")))
     val clusterState = ClusterState(
       Map(
         "1" -> Set(Target("host1:9080"), Target("host2:9080")),
@@ -74,7 +75,7 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
+              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None, model)
             }
           )
 
@@ -111,6 +112,34 @@ class TestUidRangePartitioner extends FunSpec {
       assertThrows[IllegalArgumentException] {
         UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(1000)).getPartitions(model)
       }
+    }
+
+    it("should support what decorated partitioner supports") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+
+      Seq(
+        Seq(SubjectIsIn(Uid("0x1"))),
+        Seq(PredicateNameIsIn("pred")),
+        Seq(PredicateNameIsIn("pred"), ObjectValueIsIn("value")),
+        Seq(ObjectTypeIsIn("type")),
+        Seq(ObjectValueIsIn("type"))
+      ).foreach {
+        filters =>
+          val actual = uidPartitioner.supportsFilters(filters)
+          val expected = partitioner.supportsFilters(filters)
+          assert(actual === expected, filters)
+      }
+    }
+
+    it("should forward filters to decorated partitioner") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val filters = Filters(Seq.empty, Seq.empty)
+      val actual =
+        uidPartitioner.withFilters(filters).asInstanceOf[UidRangePartitioner]
+          .partitioner.asInstanceOf[connector.partitioner.PredicatePartitioner].filters
+      assert(actual eq filters)
     }
 
   }

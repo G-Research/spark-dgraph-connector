@@ -17,9 +17,32 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.Partition
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
+import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition}
 
 trait Partitioner {
+
+  /**
+   * Gets the partitions.
+   */
   def getPartitions(model: GraphTableModel): Seq[Partition]
+
+  /**
+   * Indicates whether this partitioner supports all given filters.
+   * @param filters filters
+   * @return true if supported, false otherwise
+   */
+  def supportsFilters(filters: Seq[connector.Filter]): Boolean = false
+
+  /**
+   * Sets the filters to be used by the partitioner. Returns a copy of this partitioner with the filters set.
+   * Partitioner has to use the required filters and can use the optional filters.
+   * Actual filters in comply with result of supportsFilters.
+   *
+   * @param filters filters
+   * @return partitioner with the given filters
+   */
+  def withFilters(filters: Filters): Partitioner = this
+
 }

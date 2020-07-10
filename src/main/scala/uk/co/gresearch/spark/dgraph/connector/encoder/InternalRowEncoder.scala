@@ -7,7 +7,7 @@ import uk.co.gresearch.spark.dgraph.connector.Json
 /**
  * Encodes data into InternalRows. Supports Dgraph json results as input.
  */
-trait InternalRowEncoder {
+trait InternalRowEncoder extends ColumnInfo {
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

@@ -18,7 +18,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
 
 case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
 
@@ -27,6 +27,10 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
 
   if (uidsPerPartition <= 0)
     throw new IllegalArgumentException(s"uidsPerPartition must be larger than zero: $uidsPerPartition")
+
+  override def supportsFilters(filters: Seq[Filter]): Boolean = partitioner.supportsFilters(filters)
+
+  override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
 
   override def getPartitions(model: GraphTableModel): Seq[Partition] = {
     val partitions = partitioner.getPartitions(model)
@@ -52,7 +56,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
           .zipWithIndex
           .map {
             case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), model)
+              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None, model)
           }
       } else {
         Seq(partition)

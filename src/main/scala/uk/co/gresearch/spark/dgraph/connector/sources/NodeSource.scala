@@ -65,7 +65,7 @@ class NodeSource() extends TableProviderBase
     val adjustedOptions = adjustOptions(options)
 
     val targets = getTargets(adjustedOptions)
-    val schema = getSchema(targets).filter(_.typeName != "uid")
+    val schema = getSchema(targets).filter(_.dgraphType != "uid")
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, adjustedOptions)
     val nodeMode = getNodeMode(adjustedOptions)

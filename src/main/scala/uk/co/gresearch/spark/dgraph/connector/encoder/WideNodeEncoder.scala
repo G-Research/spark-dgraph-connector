@@ -24,14 +24,15 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Encodes nodes as wide InternalRows from Dgraph json results.
  */
-case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeInternalRowEncoder {
+case class WideNodeEncoder(predicates: Map[String, Predicate])
+  extends JsonNodeInternalRowEncoder with ColumnInfoProvider {
 
   // this order defines the order of the columns
   val sortedPredicates: Seq[Predicate] = predicates.values.toSeq.sortBy(_.predicateName)
@@ -49,7 +50,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
    * @return spark type
    */
   def toStructField(predicate: Predicate): StructField = {
-    val dType = predicate.typeName match {
+    val dType = predicate.dgraphType match {
       case "uid" => LongType
       case "string" => StringType
       case "int" => LongType
@@ -76,6 +77,14 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
    * From: org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
+
+  override val subjectColumnName: Option[String] = Some(schema.fields.head.name)
+  override val predicateColumnName: Option[String] = None
+  override val objectTypeColumnName: Option[String] = None
+  override val objectValueColumnNames: Option[Set[String]] = Some(columns.keys.toSet)
+  override val objectTypes: Option[Map[String, String]] = None
+
+  override def isPredicateValueColumn(columnName: String): Boolean = columns.contains(columnName)
 
   /**
    * Encodes the given Dgraph json result into InternalRows.
@@ -104,7 +113,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
       .map { e =>
         (
           columns.get(e.getKey),
-          predicates.get(e.getKey).map(_.typeName),
+          predicates.get(e.getKey).map(_.dgraphType),
           e.getValue,
         )
       }
@@ -113,6 +122,7 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
         val obj = getValue(o, t)
         val objectValue = t match {
           case "string" => UTF8String.fromString(obj.asInstanceOf[String])
+          case "uid" => obj.asInstanceOf[Uid].uid
           case "int" => obj
           case "float" => obj
           case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])
@@ -126,6 +136,39 @@ case class WideNodeEncoder(predicates: Map[String, Predicate]) extends JsonNodeI
       }
 
     InternalRow.fromSeq(values)
+  }
+
+}
+
+object WideNodeEncoder {
+
+  def schema(predicates: Map[String, Predicate]): StructType =
+    schema(predicates.values.toSeq)
+
+  def schema(predicates: Seq[Predicate]): StructType =
+    StructType(
+      Seq(StructField("subject", LongType, nullable = false))
+        ++ predicates.sortBy(_.predicateName).map(toStructField)
+    )
+
+  /**
+   * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, respectively)
+   * @param predicate predicate
+   * @return spark type
+   */
+  def toStructField(predicate: Predicate): StructField = {
+    val dType = predicate.dgraphType match {
+      case "uid" => LongType
+      case "string" => StringType
+      case "int" => LongType
+      case "float" => DoubleType
+      case "datetime" => TimestampType
+      case "boolean" => BooleanType
+      case "geo" => StringType
+      case "password" => StringType
+      case _ => StringType
+    }
+    StructField(predicate.predicateName, dType, nullable = true)
   }
 
 }

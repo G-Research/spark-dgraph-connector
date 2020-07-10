@@ -19,9 +19,9 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
-import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
-import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, TypedTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, ExecutorProvider}
+import uk.co.gresearch.spark.dgraph.connector.model.{GraphTableModel, TripleTableModel}
 
 class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
 
@@ -42,10 +42,22 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
         val encoder = TypedTripleEncoder(schema.predicateMap)
         val execution = DgraphExecutorProvider()
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
-        val partition = Partition(targets, Option(schema.predicates), None, model)
+        val partition = Partition(targets, Option(schema.predicates), None, None, model)
         assert(model.modelPartition(partition).length === 47)
       }
 
+    }
+
+    it("should return partition query") {
+      val partition = Partition(
+        Seq(Target("localhost:9080")),
+        Some(Set(Predicate("pred", "type", "type"))),
+        Some(UidRange(Uid(10), Uid(20))),
+        Some(Map("pred" -> Set("value"))),
+        null
+      )
+      val query = partition.query
+      assert(query === PartitionQuery("result", partition.predicates, partition.values))
     }
 
   }

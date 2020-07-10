@@ -22,6 +22,6 @@ import uk.co.gresearch.spark.dgraph.connector.{Partition, Target}
 
 case class SingletonPartitioner(targets: Seq[Target]) extends Partitioner {
 
-  override def getPartitions(model: GraphTableModel): Seq[Partition] = Seq(Partition(targets, None, None, model))
+  override def getPartitions(model: GraphTableModel): Seq[Partition] = Seq(Partition(targets, None, None, None, model))
 
 }

@@ -18,14 +18,14 @@ class TestUidCardinalityEstimator extends FunSpec {
 
     it("should estimate partition's uid range") {
       val range = UidRange(Uid(1), Uid(1000))
-      val partition = Partition(Seq.empty, None, Some(range), model)
+      val partition = Partition(Seq.empty, None, Some(range), None, model)
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined)
       assert(actual.get === range.length)
     }
 
     it("should estimate partition without uid range") {
-      val partition = Partition(Seq.empty, None, None, model)
+      val partition = Partition(Seq.empty, None, None, None, model)
       val actual = estimator.uidCardinality(partition)
       assert(actual === expectedEstimationWithoutRange)
     }
