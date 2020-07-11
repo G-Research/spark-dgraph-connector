@@ -44,8 +44,8 @@ jobs:
         name: Unit Test Results
         path: target/site/surefire-report.html
 
-#    - name: Unit Test Report
-#      if: always()
-#      uses: scacap/action-surefire-report@v1
-#      with:
-#        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Unit Test Report
+      if: ${{ always() }}
+      uses: scacap/action-surefire-report@v1.0.3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
