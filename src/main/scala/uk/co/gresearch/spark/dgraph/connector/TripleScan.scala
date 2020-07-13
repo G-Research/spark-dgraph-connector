@@ -30,6 +30,7 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends 
 
   override def planInputPartitions(): Array[InputPartition] = partitioner.getPartitions.toArray
 
-  override def createReaderFactory(): PartitionReaderFactory = new TriplePartitionReaderFactory(model)
+  override def createReaderFactory(): PartitionReaderFactory =
+    TriplePartitionReaderFactory(model.withMetrics(AccumulatorPartitionMetrics()))
 
 }

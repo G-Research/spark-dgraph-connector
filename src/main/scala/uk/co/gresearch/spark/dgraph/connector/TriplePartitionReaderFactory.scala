@@ -24,7 +24,7 @@ import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 case class TriplePartitionReaderFactory(model: GraphTableModel) extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] =
     partition match {
-      case p: Partition => new TriplePartitionReader(p, model)
+      case p: Partition => TriplePartitionReader(p, model)
       case _ => throw new IllegalArgumentException(
         s"Expected ${Partition.getClass.getSimpleName}, not ${partition.getClass.getSimpleName}"
       )

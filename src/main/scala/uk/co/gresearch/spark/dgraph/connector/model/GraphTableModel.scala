@@ -9,7 +9,7 @@ import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionQuery, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionMetrics, PartitionQuery, Uid}
 
 import scala.collection.JavaConverters._
 
@@ -21,6 +21,9 @@ trait GraphTableModel {
   val execution: ExecutorProvider
   val encoder: JsonNodeInternalRowEncoder
   val chunkSize: Int
+  val metrics: PartitionMetrics
+
+  def withMetrics(metrics: PartitionMetrics): GraphTableModel
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
@@ -65,6 +68,12 @@ trait GraphTableModel {
       s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").getOrElse("")}" +
       s"${chunk.length} uids after ${chunk.after.toHexString} ${until.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
       s"with ${array.size()} nodes in ${(endTs - startTs)/1000.0}s")
+
+    metrics.incReadBytes(json.string.getBytes.length)
+    metrics.incReadUids(array.size())
+    metrics.incReadChunks(1)
+    metrics.incChunkTime((endTs - startTs)/1000.0)
+
     array
   }
 

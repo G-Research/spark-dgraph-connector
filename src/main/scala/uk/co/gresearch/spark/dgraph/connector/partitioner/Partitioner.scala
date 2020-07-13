@@ -18,7 +18,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition}
+import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition, PartitionMetrics}
 
 trait Partitioner {
 

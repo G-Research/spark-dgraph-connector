@@ -2,12 +2,16 @@ package uk.co.gresearch.spark.dgraph.connector.model
 
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.ExecutorProvider
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, PartitionQuery}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, NoPartitionMetrics, PartitionMetrics, PartitionQuery}
 
 /**
  * Models all triples of a graph as a table, nodes with properties and edges.
  */
-case class TripleTableModel(execution: ExecutorProvider, encoder: JsonNodeInternalRowEncoder, chunkSize: Int) extends GraphTableModel {
+case class TripleTableModel(execution: ExecutorProvider,
+                            encoder: JsonNodeInternalRowEncoder,
+                            chunkSize: Int,
+                            metrics: PartitionMetrics = NoPartitionMetrics())
+  extends GraphTableModel {
 
   /**
    * Turn a partition query into a GraphQl query.
@@ -18,5 +22,7 @@ case class TripleTableModel(execution: ExecutorProvider, encoder: JsonNodeIntern
    */
   override def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl =
     query.forPropertiesAndEdges(chunk)
+
+  override def withMetrics(metrics: PartitionMetrics): TripleTableModel = copy(metrics = metrics)
 
 }

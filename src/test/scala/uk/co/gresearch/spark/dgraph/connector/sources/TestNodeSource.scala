@@ -19,9 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, IsNotNull, Literal}
+import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
