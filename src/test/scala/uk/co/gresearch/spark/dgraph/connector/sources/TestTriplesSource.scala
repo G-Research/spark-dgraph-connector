@@ -19,17 +19,20 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
+import org.apache.spark.scheduler.{AccumulableInfo, SparkListener}
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame}
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.{SparkEventCollector, SparkTestSession}
+
+import scala.collection.mutable
 
 class TestTriplesSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
@@ -585,6 +588,35 @@ class TestTriplesSource extends FunSpec
                              expectedStringDsFilter: StringTriple => Boolean): Unit = {
       doTestFilterPushDownDf(typedTriples, condition, expectedFilters, expectedUnpushed, expectedTypedTriples.filter(expectedTypedDsFilter))
       doTestFilterPushDownDf(stringTriples, condition, expectedFilters, expectedUnpushed, expectedStringTriples.filter(expectedStringDsFilter))
+    }
+
+    it("should provide metrics") {
+      val accus: mutable.MutableList[AccumulableInfo] = mutable.MutableList.empty[AccumulableInfo]
+      val handler: SparkListener = SparkEventCollector(accus)
+
+      val df =
+        spark
+          .read
+          .format(TriplesSource)
+          .load(cluster.grpc)
+
+      spark.sparkContext.addSparkListener(handler)
+      df.count()
+      spark.sparkContext.removeSparkListener(handler)
+
+      val accums =
+        accus
+          .filter(_.name.isDefined)
+          .map(acc => acc.name.get -> acc.value)
+          .toMap
+          .filterKeys(_.startsWith("Dgraph"))
+
+      assert(accums.keySet == Set("Dgraph Bytes", "Dgraph Uids", "Dgraph Chunks", "Dgraph Time"))
+      assert(accums.get("Dgraph Bytes").flatten === Some(1424))
+      assert(accums.get("Dgraph Uids").flatten === Some(11))
+      assert(accums.get("Dgraph Chunks").flatten === Some(1))
+      assert(accums.get("Dgraph Time").flatten.isDefined)
+      assert(accums.get("Dgraph Time").flatten.get.isInstanceOf[Double])
     }
 
   }

@@ -17,16 +17,19 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.scheduler.{AccumulableInfo, SparkListener}
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
+import uk.co.gresearch.spark.{SparkEventCollector, SparkTestSession}
+
+import scala.collection.mutable
 
 class TestEdgeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
@@ -235,6 +238,35 @@ class TestEdgeSource extends FunSpec
 
     def doTestFilterPushDown(condition: Column, expectedFilters: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
       doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
+    }
+
+    it("should provide metrics") {
+      val accus: mutable.MutableList[AccumulableInfo] = mutable.MutableList.empty[AccumulableInfo]
+      val handler: SparkListener = SparkEventCollector(accus)
+
+      val df =
+        spark
+          .read
+          .format(EdgesSource)
+          .load(cluster.grpc)
+
+      spark.sparkContext.addSparkListener(handler)
+      df.count()
+      spark.sparkContext.removeSparkListener(handler)
+
+      val accums =
+        accus
+          .filter(_.name.isDefined)
+          .map(acc => acc.name.get -> acc.value)
+          .toMap
+          .filterKeys(_.startsWith("Dgraph"))
+
+      assert(accums.keySet == Set("Dgraph Bytes", "Dgraph Uids", "Dgraph Chunks", "Dgraph Time"))
+      assert(accums.get("Dgraph Bytes").flatten === Some(300))
+      assert(accums.get("Dgraph Uids").flatten === Some(3))
+      assert(accums.get("Dgraph Chunks").flatten === Some(1))
+      assert(accums.get("Dgraph Time").flatten.isDefined)
+      assert(accums.get("Dgraph Time").flatten.get.isInstanceOf[Double])
     }
 
   }

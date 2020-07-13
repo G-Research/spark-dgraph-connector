@@ -318,6 +318,35 @@ The following table lists all supported Spark filters:
 |`In`        |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
 |`IsNotNull` |<ul><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
 
+## Metrics
+
+The connector collects metrics per partition that provide insights in throughout and timing of the communication
+to the Dgraph cluster. For each request to Dgraph (a chunk), the number of received bytes, uids and retrieval time are recorded and
+summed per partition. The values can be seen on the Spark UI for the respective stages that performs the read:
+
+![Dgraph metrics as shown on Spark UI Stages page](static/accumulators.png "Dgraph metrics as shown on Spark UI Stages page")
+
+The connector uses [Spark Accumulators](http://spark.apache.org/docs/1.6.2/api/java/org/apache/spark/Accumulator.html)
+to collect these metrics. They can be accessed by the Spark driver via a `SparkListener`:
+
+      val handler = new SparkListener {
+        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit =
+          stageCompleted.stageInfo.accumulables.values.foreach(println)
+      }
+
+      spark.sparkContext.addSparkListener(handler)
+      spark.read.dgraphTriples("localhost:9080").count()
+
+
+The following metrics are available:
+
+|Metric|Description|
+|------|-----------|
+|`Dgraph Bytes`|Size of JSON responses from the Dgraph cluster in Byte.|
+|`Dgraph Chunks`|Number of requests sent to the Dgraph cluster.|
+|`Dgraph Time`|Time waited for Dgraph to respond in Seconds.|
+|`Dgraph Uids`|Number of Uids read.|
+
 
 ## Special Use Cases
 

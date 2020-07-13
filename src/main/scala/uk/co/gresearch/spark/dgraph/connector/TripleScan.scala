@@ -29,10 +29,18 @@ import scala.collection.mutable
 
 case class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends DataSourceReader with SupportsPushDownFilters {
 
+  println("new triple scan")
+
+  val metrics: AccumulatorPartitionMetrics = AccumulatorPartitionMetrics()
+
   override def readSchema(): StructType = model.readSchema()
 
   override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] =
-    partitioner.withFilters(filters).getPartitions(model).map(_.asInstanceOf[InputPartition[InternalRow]]).toList.asJava
+    partitioner
+      .withFilters(filters)
+      .getPartitions(model.withMetrics(metrics))
+      .map(_.asInstanceOf[InputPartition[InternalRow]])
+      .toList.asJava
 
   val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
   var filters: Filters = EmptyFilters

@@ -5,11 +5,10 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
-import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Partition, PartitionQuery, Predicate, Target, Uid, UidRange}
-
 
 class TestGraphTableModel extends FunSpec {
 
@@ -209,7 +208,12 @@ class TestGraphTableModel extends FunSpec {
 
 }
 
-case class TestModel(execution: ExecutorProvider, encoder: JsonNodeInternalRowEncoder, chunkSize: Int) extends GraphTableModel {
+case class TestModel(execution: ExecutorProvider,
+                     encoder: JsonNodeInternalRowEncoder,
+                     chunkSize: Int,
+                     metrics: PartitionMetrics = NoPartitionMetrics())
+  extends GraphTableModel {
   override def toGraphQl(query: PartitionQuery, chunk: Option[connector.Chunk]): GraphQl =
     query.forPropertiesAndEdges(chunk)
+  override def withMetrics(metrics: PartitionMetrics): TestModel = copy(metrics = metrics)
 }

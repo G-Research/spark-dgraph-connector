@@ -2,12 +2,16 @@ package uk.co.gresearch.spark.dgraph.connector.model
 
 import uk.co.gresearch.spark.dgraph.connector.encoder.TripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.ExecutorProvider
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, PartitionQuery}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, NoPartitionMetrics, PartitionMetrics, PartitionQuery}
 
 /**
  * Models only the edges of a graph as a table.
  */
-case class EdgeTableModel(execution: ExecutorProvider, encoder: TripleEncoder, chunkSize: Int) extends GraphTableModel {
+case class EdgeTableModel(execution: ExecutorProvider,
+                          encoder: TripleEncoder,
+                          chunkSize: Int,
+                          metrics: PartitionMetrics = NoPartitionMetrics())
+  extends GraphTableModel {
 
   /**
    * Turn a partition query into a GraphQl query.
@@ -19,5 +23,7 @@ case class EdgeTableModel(execution: ExecutorProvider, encoder: TripleEncoder, c
   override def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl =
   // TODO: query for edges-only when supported
     query.forPropertiesAndEdges(chunk)
+
+  override def withMetrics(metrics: PartitionMetrics): EdgeTableModel = copy(metrics = metrics)
 
 }
