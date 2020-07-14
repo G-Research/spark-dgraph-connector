@@ -13,16 +13,6 @@ case class TripleTableModel(execution: ExecutorProvider,
                             metrics: PartitionMetrics = NoPartitionMetrics())
   extends GraphTableModel {
 
-  /**
-   * Turn a partition query into a GraphQl query.
-   *
-   * @param query partition query
-   * @param chunk chunk of the result set to query
-   * @return graphql query
-   */
-  override def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl =
-    query.forPropertiesAndEdges(chunk)
-
   override def withMetrics(metrics: PartitionMetrics): TripleTableModel = copy(metrics = metrics)
 
 }

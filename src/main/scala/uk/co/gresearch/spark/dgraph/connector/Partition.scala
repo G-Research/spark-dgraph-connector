@@ -24,12 +24,12 @@ import org.apache.spark.sql.connector.read.InputPartition
  * Providing object values will return only those triples that match the predicate name and value.
  *
  * @param targets Dgraph alpha nodes
- * @param predicates optional predicates to read
+ * @param predicates predicates to read
  * @param uids optional uid ranges
  * @param values optional object values
  */
 case class Partition(targets: Seq[Target],
-                     predicates: Option[Set[Predicate]],
+                     predicates: Set[Predicate],
                      uids: Option[UidRange],
                      values: Option[Map[String, Set[Any]]])
   extends InputPartition {

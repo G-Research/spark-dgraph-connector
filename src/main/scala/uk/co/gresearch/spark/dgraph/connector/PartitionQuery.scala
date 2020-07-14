@@ -20,7 +20,7 @@ package uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector
 
 case class PartitionQuery(resultName: String,
-                          predicates: Option[Set[Predicate]],
+                          predicates: Set[Predicate],
                           values: Option[Map[String, Set[Any]]]) {
 
   def getChunkString(chunk: Option[Chunk]): String =
@@ -28,7 +28,7 @@ case class PartitionQuery(resultName: String,
 
   def getValueFilter(predicateName: String, filterMode: String): String = {
     predicates
-      .flatMap(_.find(_.predicateName.equals(predicateName)))
+      .find(_.predicateName.equals(predicateName))
       .flatMap(predicateType =>
         values
           .flatMap(_.get(predicateName))
@@ -60,60 +60,32 @@ case class PartitionQuery(resultName: String,
 
   def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
     predicates
-      .getOrElse(Set.empty)
       .zipWithIndex
       .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName, "uids")}""" }
       .toMap
 
   val predicatePaths: Seq[String] =
     predicates
-      .getOrElse(Set.empty)
       .map {
         case Predicate(predicate, "uid", _) => s"<$predicate> { uid }${getValueFilter(predicate, "vals")}"
         case Predicate(predicate, _____, _) => s"<$predicate>${getValueFilter(predicate, "vals")}"
       }
       .toSeq
 
-  def forProperties(chunk: Option[connector.Chunk]): GraphQl = {
+  /**
+   * Provides the GraphQl query for the given chunk, or if no chunk is given the query for the entire
+   * result set.
+   * @param chunk optional chunk
+   * @return result set or chunk of it
+   */
+  def forChunk(chunk: Option[connector.Chunk]): GraphQl = {
+    val predicateQueries = getPredicateQueries(chunk)
     val query =
-      if (predicates.isEmpty) {
-        s"""{
-           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}) {
-           |    uid
-           |    dgraph.type
-           |    expand(_all_)
-           |  }
-           |}""".stripMargin
-      } else {
-        // this assumes all given predicates are all properties, no edges
-        // TODO: make this else branch produce a query that returns only properties even if edges are in predicates
-        //       https://github.com/G-Research/spark-dgraph-connector/issues/19
-        forPropertiesAndEdges(chunk).string
-      }
-
-    GraphQl(query)
-  }
-
-  def forPropertiesAndEdges(chunk: Option[connector.Chunk]): GraphQl = {
-    val query =
-      if (predicates.isEmpty) {
-        s"""{
-           |  ${resultName} (func: has(dgraph.type)${getChunkString(chunk)}) {
-           |    uid
-           |    dgraph.type
-           |    expand(_all_) {
-           |      uid
-           |    }
-           |  }
-           |}""".stripMargin
-      } else {
-        val predicateQueries = getPredicateQueries(chunk)
-        s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
-           |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}) {
-           |    uid
-           |${predicatePaths.map(path => s"    $path\n").mkString}  }
-           |}""".stripMargin
-      }
+      s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
+         |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}) {
+         |    uid
+         |${predicatePaths.map(path => s"    $path\n").mkString}  }
+         |}""".stripMargin
 
     GraphQl(query)
   }
