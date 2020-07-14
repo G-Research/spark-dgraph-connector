@@ -27,6 +27,7 @@ case class AlwaysTrue() extends Filter
 case class AlwaysFalse() extends Filter
 case class SubjectIsIn(uids: Set[Uid]) extends Filter
 case class PredicateNameIsIn(names: Set[String]) extends Filter
+case class PredicateValueIsIn(names: Set[String], values: Set[Any]) extends Filter
 case class ObjectTypeIsIn(types: Set[String]) extends Filter
 case class ObjectValueIsIn(values: Set[Any]) extends Filter
 

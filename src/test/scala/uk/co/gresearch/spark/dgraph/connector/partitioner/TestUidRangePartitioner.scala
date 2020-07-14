@@ -22,7 +22,7 @@ import java.util.UUID
 import javassist.bytecode.SignatureAttribute.ObjectType
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, PredicateNameIsIn, Schema, SubjectIsIn, Target, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, Has, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, PredicateNameIsIn, Schema, SubjectIsIn, Target, Uid, UidRange}
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -69,7 +69,7 @@ class TestUidRangePartitioner extends FunSpec {
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))
             }
           )
 

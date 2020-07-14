@@ -314,7 +314,7 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, predicates, None, None))))
+      assert(partitions === Seq(Some(Partition(targets).has(predicates))))
     }
 
     it("should load as predicate partitions") {
@@ -331,11 +331,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("release_date", "datetime"), Predicate("starring", "uid")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("revenue", "float")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid"), Predicate("name", "string")), None, None))
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll())
       )
 
       assert(partitions.toSet === expected)
@@ -358,8 +358,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), predicates, Some(UidRange(Uid(1), Uid(8))), None)),
-        Some(Partition(Seq(Target(cluster.grpc)), predicates, Some(UidRange(Uid(8), Uid(15))), None)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(1), Uid(8))))),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(8), Uid(15))))),
       )
 
       assert(partitions.toSet === expected)
@@ -385,12 +385,12 @@ class TestTriplesSource extends FunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("release_date", "datetime"), Predicate("starring", "uid")), None, None),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("revenue", "float")), None, None),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int")), None, None),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string")), None, None),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid"), Predicate("name", "string")), None, None)
-      ).flatMap(partition => ranges.map(range => Some(partition.copy(uids = Some(range)))))
+        Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll()
+      ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
 
       assert(partitions.toSet === expected)
     }

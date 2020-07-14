@@ -153,7 +153,7 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, Set(Predicate("director", "uid"), Predicate("starring", "uid")), None, None))))
+      assert(partitions === Seq(Some(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))))
     }
 
     it("should load as a predicate partitions") {
@@ -171,8 +171,8 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("starring", "uid")), None, None))
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll())
       )
 
       assert(partitions.toSet === expected)

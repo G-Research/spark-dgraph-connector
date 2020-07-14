@@ -83,14 +83,14 @@ class TestPredicatePartitioner extends FunSpec {
 
       assert(partitions.toSet === Set(
         // predicates are shuffled within group, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1")), None, None),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3")), None, None),
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2")), None, None),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1"), Set.empty).getAll(),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll(),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5")), None, None),
-        Partition(Seq(Target("host5:9080"), Target("host4:9080")), Set(Predicate("pred4", "type4", "type4")), None, None),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll(),
+        Partition(Seq(Target("host5:9080"), Target("host4:9080"))).has(Set("pred4"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None),
+        Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll(),
       ))
     }
 
@@ -100,12 +100,12 @@ class TestPredicatePartitioner extends FunSpec {
 
       assert(partitions.toSet === Set(
         // predicates are shuffled within group, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2")), None, None),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3")), None, None),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).getAll(),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5"), Predicate("pred4", "type4", "type4")), None, None),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5", "pred4"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None)
+        Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll()
       ))
     }
 
@@ -116,11 +116,11 @@ class TestPredicatePartitioner extends FunSpec {
 
         assert(partitions === Seq(
           // predicates are shuffled within group, targets are not rotated since there is only the first partition per group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1"), Predicate("pred3", "type3", "type3"), Predicate("pred2", "type2", "type2")), None, None),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred3", "pred2"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5"), Predicate("pred4", "type4", "type4")), None, None),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5", "pred4"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None)
+          Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll()
         ))
       }
     )
@@ -137,62 +137,48 @@ class TestPredicatePartitioner extends FunSpec {
     it("should apply PredicateNameIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred3"))).getPartitions
-      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred3", "type3", "type3")), None, None)))
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred3"), Set.empty).getAll()))
 
       val partitions2 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred2", "pred3", "pred4"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3")), None, None),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred4", "type4", "type4")), None, None)
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2", "pred3"), Set.empty).getAll(),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred4"), Set.empty).getAll()
       ))
     }
 
     it("should apply ObjectTypeIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type3"))).getPartitions
-      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred3", "type3", "type3")), None, None)))
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred3"), Set.empty).getAll()))
 
       val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3")), None, None),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred4", "type4", "type4")), None, None)
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2", "pred3"), Set.empty).getAll(),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred4"), Set.empty).getAll()
       ))
     }
 
     it("should apply ObjectValueIsIn with PredicateNameIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred3"), ObjectValueIsIn("value"))).getPartitions
-      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred3", "type3", "type3")), None, Some(Map("pred3" -> Set("value"))))))
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn(Set("pred3"), Set[Any]("value")), Get(Set("pred3"), Set.empty)))))
 
-      val valuesGroup2: Map[String, Set[Any]] = Map(
-        "pred2" -> Set("value1", "value2"),
-        "pred3" -> Set("value1", "value2")
-      )
-      val valuesGroup3: Map[String, Set[Any]] = Map(
-        "pred4" -> Set("value1", "value2")
-      )
       val partitions2 = partitioner.withFilters(Filters.fromPromised(PredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3")), None, Some(valuesGroup2)),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred4", "type4", "type4")), None, Some(valuesGroup3))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred4"), Set.empty)))
       ))
     }
 
     it("should apply ObjectValueIsIn with ObjectTypeIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type3"), ObjectValueIsIn("value"))).getPartitions
-      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred3", "type3", "type3")), None, Some(Map("pred3" -> Set("value"))))))
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn("pred3", Set[Any]("value")), Get(Set("pred3"), Set.empty)))))
 
-      val valuesGroup2: Map[String, Set[Any]] = Map(
-        "pred2" -> Set("value1", "value2"),
-        "pred3" -> Set("value1", "value2")
-      )
-      val valuesGroup3: Map[String, Set[Any]] = Map(
-        "pred4" -> Set("value1", "value2")
-      )
       val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3")), None, Some(valuesGroup2)),
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred4", "type4", "type4")), None, Some(valuesGroup3))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred4"), Set.empty)))
       ))
       partitions2.foreach(p => println(p.query.forChunk(None).string))
     }
@@ -204,11 +190,11 @@ class TestPredicatePartitioner extends FunSpec {
       // same as in s"should partition with $predsPerPart predicates per partition" above
       assert(partitions === Seq(
         // predicates are shuffled within group, targets are not rotated since there is only the first partition per group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1"), Predicate("pred3", "type3", "type3"), Predicate("pred2", "type2", "type2")), None, None),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred3", "pred2"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5"), Predicate("pred4", "type4", "type4")), None, None),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5", "pred4"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None)
+        Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll()
       ))
     }
 

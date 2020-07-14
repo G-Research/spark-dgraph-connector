@@ -114,17 +114,6 @@ package object connector {
     case s => throw new IllegalArgumentException(s"unknown dgraph type: $s")
   }
 
-  /**
-   * Range of uids.
-   * @param first first uid of range (inclusive)
-   * @param until last uid of range (exclusive)
-   */
-  case class UidRange(first: Uid, until: Uid) {
-    if (first >= until)
-      throw new IllegalArgumentException(s"UidRange first uid (is $first) must be before until (is $until)")
-    def length: Long = until.uid - first.uid
-  }
-
   case class Chunk(after: Uid, length: Long) {
     if (length <= 0)
       throw new IllegalArgumentException(s"Chunk length must be larger than zero (is $length)")

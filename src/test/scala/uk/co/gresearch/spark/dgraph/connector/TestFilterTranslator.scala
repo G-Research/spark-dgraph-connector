@@ -135,6 +135,21 @@ class TestFilterTranslator extends FunSpec {
       assert(simplified === Seq(SubjectIsIn(Uid(2))))
     }
 
+    it("should simplify single PredicateNameIsIn and ObjectValueIsIn filters by PredicateValueIsIn") {
+      val simplified = FilterTranslator.simplify(Seq(PredicateNameIsIn("a", "b"), ObjectValueIsIn("c", "d")))
+      assert(simplified === Seq(PredicateValueIsIn(Set("a", "b"), Set("c", "d"))))
+    }
+
+    it("should simplify multiple PredicateNameIsIn and ObjectValueIsIn filters by intersection and PredicateValueIsIn") {
+      val simplified = FilterTranslator.simplify(Seq(PredicateNameIsIn("a", "b"), PredicateNameIsIn("b", "c"), ObjectValueIsIn("1", "2"), ObjectValueIsIn("2", "3")))
+      assert(simplified === Seq(PredicateValueIsIn(Set("b"), Set("2"))))
+    }
+
+    it("should simplify multiple PredicateNameIsIn and ObjectValueIsIn filters by intersection and AlwaysFalse") {
+      val simplified = FilterTranslator.simplify(Seq(PredicateNameIsIn("a", "b"), PredicateNameIsIn("c", "d"), ObjectValueIsIn("1", "2"), ObjectValueIsIn("3", "4")))
+      assert(simplified === Seq(AlwaysFalse))
+    }
+
     it("should simplify PredicateNameIsIn filters by intersection") {
       val simplified = FilterTranslator.simplify(Seq(PredicateNameIsIn("a", "b"), PredicateNameIsIn("b", "c")))
       assert(simplified === Seq(PredicateNameIsIn("b")))

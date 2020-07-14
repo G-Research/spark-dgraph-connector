@@ -19,69 +19,67 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import uk.co.gresearch.spark.dgraph.connector
 
-case class PartitionQuery(resultName: String,
-                          predicates: Set[Predicate],
-                          values: Option[Map[String, Set[Any]]]) {
+/**
+ * Defines the query for a specific partition. Operators define the set of result uids and
+ * predicates to receive and are all mandatory. If no Get operators are given,
+ * predicates for all Has operators are retrieved.
+ *
+ * @param resultName result name in the JSON query
+ * @param operators set of operators
+ */
+case class PartitionQuery(resultName: String, operators: Set[Operator]) {
 
-  def getChunkString(chunk: Option[Chunk]): String =
-    chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
+  val predicateVals: Map[String, String] =
+    operators
+      .filter(_.isInstanceOf[Has])
+      .flatMap { case Has(properties, edges) =>
+        (properties ++ edges).toSeq.sorted
+          .zipWithIndex
+          .map { case (predicate, idx) => predicate -> s"pred${idx + 1}" }
+      }.toMap
 
-  def getValueFilter(predicateName: String, filterMode: String): String = {
-    predicates
-      .find(_.predicateName.equals(predicateName))
-      .flatMap(predicateType =>
-        values
-          .flatMap(_.get(predicateName))
-          .map { valueSet =>
-            val filter = predicateType match {
-              case Predicate(_, "uid", _) if filterMode.equals("vals") =>
-                s"""uid(${valueSet.map(Uid(_).toHexString).mkString(", ")})"""
-              case _ => valueSet.map { value =>
-                predicateType match {
-                  case Predicate(_, "uid", _) => filterMode match {
-                    // not needed
-                    // case "vals" => s"""uid(${Uid(value).toHexString})"""
-                    case "uids" => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})"""
-                    case _ => throw new IllegalArgumentException(s"unsupported filter mode: $filterMode")
-                  }
-                  case ______________________ => s"""eq(<$predicateName>, "${value.toString}")"""
-                }
-              }.mkString(" OR ")
-            }
+  val (hasProperties, hasEdges) =
+    operators
+      .filter(_.isInstanceOf[Has])
+      .map { case Has(properties, edges) => (properties, edges) }
+      .fold((Set.empty[String], Set.empty[String])) { case ((leftP, leftE), (rightP, rightE)) => (leftP ++ rightP, leftE ++ rightE) }
 
-            Some(filter)
-              .filter(_.nonEmpty)
-              .map(f => s" @filter($f)")
-              .getOrElse("")
-          }
-      )
-      .getOrElse("")
-  }
+  val hasPredicates: Set[String] =
+    operators
+      .filter(_.isInstanceOf[Has])
+      .map { case Has(properties, edges) => properties ++ edges }
+      .fold(Set.empty)(_ ++ _)
 
-  def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
-    predicates
-      .zipWithIndex
-      .map { case (pred, idx) => s"pred${idx+1}" -> s"""pred${idx+1} as var(func: has(<${pred.predicateName}>)${getChunkString(chunk)})${getValueFilter(pred.predicateName, "uids")}""" }
-      .toMap
+  val (getProperties, getEdges) =
+    Some(operators
+      .filter(_.isInstanceOf[Get])
+      .map { case Get(properties, edges) => (properties, edges) }
+    ).filter(_.nonEmpty)
+      .getOrElse(operators.filter(_.isInstanceOf[Has]).map { case Has(properties, edges) => (properties, edges) })
+      .fold((Set.empty[String], Set.empty[String])) { case ((leftP, leftE), (rightP, rightE)) => (leftP ++ rightP, leftE ++ rightE) }
 
-  val predicatePaths: Seq[String] =
-    predicates
-      .map {
-        case Predicate(predicate, "uid", _) => s"<$predicate> { uid }${getValueFilter(predicate, "vals")}"
-        case Predicate(predicate, _____, _) => s"<$predicate>${getValueFilter(predicate, "vals")}"
-      }
-      .toSeq
+  val properties: Set[String] = (hasProperties ++ getProperties)
+  val edges: Set[String] = (hasEdges ++ getEdges)
+
+  val predicateOps: Map[String, Set[PredicateOperator]] =
+    operators
+      .filter(op => op.isInstanceOf[PredicateOperator])
+      .map(op => op.asInstanceOf[PredicateOperator])
+      .flatMap(op => op.predicates.map(predicate => predicate -> op))
+      .groupBy(_._1)
+      .mapValues(_.map(_._2))
 
   /**
-   * Provides the GraphQl query for the given chunk, or if no chunk is given the query for the entire
-   * result set.
+   * Provides the GraphQl query for the given chunk, or if no chunk is given
+   * the query for the entire result set.
+   *
    * @param chunk optional chunk
    * @return result set or chunk of it
    */
   def forChunk(chunk: Option[connector.Chunk]): GraphQl = {
     val predicateQueries = getPredicateQueries(chunk)
     val query =
-      s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if(predicateQueries.nonEmpty) "\n" else ""}
+      s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if (predicateQueries.nonEmpty) "\n" else ""}
          |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}) {
          |    uid
          |${predicatePaths.map(path => s"    $path\n").mkString}  }
@@ -90,9 +88,48 @@ case class PartitionQuery(resultName: String,
     GraphQl(query)
   }
 
+  def getChunkString(chunk: Option[Chunk]): String =
+    chunk.map(c => s", first: ${c.length}, after: ${c.after.toHexString}").getOrElse("")
+
+  def getValueFilter(predicateName: String, filterMode: String): String =
+    predicateOps
+      .get(predicateName)
+      .map { ops =>
+        val filter = ops.map(getFilter(_, predicateName, filterMode)).mkString(" AND ")
+        if (ops.size > 1) s"($filter)" else filter
+      }
+      .filter(_.nonEmpty)
+      .map(f => s" @filter($f)")
+      .getOrElse("")
+
+  def getFilter(operator: Operator, predicateName: String, filterMode: String): String = operator match {
+    // we assume operator's predicates contain predicateName
+    case IsIn(_, values) if edges.contains(predicateName) && filterMode.eq("vals") =>
+      s"""uid(${values.map(Uid(_).toHexString).mkString(", ")})"""
+    case IsIn(_, values) if edges.contains(predicateName) =>
+      values.map(value => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})""").mkString(" OR ")
+    // includes IsIn
+    case op: PredicateValuesOperator => op.values.map(value => s"""${op.filter}(<$predicateName>, "${value}")""").mkString(" OR ")
+    case op: PredicateValueOperator => s"""${op.filter}(<$predicateName>, "${op.value}")"""
+  }
+
+  def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
+    hasPredicates
+      .map(pred =>
+        predicateVals(pred) -> s"""${predicateVals(pred)} as var(func: has(<$pred>)${getChunkString(chunk)})${getValueFilter(pred, "uids")}"""
+      )
+      .toSeq.sorted
+      .toMap
+
+  val predicatePaths: Seq[String] =
+    (getProperties.map(pred => pred -> s"<$pred>") ++ getEdges.map(edge => edge -> s"<$edge> { uid }"))
+      .map { case (pred, path) => s"$path${getValueFilter(pred, "vals")}" }
+      .toSeq
+      .sorted
+
 }
 
 object PartitionQuery {
   def of(partition: Partition, resultName: String = "result"): PartitionQuery =
-    PartitionQuery(resultName, partition.predicates, partition.values)
+    PartitionQuery(resultName, partition.operators)
 }

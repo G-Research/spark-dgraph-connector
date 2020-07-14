@@ -64,23 +64,51 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
 }
 
 object FilterTranslator {
+
   def simplify(filters: Seq[Filter]): Seq[Filter] = {
-    val simplified = filters.groupBy(_.getClass).flatMap { case (cls, filters) =>
-      cls match {
-        case cls if cls == classOf[SubjectIsIn] => Seq[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
-        case cls if cls == classOf[PredicateNameIsIn] => Seq[Filter](filters.map(_.asInstanceOf[PredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
-        case cls if cls == classOf[ObjectTypeIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
-        case cls if cls == classOf[ObjectValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
-        case _ => filters
-      }
-    }.flatMap {
-      case AlwaysTrue => None
-      case SubjectIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-      case PredicateNameIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-      case ObjectTypeIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-      case ObjectValueIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-      case f => Some(f)
-    }.toSeq
+    // first simplification intersetcs filters with set arguments
+    val intersected =
+      filters
+        .groupBy(_.getClass)
+        .flatMap { case (cls, filters) =>
+          cls match {
+            case cls if cls == classOf[SubjectIsIn] => Seq[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
+            case cls if cls == classOf[PredicateNameIsIn] => Seq[Filter](filters.map(_.asInstanceOf[PredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
+            case cls if cls == classOf[PredicateValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[PredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
+            case cls if cls == classOf[ObjectTypeIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
+            case cls if cls == classOf[ObjectValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
+            case _ => filters
+          }
+        }
+        .toSeq
+
+    // we can simplify some trivial expressions
+    val trivialized =
+      intersected
+        .flatMap {
+          case AlwaysTrue => None
+          case SubjectIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+          case PredicateNameIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+          case ObjectTypeIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+          case ObjectValueIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+          case f => Some(f)
+        }
+
+    // we simplify a single PredicateNameIsIn and ObjectValueIsIn into a PredicateValueIsIn
+    val singlePredicateName = Some(trivialized.filter(_.isInstanceOf[PredicateNameIsIn])).filter(_.size == 1).map(_.head.asInstanceOf[PredicateNameIsIn])
+    val singleObjectValue = Some(trivialized.filter(_.isInstanceOf[ObjectValueIsIn])).filter(_.size == 1).map(_.head.asInstanceOf[ObjectValueIsIn])
+
+    val simplified =
+      trivialized
+        .flatMap {
+          case PredicateNameIsIn(_) if singlePredicateName.isDefined && singleObjectValue.isDefined =>
+            // drop PredicateNameIsIn, we will replace the ObjectValueIsIn filter
+            None
+          case ObjectValueIsIn(_) if singlePredicateName.isDefined && singleObjectValue.isDefined =>
+            // replace ObjectValueIsIn with PredicateValueIsIn combining PredicateNameIsIn with PredicateValueIsIn
+            Some[Filter](PredicateValueIsIn(singlePredicateName.get.names, singleObjectValue.get.values))
+          case f => Some(f)
+        }
 
     if (simplified.contains(AlwaysFalse))
       Seq(AlwaysFalse)
@@ -113,6 +141,8 @@ object FilterTranslator {
   def intersectSubjectIsIn(left: SubjectIsIn, right: SubjectIsIn): SubjectIsIn = SubjectIsIn(left.uids.intersect(right.uids))
 
   def intersectPredicateNameIsIn(left: PredicateNameIsIn, right: PredicateNameIsIn): PredicateNameIsIn = PredicateNameIsIn(left.names.intersect(right.names))
+
+  def intersectPredicateValueIsIn(left: PredicateValueIsIn, right: PredicateValueIsIn): PredicateValueIsIn = PredicateValueIsIn(left.names.intersect(right.names), left.values.intersect(right.values))
 
   def intersectObjectTypeIsIn(left: ObjectTypeIsIn, right: ObjectTypeIsIn): ObjectTypeIsIn = ObjectTypeIsIn(left.types.intersect(right.types))
 

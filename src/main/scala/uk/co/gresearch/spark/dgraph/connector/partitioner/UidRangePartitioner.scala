@@ -56,7 +56,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
           .zipWithIndex
           .map {
             case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))
           }
       } else {
         Seq(partition)
