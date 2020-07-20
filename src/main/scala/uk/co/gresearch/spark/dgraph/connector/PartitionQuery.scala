@@ -24,6 +24,10 @@ import uk.co.gresearch.spark.dgraph.connector
  * predicates to receive and are all mandatory. If no Get operators are given,
  * predicates for all Has operators are retrieved.
  *
+ * Operators are evaluated as AND. Some operators express OR semantics (e.g. IsIn), but there is
+ * no combination where AND and OR could not be simplified to a single operator so no round brackets
+ * are required in the filter strings.
+ *
  * @param resultName result name in the JSON query
  * @param operators set of operators
  */
@@ -94,10 +98,9 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
   def getValueFilter(predicateName: String, filterMode: String): String =
     predicateOps
       .get(predicateName)
-      .map { ops =>
-        val filter = ops.map(getFilter(_, predicateName, filterMode)).mkString(" AND ")
-        if (ops.size > 1) s"($filter)" else filter
-      }
+      // either there are multiple filters to AND or multiple values to OR (in getFilter), never both
+      // se we do not need any ( ) in the filter
+      .map(ops => ops.map(getFilter(_, predicateName, filterMode)).mkString(" AND "))
       .filter(_.nonEmpty)
       .map(f => s" @filter($f)")
       .getOrElse("")

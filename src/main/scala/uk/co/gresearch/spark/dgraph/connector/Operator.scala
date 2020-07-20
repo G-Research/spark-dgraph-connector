@@ -92,6 +92,9 @@ object IsIn {
 case class LessThan(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "lt"
 }
+object LessThan {
+  def apply(predicate: String, value: Any): LessThan = LessThan(Set(predicate), value)
+}
 
 /**
  * The given predicate has a value that is less than or equal to the given value for uids in the result.
@@ -100,6 +103,9 @@ case class LessThan(predicates: Set[String], value: Any) extends PredicateValueO
  */
 case class LessOrEqual(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "le"
+}
+object LessOrEqual {
+  def apply(predicate: String, value: Any): LessOrEqual = LessOrEqual(Set(predicate), value)
 }
 
 /**
@@ -110,6 +116,9 @@ case class LessOrEqual(predicates: Set[String], value: Any) extends PredicateVal
 case class GreaterThan(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "gt"
 }
+object GreaterThan {
+  def apply(predicate: String, value: Any): GreaterThan = GreaterThan(Set(predicate), value)
+}
 
 /**
  * The given predicate has a value that is greater than or equal to the given value for uids in the result.
@@ -118,4 +127,7 @@ case class GreaterThan(predicates: Set[String], value: Any) extends PredicateVal
  */
 case class GreaterOrEqual(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "ge"
+}
+object GreaterOrEqual {
+  def apply(predicate: String, value: Any): GreaterOrEqual = GreaterOrEqual(Set(predicate), value)
 }
