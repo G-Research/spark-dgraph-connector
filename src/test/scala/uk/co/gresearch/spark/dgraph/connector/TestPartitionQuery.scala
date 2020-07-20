@@ -28,10 +28,14 @@ class TestPartitionQuery extends FunSpec {
     val prop = Set(Predicate(propName, "string"))
     val edge = Set(Predicate(edgeName, "uid"))
     val hasProp: Set[Operator] = Set(Has(prop))
+    val hasEdge: Set[Operator] = Set(Has(edge))
+    val hasPropAndEdge: Set[Operator] = hasProp ++ hasEdge
 
+    val prop1Name = "prop1"
+    val prop2Name = "prop2"
     val predicates = Set(
-      Predicate("prop1", "string"),
-      Predicate("prop2", "int"),
+      Predicate(prop1Name, "string"),
+      Predicate(prop2Name, "int"),
       Predicate("edge1", "uid"),
       Predicate("edge2", "uid")
     )
@@ -43,11 +47,20 @@ class TestPartitionQuery extends FunSpec {
     val multiValueFilters: Set[Operator] = Set(IsIn("prop1", Set[Any]("one", "two")), IsIn("edge2", Set[Any](1L, 2L)))
     val multiFilters: Set[Operator] = Set(GreaterOrEqual("prop1", 1), LessThan("prop1", 2))
 
+    val propFilters: Set[Operator] = Set(IsIn("prop", Set[Any]("one", "two")))
+    val edgeFilters: Set[Operator] = Set(IsIn("edge", Set[Any](1L, 2L)))
+
     val predicateValueOperators = Seq(
       LessThan(propName, 1),
       LessOrEqual(propName, 1),
       GreaterOrEqual(propName, 1),
       GreaterThan(propName, 1),
+    )
+    val predicatesValueOperators = Seq(
+      LessThan(Set(prop1Name, prop2Name), 1),
+      LessOrEqual(Set(prop1Name, prop2Name), 1),
+      GreaterOrEqual(Set(prop1Name, prop2Name), 1),
+      GreaterThan(Set(prop1Name, prop2Name), 1),
     )
 
     it("should provide query for explicitly no predicates") {
@@ -60,7 +73,7 @@ class TestPartitionQuery extends FunSpec {
           |}""".stripMargin)
     }
 
-    it("should provide query for some predicates") {
+    it("should provide query for multi predicates") {
       val query = PartitionQuery("result", hasPredicates)
       assert(query.forChunk(None).string ===
         """{
@@ -75,6 +88,46 @@ class TestPartitionQuery extends FunSpec {
           |    <edge2> { uid }
           |    <prop1>
           |    <prop2>
+          |  }
+          |}""".stripMargin)
+    }
+
+    it("should provide query for multiple predicates") {
+      val query = PartitionQuery("result", hasPropAndEdge ++ hasPredicates)
+      assert(query.forChunk(None).string ===
+        """{
+          |  pred1 as var(func: has(<edge>))
+          |  pred2 as var(func: has(<edge1>))
+          |  pred3 as var(func: has(<edge2>))
+          |  pred4 as var(func: has(<prop>))
+          |  pred5 as var(func: has(<prop1>))
+          |  pred6 as var(func: has(<prop2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4,pred5,pred6)) @filter(has(<edge>) AND (has(<edge1>) OR has(<edge2>) OR has(<prop1>) OR has(<prop2>)) AND has(<prop>)) {
+          |    uid
+          |    <edge> { uid }
+          |    <edge1> { uid }
+          |    <edge2> { uid }
+          |    <prop>
+          |    <prop1>
+          |    <prop2>
+          |  }
+          |}""".stripMargin)
+    }
+
+    it("should provide query with other gets than has") {
+      val query = PartitionQuery("result", hasPredicates ++ Set(Get(Set(propName), Set(edgeName))))
+      assert(query.forChunk(None).string ===
+        """{
+          |  pred1 as var(func: has(<edge1>))
+          |  pred2 as var(func: has(<edge2>))
+          |  pred3 as var(func: has(<prop1>))
+          |  pred4 as var(func: has(<prop2>))
+          |
+          |  result (func: uid(pred1,pred2,pred3,pred4)) {
+          |    uid
+          |    <edge> { uid }
+          |    <prop>
           |  }
           |}""".stripMargin)
     }
@@ -113,13 +166,21 @@ class TestPartitionQuery extends FunSpec {
         }
       }
 
-      it("should with multiple predicates") {
+      it("should work with multi predicates") {
         val query = PartitionQuery("result", hasPredicates)
         assert(query.getPredicateQueries(None) === Map(
           "pred1" -> "pred1 as var(func: has(<edge1>))",
           "pred2" -> "pred2 as var(func: has(<edge2>))",
           "pred3" -> "pred3 as var(func: has(<prop1>))",
           "pred4" -> "pred4 as var(func: has(<prop2>))",
+        ))
+      }
+
+      it("should work with multiple predicates") {
+        val query = PartitionQuery("result", hasPropAndEdge)
+        assert(query.getPredicateQueries(None) === Map(
+          "pred1" -> "pred1 as var(func: has(<edge>))",
+          "pred2" -> "pred2 as var(func: has(<prop>))",
         ))
       }
 
@@ -164,10 +225,22 @@ class TestPartitionQuery extends FunSpec {
       }
 
       predicateValueOperators.foreach { op =>
-        it(s"should support predicate value operator ${op.filter}") {
+        it(s"should support predicate value operator ${op.filter} with single property") {
           val query = PartitionQuery("result", hasProp ++ Set(op))
           assert(query.getPredicateQueries(None) === Map(
-            "pred1" -> s"""pred1 as var(func: has(<$propName>)) @filter(${op.filter}(<$propName>, "${op.value}"))"""
+            "pred1" -> s"""pred1 as var(func: has(<${op.predicates.head}>)) @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))"""
+          ))
+        }
+      }
+
+      predicatesValueOperators.foreach { op =>
+        it(s"should support predicate value operator ${op.filter} with multiple properties") {
+          val query = PartitionQuery("result", hasPredicates ++ Set(op))
+          assert(query.getPredicateQueries(None) === Map(
+            "pred1" -> "pred1 as var(func: has(<edge1>))",
+            "pred2" -> "pred2 as var(func: has(<edge2>))",
+            "pred3" -> s"""pred3 as var(func: has(<${op.predicates.head}>)) @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
+            "pred4" -> s"""pred4 as var(func: has(<${op.predicates.drop(1).head}>)) @filter(${op.filter}(<${op.predicates.drop(1).head}>, "${op.value}"))"""
           ))
         }
       }
@@ -203,13 +276,21 @@ class TestPartitionQuery extends FunSpec {
         assert(query.predicatePaths === Seq.empty)
       }
 
-      it("should work with predicates") {
+      it("should work with multi predicates") {
         val query = PartitionQuery("result", hasPredicates)
         assert(query.predicatePaths === Seq(
           "<edge1> { uid }",
           "<edge2> { uid }",
           "<prop1>",
           "<prop2>",
+        ))
+      }
+
+      it("should work with multiple predicates") {
+        val query = PartitionQuery("result", hasPropAndEdge)
+        assert(query.predicatePaths === Seq(
+          "<edge> { uid }",
+          "<prop>",
         ))
       }
 
@@ -244,14 +325,59 @@ class TestPartitionQuery extends FunSpec {
       }
 
       predicateValueOperators.foreach { op =>
-        it(s"should support predicate value ${op.filter}") {
+        it(s"should support predicate value ${op.filter} with single predicate") {
           val query = PartitionQuery("result", hasProp ++ Set(op))
           assert(query.predicatePaths === Seq(
-            s"""<$propName> @filter(${op.filter}(<$propName>, "${op.value}"))""",
+            s"""<${op.predicates.head}> @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
+          ))
+        }
+      }
+
+      predicatesValueOperators.foreach { op =>
+        it(s"should support predicate value ${op.filter} with multiple predicates") {
+          val query = PartitionQuery("result", hasPredicates ++ Set(op))
+          assert(query.predicatePaths === Seq(
+            "<edge1> { uid }",
+            "<edge2> { uid }",
+            s"""<${op.predicates.head}> @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
+            s"""<${op.predicates.drop(1).head}> @filter(${op.filter}(<${op.predicates.drop(1).head}>, "${op.value}"))""",
           ))
         }
       }
 
     }
+
+    describe("resultOperatorFilters") {
+      it("should not filter no operator") {
+        val query = PartitionQuery("result", Set.empty)
+        assert(query.resultOperatorFilters === None)
+      }
+
+      it("should not filter has with single predicate") {
+        val query = PartitionQuery("result", hasEdge)
+        assert(query.resultOperatorFilters === None)
+      }
+
+      it("should not filter has with multiple predicates") {
+        val query = PartitionQuery("result", hasPredicates)
+        assert(query.resultOperatorFilters === None)
+      }
+
+      it("should not filter has with multiple predicates and filters") {
+        val query = PartitionQuery("result", hasPredicates ++ filters)
+        assert(query.resultOperatorFilters === None)
+      }
+
+      it("should filter multiple has operators") {
+        val query = PartitionQuery("result", hasPropAndEdge)
+        assert(query.resultOperatorFilters === Some("has(<edge>) AND has(<prop>)"))
+      }
+
+      it("should filter multiple has operators with filter") {
+        val query = PartitionQuery("result", hasPropAndEdge ++ propFilters ++ edgeFilters)
+        assert(query.resultOperatorFilters === Some("(uid_in(<edge>, 0x1) OR uid_in(<edge>, 0x2)) AND (eq(<prop>, \"one\") OR eq(<prop>, \"two\"))"))
+      }
+    }
+
   }
 }

@@ -24,35 +24,31 @@ import uk.co.gresearch.spark.dgraph.connector
  * predicates to receive and are all mandatory. If no Get operators are given,
  * predicates for all Has operators are retrieved.
  *
- * Operators are evaluated as AND. Some operators express OR semantics (e.g. IsIn), but there is
- * no combination where AND and OR could not be simplified to a single operator so no round brackets
- * are required in the filter strings.
+ * Operators are evaluated as AND.
  *
  * @param resultName result name in the JSON query
  * @param operators set of operators
  */
 case class PartitionQuery(resultName: String, operators: Set[Operator]) {
 
-  val predicateVals: Map[String, String] =
+  val hasPredicates: Set[Set[String]] =
     operators
       .filter(_.isInstanceOf[Has])
-      .flatMap { case Has(properties, edges) =>
-        (properties ++ edges).toSeq.sorted
-          .zipWithIndex
-          .map { case (predicate, idx) => predicate -> s"pred${idx + 1}" }
-      }.toMap
+      .map { case Has(properties, edges) => properties ++ edges }
+
+  val predicateVals: Map[String, String] =
+    hasPredicates
+      .flatten
+      .toSeq.sorted
+      .zipWithIndex
+      .map { case (predicate, idx) => predicate -> s"pred${idx + 1}" }
+      .toMap
 
   val (hasProperties, hasEdges) =
     operators
       .filter(_.isInstanceOf[Has])
       .map { case Has(properties, edges) => (properties, edges) }
       .fold((Set.empty[String], Set.empty[String])) { case ((leftP, leftE), (rightP, rightE)) => (leftP ++ rightP, leftE ++ rightE) }
-
-  val hasPredicates: Set[String] =
-    operators
-      .filter(_.isInstanceOf[Has])
-      .map { case Has(properties, edges) => properties ++ edges }
-      .fold(Set.empty)(_ ++ _)
 
   val (getProperties, getEdges) =
     Some(operators
@@ -82,9 +78,15 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
    */
   def forChunk(chunk: Option[connector.Chunk]): GraphQl = {
     val predicateQueries = getPredicateQueries(chunk)
+    val predicateQueriesValues =
+      Some(predicateQueries.toSeq.sortBy(_._1).map(_._2).map(query => s"\n  $query").mkString)
+        .filter(_.nonEmpty)
+        .map(f => s"$f\n")
+        .getOrElse("")
+    val resultOperatorFilter = resultOperatorFilters.map(f => s"@filter($f) ").getOrElse("")
     val query =
-      s"""{${predicateQueries.values.map(query => s"\n  $query").mkString}${if (predicateQueries.nonEmpty) "\n" else ""}
-         |  ${resultName} (func: uid(${predicateQueries.keys.mkString(",")})${getChunkString(chunk)}) {
+      s"""{$predicateQueriesValues
+         |  ${resultName} (func: uid(${predicateQueries.keys.toSeq.sorted.mkString(",")})${getChunkString(chunk)}) $resultOperatorFilter{
          |    uid
          |${predicatePaths.map(path => s"    $path\n").mkString}  }
          |}""".stripMargin
@@ -98,37 +100,58 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
   def getValueFilter(predicateName: String, filterMode: String): String =
     predicateOps
       .get(predicateName)
-      // either there are multiple filters to AND or multiple values to OR (in getFilter), never both
-      // se we do not need any ( ) in the filter
-      .map(ops => ops.map(getFilter(_, predicateName, filterMode)).mkString(" AND "))
+      .map(ops => ops.map(getFilter(_, predicateName, filterMode, ops.size > 1)).mkString(" AND "))
       .filter(_.nonEmpty)
       .map(f => s" @filter($f)")
       .getOrElse("")
 
-  def getFilter(operator: Operator, predicateName: String, filterMode: String): String = operator match {
+  def getFilter(operator: Operator, predicateName: String, filterMode: String, andMode: Boolean): String = operator match {
     // we assume operator's predicates contain predicateName
     case IsIn(_, values) if edges.contains(predicateName) && filterMode.eq("vals") =>
       s"""uid(${values.map(Uid(_).toHexString).mkString(", ")})"""
     case IsIn(_, values) if edges.contains(predicateName) =>
-      values.map(value => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})""").mkString(" OR ")
-    // includes IsIn
-    case op: PredicateValuesOperator => op.values.map(value => s"""${op.filter}(<$predicateName>, "${value}")""").mkString(" OR ")
+      val filter = values.map(value => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})""").mkString(" OR ")
+      if (andMode && values.size > 1) s"($filter)" else filter
+    // includes IsIn for properties
+    case op: PredicateValuesOperator =>
+      val filter = op.values.map(value => s"""${op.filter}(<$predicateName>, "${value}")""").mkString(" OR ")
+      if (andMode && op.values.size > 1) s"($filter)" else filter
     case op: PredicateValueOperator => s"""${op.filter}(<$predicateName>, "${op.value}")"""
   }
 
   def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
     hasPredicates
+      .flatten
       .map(pred =>
         predicateVals(pred) -> s"""${predicateVals(pred)} as var(func: has(<$pred>)${getChunkString(chunk)})${getValueFilter(pred, "uids")}"""
       )
-      .toSeq.sorted
       .toMap
 
   val predicatePaths: Seq[String] =
     (getProperties.map(pred => pred -> s"<$pred>") ++ getEdges.map(edge => edge -> s"<$edge> { uid }"))
+      .toSeq.sortBy(_._1)
       .map { case (pred, path) => s"$path${getValueFilter(pred, "vals")}" }
-      .toSeq
-      .sorted
+
+  val resultOperatorFilters: Option[String] = {
+    val filters: Seq[String] =
+      hasPredicates
+        .map(_.toSeq.sorted)
+        .toSeq.sortBy(_.headOption)
+        .map { preds =>
+          val filter = preds.flatMap {
+            case pred if predicateOps.contains(pred) =>
+              val ops = predicateOps(pred)
+              ops.map(op => getFilter(op, pred, "uids", hasPredicates.size > 1))
+            case pred => Seq(s"has(<$pred>)")
+          }.mkString(" OR ")
+          if (preds.size > 1 && hasPredicates.size > 1) s"($filter)" else filter
+        }
+    Some(filters.mkString(" AND "))
+      // we only need result operator filter when there are multiple has operators
+      .filter(_ => hasPredicates.size > 1)
+      // we only want to add a trailing space if our filter string is non-empty
+      .filter(_.nonEmpty)
+  }
 
 }
 
