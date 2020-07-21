@@ -433,82 +433,82 @@ class TestTriplesSource extends FunSpec
     it("should push predicate filters") {
       doTestFilterPushDown(
         $"predicate" === "name",
-        Seq(IntersectPredicateNameIsIn("name")), Seq.empty,
+        Set(IntersectPredicateNameIsIn("name")), Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name"),
-        Seq(IntersectPredicateNameIsIn("name")),
+        Set(IntersectPredicateNameIsIn("name")),
         Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name", "starring"),
-        Seq(IntersectPredicateNameIsIn("name", "starring")),
+        Set(IntersectPredicateNameIsIn("name", "starring")),
         Seq.empty,
-        (t: TypedTriple) => Seq("name", "starring").contains(t.predicate),
-        (t: StringTriple) => Seq("name", "starring").contains(t.predicate)
+        (t: TypedTriple) => Set("name", "starring").contains(t.predicate),
+        (t: StringTriple) => Set("name", "starring").contains(t.predicate)
       )
     }
 
     it("should push object type filters") {
       doTestFilterPushDown(
         $"objectType" === "string",
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         Seq.empty,
         (t: TypedTriple) => t.objectType.equals("string"),
         (t: StringTriple) => t.objectType.equals("string")
       )
       doTestFilterPushDown(
         $"objectType".isin("string"),
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         Seq.empty,
         (t: TypedTriple) => t.objectType.equals("string"),
         (t: StringTriple) => t.objectType.equals("string")
       )
       doTestFilterPushDown(
         $"objectType".isin("string", "uid"),
-        Seq(ObjectTypeIsIn("string", "uid")),
+        Set(ObjectTypeIsIn("string", "uid")),
         Seq.empty,
-        (t: TypedTriple) => Seq("string", "uid").contains(t.objectType),
-        (t: StringTriple) => Seq("string", "uid").contains(t.objectType)
+        (t: TypedTriple) => Set("string", "uid").contains(t.objectType),
+        (t: StringTriple) => Set("string", "uid").contains(t.objectType)
       )
     }
 
     it("should push object value filters for typed triples") {
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull,
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.isDefined)
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull && $"objectUid".isNotNull,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person" && $"objectUid" === 1,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
     }
@@ -516,7 +516,7 @@ class TestTriplesSource extends FunSpec
     it("should push object value filters for string triples") {
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person")),
+        Set(ObjectValueIsIn("Person")),
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
@@ -524,7 +524,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person" && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -535,7 +535,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person")),
+        Set(ObjectValueIsIn("Person")),
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
@@ -543,7 +543,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person") && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -554,7 +554,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film")),
+        Set(ObjectValueIsIn("Person", "Film")),
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
@@ -562,7 +562,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film") && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -573,7 +573,7 @@ class TestTriplesSource extends FunSpec
     }
 
     def doTestFilterPushDown(condition: Column,
-                             expectedFilters: Seq[Filter],
+                             expectedFilters: Set[Filter],
                              expectedUnpushed: Seq[Expression],
                              expectedTypedDsFilter: TypedTriple => Boolean,
                              expectedStringDsFilter: StringTriple => Boolean): Unit = {

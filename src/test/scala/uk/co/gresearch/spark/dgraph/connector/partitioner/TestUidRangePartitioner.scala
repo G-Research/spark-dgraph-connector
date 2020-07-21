@@ -111,16 +111,16 @@ class TestUidRangePartitioner extends FunSpec {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
 
-      Seq(
-        Seq(SubjectIsIn(Uid("0x1"))),
-        Seq(IntersectPredicateNameIsIn("pred")),
-        Seq(IntersectPredicateNameIsIn("pred"), ObjectValueIsIn("value")),
-        Seq(PredicateNameIs("pred")),
-        Seq(PredicateNameIs("pred"), ObjectValueIsIn("value")),
-        Seq(IntersectPredicateValueIsIn(Set("pred"), Set("value"))),
-        Seq(SinglePredicateValueIsIn("pred", Set("value"))),
-        Seq(ObjectTypeIsIn("type")),
-        Seq(ObjectValueIsIn("type"))
+      Seq[Set[Filter]](
+        Set(SubjectIsIn(Uid("0x1"))),
+        Set(IntersectPredicateNameIsIn("pred")),
+        Set(IntersectPredicateNameIsIn("pred"), ObjectValueIsIn("value")),
+        Set(PredicateNameIs("pred")),
+        Set(PredicateNameIs("pred"), ObjectValueIsIn("value")),
+        Set(IntersectPredicateValueIsIn(Set("pred"), Set("value"))),
+        Set(SinglePredicateValueIsIn("pred", Set("value"))),
+        Set(ObjectTypeIsIn("type")),
+        Set(ObjectValueIsIn("type"))
       ).foreach {
         filters =>
           val actual = uidPartitioner.supportsFilters(filters)
@@ -132,7 +132,8 @@ class TestUidRangePartitioner extends FunSpec {
     it("should forward filters to decorated partitioner") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
-      val filters = Filters(Seq.empty, Seq.empty)
+      // deliberately not EmptyFilters here to test with our own instance
+      val filters = Filters(Set.empty, Set.empty)
       val actual =
         uidPartitioner.withFilters(filters).asInstanceOf[UidRangePartitioner]
           .partitioner.asInstanceOf[connector.partitioner.PredicatePartitioner].filters

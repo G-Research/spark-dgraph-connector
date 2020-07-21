@@ -334,9 +334,23 @@ class TestNodeSource extends FunSpec
         .dgraphNodes(cluster.grpc)
 
     it("should push predicate filters") {
-      doTestFilterPushDown(typedNodes, $"predicate" === "name", Seq(IntersectPredicateNameIsIn("name")), expectedDs = expectedTypedNodes.filter(_.predicate == "name"))
-      doTestFilterPushDown(typedNodes, $"predicate".isin("name"), Seq(IntersectPredicateNameIsIn("name")), expectedDs = expectedTypedNodes.filter(_.predicate == "name"))
-      doTestFilterPushDown(typedNodes, $"predicate".isin("name", "starring"), Seq(IntersectPredicateNameIsIn("name", "starring")), expectedDs = expectedTypedNodes.filter(t => Set("name", "starring").contains(t.predicate)))
+      doTestFilterPushDown(typedNodes,
+        $"predicate" === "name",
+        Set(IntersectPredicateNameIsIn("name")),
+        expectedDs = expectedTypedNodes.filter(_.predicate == "name")
+      )
+
+      doTestFilterPushDown(typedNodes,
+        $"predicate".isin("name"),
+        Set(IntersectPredicateNameIsIn("name")),
+        expectedDs = expectedTypedNodes.filter(_.predicate == "name")
+      )
+
+      doTestFilterPushDown(typedNodes,
+        $"predicate".isin("name", "starring"),
+        Set(IntersectPredicateNameIsIn("name", "starring")),
+        expectedDs = expectedTypedNodes.filter(t => Set("name", "starring").contains(t.predicate))
+      )
     }
 
     it("should push predicate value filters") {
@@ -344,31 +358,31 @@ class TestNodeSource extends FunSpec
 
       doTestFilterPushDown(wideNodes,
         $"name".isNotNull,
-        Seq(PredicateNameIs("name")),
+        Set(PredicateNameIs("name")),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined)
       )
 
       doTestFilterPushDown(wideNodes,
         $"name".isNotNull && $"running_time".isNotNull,
-        Seq(PredicateNameIs("name"), PredicateNameIs("running_time")),
+        Set(PredicateNameIs("name"), PredicateNameIs("running_time")),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined && !r.isNullAt(columns.indexOf("running_time")))
       )
 
       doTestFilterPushDown(wideNodes,
         $"name".isin("Star Wars: Episode IV - A New Hope"),
-        Seq(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope"))),
+        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope"))),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
       )
 
       doTestFilterPushDown(wideNodes,
         $"name".isin("Star Wars: Episode IV - A New Hope", "Princess Leia"),
-        Seq(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope", "Princess Leia"))),
+        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope", "Princess Leia"))),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(Set("Star Wars: Episode IV - A New Hope", "Princess Leia").contains))
       )
 
       doTestFilterPushDown(wideNodes,
         $"name" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
-        Seq(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
+        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getInt(columns.indexOf("running_time"))).exists(_.equals(121)))
       )
 
@@ -376,57 +390,69 @@ class TestNodeSource extends FunSpec
       assert(expected.isEmpty, "expect empty result for this query, check query")
       doTestFilterPushDown(wideNodes,
         $"name" === "Luke Skywalker" && $"running_time" === 121,
-        Seq(SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
+        Set(SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
         expectedDs = expected
       )
     }
 
     it("should push object type filters") {
-      doTestFilterPushDown(typedNodes, $"objectType" === "string", Seq(ObjectTypeIsIn("string")), expectedDs = expectedTypedNodes.filter(_.objectType == "string"))
-      doTestFilterPushDown(typedNodes, $"objectType".isin("string"), Seq(ObjectTypeIsIn("string")), expectedDs = expectedTypedNodes.filter(_.objectType == "string"))
-      typedNodes.printSchema()
-      typedNodes.where($"objectType".isin("string", "long")).show(100, false)
-      doTestFilterPushDown(typedNodes, $"objectType".isin("string", "long"), Seq(ObjectTypeIsIn("string", "long")), expectedDs = expectedTypedNodes.filter(t => Set("string", "long").contains(t.objectType)))
+      doTestFilterPushDown(typedNodes,
+        $"objectType" === "string",
+        Set(ObjectTypeIsIn("string")),
+        expectedDs = expectedTypedNodes.filter(_.objectType == "string")
+      )
+
+      doTestFilterPushDown(typedNodes,
+        $"objectType".isin("string"),
+        Set(ObjectTypeIsIn("string")),
+        expectedDs = expectedTypedNodes.filter(_.objectType == "string")
+      )
+
+      doTestFilterPushDown(typedNodes,
+        $"objectType".isin("string", "long"),
+        Set(ObjectTypeIsIn("string", "long")),
+        expectedDs = expectedTypedNodes.filter(t => Set("string", "long").contains(t.objectType))
+      )
     }
 
     it("should push object value filters") {
       doTestFilterPushDown[TypedNode](typedNodes,
         $"objectString".isNotNull,
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         expectedDs = expectedTypedNodes.filter(_.objectString.isDefined)
       )
       doTestFilterPushDown(typedNodes,
         $"objectString".isNotNull && $"objectLong".isNotNull,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
 
       doTestFilterPushDown(typedNodes,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDown(typedNodes,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDown(typedNodes,
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
       )
 
       doTestFilterPushDown(typedNodes,
         $"objectString" === "Person" && $"objectLong" === 1,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
     }
 
-    def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
+    def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
       doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
     }
 

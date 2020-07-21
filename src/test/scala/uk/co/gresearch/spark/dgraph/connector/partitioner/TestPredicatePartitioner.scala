@@ -283,8 +283,8 @@ class TestPredicatePartitioner extends FunSpec {
       val partitions =
         PredicatePartitioner(schema, clusterState, 5)
           .withFilters(Filters(
-            Seq(IntersectPredicateNameIsIn("pred3"), ObjectValueIsIn("value")),
-            Seq(ObjectTypeIsIn("type2"))
+            Set(IntersectPredicateNameIsIn("pred3"), ObjectValueIsIn("value")),
+            Set(ObjectTypeIsIn("type2"))
           ))
           .getPartitions
 

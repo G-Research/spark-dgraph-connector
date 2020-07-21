@@ -40,7 +40,7 @@ case class PredicatePartitioner(schema: Schema,
   val props: Set[String] = schema.predicates.filterNot(_.dgraphType.eq("uid")).map(_.predicateName)
   val edges: Set[String] = schema.predicates.filter(_.dgraphType.eq("uid")).map(_.predicateName)
 
-  override def supportsFilters(filters: Seq[connector.Filter]): Boolean = filters.map {
+  override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters.map {
     case _: AlwaysFalse => true
     case _: PredicateNameIsIn => true
     case _: PredicateValueIsIn => true
@@ -86,7 +86,7 @@ case class PredicatePartitioner(schema: Schema,
    * @param filters filters
    * @return filters with ObjectTypeIsIn replaced
    */
-  def replaceObjectTypeIsInFilter(filters: Seq[Filter]): Seq[Filter] =
+  def replaceObjectTypeIsInFilter(filters: Set[Filter]): Set[Filter] =
     filters.map {
       case ObjectTypeIsIn(types) =>
         val predicateNames = schema.predicates.filter(p => types.contains(p.sparkType)).map(_.predicateName)
@@ -94,7 +94,7 @@ case class PredicatePartitioner(schema: Schema,
       case f: Filter => f
     }
 
-  def filter(clusterState: ClusterState, filters: Seq[connector.Filter]): ClusterState =
+  def filter(clusterState: ClusterState, filters: Set[connector.Filter]): ClusterState =
     filters.foldLeft(clusterState)(filter)
 
   def filter(clusterState: ClusterState, filter: connector.Filter): ClusterState =
@@ -173,7 +173,7 @@ object PredicatePartitioner extends ClusterStateHelper {
    * @param edges names of edges
    * @return operators
    */
-  def getFilterOperators(filters: Seq[Filter], predicates: Set[Predicate], properties: Set[String], edges: Set[String]): Set[Operator] = {
+  def getFilterOperators(filters: Set[Filter], predicates: Set[Predicate], properties: Set[String], edges: Set[String]): Set[Operator] = {
     val predicateNames = predicates.map(_.predicateName)
     val ops =
       filters.flatMap {
@@ -186,7 +186,6 @@ object PredicatePartitioner extends ClusterStateHelper {
         case _ => Seq.empty
       }
         .map(_.asInstanceOf[Operator])
-        .toSet
 
     if (!ops.exists(_.isInstanceOf[Has])) {
       Set[Operator](Has(predicateNames.intersect(properties), predicateNames.intersect(edges))) ++ ops
@@ -198,7 +197,7 @@ object PredicatePartitioner extends ClusterStateHelper {
   def getPartitions(schema: Schema,
                     clusterState: ClusterState,
                     partitionsInGroup: (String) => Int,
-                    filters: Seq[Filter]): Seq[Partition] =
+                    filters: Set[Filter]): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)

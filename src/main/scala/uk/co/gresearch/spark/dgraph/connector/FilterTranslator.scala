@@ -12,51 +12,51 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
    * @param filter spark filter
    * @return Some dgraph filters
    */
-  def translate(filter: sql.sources.Filter): Option[Seq[Filter]] = filter match {
+  def translate(filter: sql.sources.Filter): Option[Set[Filter]] = filter match {
     case IsNotNull(column) if columnInfo.isPredicateValueColumn(column) =>
-      Some(Seq(PredicateNameIs(column)))
+      Some(Set(PredicateNameIs(column)))
     case IsNotNull(column) if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
-      Some(Seq(ObjectTypeIsIn(columnInfo.getObjectType(column).get)))
+      Some(Set(ObjectTypeIsIn(columnInfo.getObjectType(column).get)))
 
     case EqualTo(column, value) if columnInfo.isSubjectColumn(column) && Option(value).isDefined =>
-      Some(Seq(SubjectIsIn(Uid(value.toLong))))
+      Some(Set(SubjectIsIn(Uid(value.toLong))))
     case EqualTo(column, value) if columnInfo.isPredicateColumn(column) && Option(value).isDefined =>
-      Some(Seq(IntersectPredicateNameIsIn(value.toString)))
+      Some(Set(IntersectPredicateNameIsIn(value.toString)))
     case EqualTo(column, value) if columnInfo.isPredicateValueColumn(column) && Option(value).isDefined =>
-      Some(Seq(SinglePredicateValueIsIn(column, Set(value))))
+      Some(Set(SinglePredicateValueIsIn(column, Set(value))))
     case EqualTo(column, value) if columnInfo.isObjectValueColumn(column) && Option(value).isDefined =>
-      Some(Seq(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Seq(ObjectTypeIsIn(t))).getOrElse(Seq.empty))
+      Some(Set(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
     case EqualTo(column, value) if columnInfo.isObjectTypeColumn(column) && Option(value).isDefined =>
-      Some(Seq(ObjectTypeIsIn(value.toString)))
+      Some(Set(ObjectTypeIsIn(value.toString)))
 
     case In(column, values)
       if columnInfo.isSubjectColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Seq(SubjectIsIn(values.map(value => Uid(value.toLong)): _*)))
+      Some(Set(SubjectIsIn(values.map(value => Uid(value.toLong)): _*)))
     case In(column, values)
       if columnInfo.isPredicateColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Seq(IntersectPredicateNameIsIn(values.map(_.toString): _*)))
+      Some(Set(IntersectPredicateNameIsIn(values.map(_.toString): _*)))
     case In(column, values)
       if columnInfo.isPredicateValueColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Seq(SinglePredicateValueIsIn(column, values.toSet)))
+      Some(Set(SinglePredicateValueIsIn(column, values.toSet)))
     case In(column, values)
       if columnInfo.isObjectValueColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Seq(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Seq(ObjectTypeIsIn(t))).getOrElse(Seq.empty))
+      Some(Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
     case In(column, values)
       if columnInfo.isObjectTypeColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Seq(ObjectTypeIsIn(values.map(_.toString): _*)))
+      Some(Set(ObjectTypeIsIn(values.map(_.toString): _*)))
 
-    case sql.sources.AlwaysTrue => Some(Seq(AlwaysTrue))
-    case sql.sources.AlwaysFalse => Some(Seq(AlwaysFalse))
+    case sql.sources.AlwaysTrue => Some(Set(AlwaysTrue))
+    case sql.sources.AlwaysFalse => Some(Set(AlwaysFalse))
 
     case _ => None
   }
@@ -65,31 +65,28 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
 
 object FilterTranslator {
 
-  def simplify(filters: Seq[Filter]): Seq[Filter] = {
-    // deduplicate filters first
-    val deduped = filters.distinct
-
+  def simplify(filters: Set[Filter]): Set[Filter] = {
     // first simplification intersects filters with set arguments
     val intersected =
-      deduped
+      filters
         .groupBy(_.getClass)
         .flatMap { case (cls, filters) =>
           cls match {
-            case cls if cls == classOf[SubjectIsIn] => Seq[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
-            case cls if cls == classOf[IntersectPredicateNameIsIn] => Seq[Filter](filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
-            case cls if cls == classOf[IntersectPredicateValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
+            case cls if cls == classOf[SubjectIsIn] => Set[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
+            case cls if cls == classOf[IntersectPredicateNameIsIn] => Set[Filter](filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
+            case cls if cls == classOf[IntersectPredicateValueIsIn] => Set[Filter](filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
             case cls if cls == classOf[SinglePredicateValueIsIn] =>
               filters
                 .map(_.asInstanceOf[SinglePredicateValueIsIn])
                 .groupBy(_.name)
-                .mapValues(fs => Seq[Filter](fs.reduce(intersectSinglePredicateValueIsIn)))
+                .mapValues(fs => Set[Filter](fs.reduce(intersectSinglePredicateValueIsIn)))
                 .values.flatten
-            case cls if cls == classOf[ObjectTypeIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
-            case cls if cls == classOf[ObjectValueIsIn] => Seq[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
+            case cls if cls == classOf[ObjectTypeIsIn] => Set[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
+            case cls if cls == classOf[ObjectValueIsIn] => Set[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
             case _ => filters
           }
         }
-        .toSeq
+        .toSet
 
     // we can simplify some trivial expressions
     val trivialized =
@@ -129,7 +126,7 @@ object FilterTranslator {
         }
 
     if (simplified.contains(AlwaysFalse))
-      Seq(AlwaysFalse)
+      Set(AlwaysFalse)
     else
       simplified
   }
@@ -141,7 +138,7 @@ object FilterTranslator {
    * @param supported function to indicate support of filters
    * @return simplified filters
    */
-  def simplify(filters: Filters, supported: Seq[Filter] => Boolean): Filters = {
+  def simplify(filters: Filters, supported: Set[Filter] => Boolean): Filters = {
     val allSimplified = simplify(filters)
     val promisedSimplified = simplify(filters.promised)
     val optionalSimplified = simplify(filters.optional)
