@@ -34,11 +34,13 @@ class TestSingletonPartitioner extends FunSpec {
     val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should partition") {
-      val partitioner = SingletonPartitioner(targets)
+      val predicates = Set(Predicate("pred", "type", "type"))
+      val schema = Schema(predicates)
+      val partitioner = SingletonPartitioner(targets, schema)
       val partitions = partitioner.getPartitions(model)
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets, None, None, None, model)))
+      assert(partitions.toSet === Set(Partition(targets, predicates, None, None, model)))
     }
 
   }

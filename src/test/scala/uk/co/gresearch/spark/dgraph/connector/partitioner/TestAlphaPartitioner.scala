@@ -57,12 +57,12 @@ class TestAlphaPartitioner extends FunSpec {
       assert(partitions.length === 4)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2"))), None, None, model),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3", "type3"), Predicate("pred4", "type4", "type4"))), None, None, model),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2")), None, None, model),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3"), Predicate("pred4", "type4", "type4")), None, None, model),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5", "type5"))), None, None, model),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5")), None, None, model),
 
-        Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7", "type7"), Predicate("pred6", "type6", "type6"))), None, None, model)
+        Partition(Seq(Target("host6:9080")), Set(Predicate("pred7", "type7", "type7"), Predicate("pred6", "type6", "type6")), None, None, model)
       ))
     }
 
@@ -74,15 +74,15 @@ class TestAlphaPartitioner extends FunSpec {
         assert(partitions.length === 7)
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred1", "type1", "type1"))), None, None, model),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Some(Set(Predicate("pred2", "type2", "type2"))), None, None, model),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred3", "type3", "type3"))), None, None, model),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Some(Set(Predicate("pred4", "type4", "type4"))), None, None, model),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1")), None, None, model),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2")), None, None, model),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3")), None, None, model),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred4", "type4", "type4")), None, None, model),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Some(Set(Predicate("pred5", "type5", "type5"))), None, None, model),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5")), None, None, model),
 
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred6", "type6", "type6"))), None, None, model),
-          Partition(Seq(Target("host6:9080")), Some(Set(Predicate("pred7", "type7", "type7"))), None, None, model)
+          Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None, model),
+          Partition(Seq(Target("host6:9080")), Set(Predicate("pred7", "type7", "type7")), None, None, model)
         ))
       }
     )

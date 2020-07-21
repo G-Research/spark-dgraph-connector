@@ -57,24 +57,16 @@ trait GraphTableModel {
                (chunk: Chunk): JsonArray = {
     val query = partition.query
     val startTs = Clock.systemUTC().instant().toEpochMilli
-    val graphql = toGraphQl(query, Some(chunk))
+    val graphql = query.forChunk(Some(chunk))
     val json = executor.query(graphql)
     val endTs = Clock.systemUTC().instant().toEpochMilli
     val array = until.foldLeft(encoder.getResult(json, query.resultName))(filter)
     println(s"stage=${Option(TaskContext.get()).map(_.stageId()).orNull} part=${Option(TaskContext.get()).map(_.partitionId()).orNull}: " +
-      s"read ${json.string.length} bytes with ${partition.predicates.map(p => s"${p.size} predicates for ").getOrElse("")}" +
+      s"read ${json.string.length} bytes with ${partition.predicates.size} predicates for " +
       s"${chunk.length} uids after ${chunk.after.toHexString} ${until.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
       s"with ${array.size()} nodes in ${(endTs - startTs)/1000.0}s")
     array
   }
-
-  /**
-   * Turn a partition query into a GraphQl query.
-   * @param query partition query
-   * @param chunk chunk of the result set to query
-   * @return graphql query
-   */
-  def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl
 
 }
 

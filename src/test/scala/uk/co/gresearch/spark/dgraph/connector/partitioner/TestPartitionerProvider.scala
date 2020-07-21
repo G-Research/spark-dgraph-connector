@@ -40,7 +40,7 @@ class TestPartitionerProvider extends FunSpec {
 
   describe("PartitionerProvider") {
 
-    val singleton = SingletonPartitioner(target)
+    val singleton = SingletonPartitioner(target, schema)
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)

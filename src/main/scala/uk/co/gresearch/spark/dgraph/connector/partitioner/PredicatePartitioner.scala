@@ -20,10 +20,9 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.math.BigInteger
 import java.security.MessageDigest
 
-import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Predicate, Schema}
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
 import scala.language.implicitConversions
 
@@ -190,7 +189,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       val groupValues = Some(values.filter(v => groupPredicateNames.contains(v._1))).filter(_.nonEmpty)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), Some(predicatesPartitions(index)), None, groupValues, model)
+        Partition(targets.rotateLeft(index), predicatesPartitions(index), None, groupValues, model)
       }
     }.toSeq
 

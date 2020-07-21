@@ -271,7 +271,16 @@ class TestNodeSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, None, None, None, model))))
+      val predicates = Set(
+        Predicate("dgraph.graphql.schema", "string"),
+        Predicate("dgraph.graphql.xid", "string"),
+        Predicate("dgraph.type", "string"),
+        Predicate("name", "string"),
+        Predicate("release_date", "datetime"),
+        Predicate("revenue", "float"),
+        Predicate("running_time", "int")
+      )
+      assert(partitions === Seq(Some(Partition(targets, predicates, None, None, model))))
     }
 
     it("should load as a predicate partitions") {
@@ -289,11 +298,11 @@ class TestNodeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.type", "string"))), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("revenue", "float"))), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("dgraph.graphql.schema", "string"), Predicate("dgraph.graphql.xid", "string"))), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("running_time", "int"))), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Some(Set(Predicate("release_date", "datetime"), Predicate("name", "string"))), None, None, model))
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.type", "string")), None, None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("revenue", "float")), None, None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.graphql.schema", "string"), Predicate("dgraph.graphql.xid", "string")), None, None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("running_time", "int")), None, None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("release_date", "datetime"), Predicate("name", "string")), None, None, model))
       )
 
       assert(partitions.toSet === expected)

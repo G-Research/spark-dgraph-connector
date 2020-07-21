@@ -32,11 +32,11 @@ class ConfigPartitionerOption extends PartitionerProviderOption
       .map(getPartitioner(_, schema, clusterState, options))
 
   def getPartitioner(partitionerName: String,
-                             schema: Schema,
-                             clusterState: ClusterState,
-                             options: DataSourceOptions): Partitioner =
+                     schema: Schema,
+                     clusterState: ClusterState,
+                     options: DataSourceOptions): Partitioner =
     partitionerName match {
-      case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState))
+      case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState), schema)
       case GroupPartitionerOption => GroupPartitioner(schema, clusterState)
       case AlphaPartitionerOption =>
         AlphaPartitioner(schema, clusterState,
@@ -48,7 +48,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption
         val uidsPerPartition = getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
         val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
         val targets = getAllClusterTargets(clusterState)
-        val singleton = SingletonPartitioner(targets)
+        val singleton = SingletonPartitioner(targets, schema)
         UidRangePartitioner(singleton, uidsPerPartition, estimator)
       case option if option.endsWith(s"+${UidRangePartitionerOption}") =>
         val name = option.substring(0, option.indexOf('+'))
