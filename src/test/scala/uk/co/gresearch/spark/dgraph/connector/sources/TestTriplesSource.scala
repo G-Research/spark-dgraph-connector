@@ -408,8 +408,10 @@ class TestTriplesSource extends FunSpec
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
-      // ignore the existence or absence of graphQlSchema in the result, otherwise flaky test, see TestNodeSource
-      assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
+      // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
+      val allUidInts = allUids.map(_.toInt).toSet
+      val expected = (1 to highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
+      assert(partitions === expected)
     }
 
     lazy val typedTriples =

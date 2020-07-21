@@ -306,10 +306,10 @@ class TestNodeSource extends FunSpec
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
-      // ignore the existence or absence of graphQlSchema in the result, otherwise flaky test:
-      // - should partition data *** FAILED ***
-      //  Array(Set(5, 6, 2, 7, 3, 4), Set(10, 9, 12, 11, 8)) did not equal Stream(Set(5, 6, 2, 7, 3, 8, 4), Set(9, 10, 11, 12)) (TestNodeSource.scala:295)
-      assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
+      // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
+      val allUidInts = allUids.map(_.toInt).toSet
+      val expected = (1 to highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
+      assert(partitions === expected)
     }
 
     lazy val typedNodes =

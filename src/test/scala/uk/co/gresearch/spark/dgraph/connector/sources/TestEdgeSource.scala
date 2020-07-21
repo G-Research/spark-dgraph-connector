@@ -193,12 +193,10 @@ class TestEdgeSource extends FunSpec
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
-      // we can only count and retrieve triples, not edges only, and filter for edges in the connector
-      // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
-      // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)
-      val uids = Set(sw1, sw2, sw3)
-      val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
-      assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
+      // we retrieve partitions in chunks of 2 uids, if there are uids allocated but unused then we get partitions with less than 2 uids
+      val uids = Set(sw1, sw2, sw3).map(_.toInt)
+      val expected = (1 to highestUid.toInt).grouped(2).map(_.toSet intersect uids).toSeq
+      assert(partitions === expected)
     }
 
     lazy val edges =
