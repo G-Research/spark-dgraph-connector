@@ -26,8 +26,17 @@ object EmptyFilters extends Filters(Seq.empty, Seq.empty)
 case class AlwaysTrue() extends Filter
 case class AlwaysFalse() extends Filter
 case class SubjectIsIn(uids: Set[Uid]) extends Filter
-case class PredicateNameIsIn(names: Set[String]) extends Filter
-case class PredicateValueIsIn(names: Set[String], values: Set[Any]) extends Filter
+
+// PredicateNameIsIn comes with two semantics: one that has to be intersected and one that cannot
+abstract class PredicateNameIsIn(val names: Set[String]) extends Filter
+case class IntersectPredicateNameIsIn(override val names: Set[String]) extends PredicateNameIsIn(names)
+case class PredicateNameIs(name: String) extends PredicateNameIsIn(Set(name))
+
+// PredicateValueIsIn comes with two semantics: one that has to be intersected and one that cannot
+abstract class PredicateValueIsIn(val names: Set[String], val values: Set[Any]) extends Filter
+case class IntersectPredicateValueIsIn(override val names: Set[String], override val values: Set[Any]) extends PredicateValueIsIn(names, values)
+case class SinglePredicateValueIsIn(name: String, override val values: Set[Any]) extends PredicateValueIsIn(Set(name), values)
+
 case class ObjectTypeIsIn(types: Set[String]) extends Filter
 case class ObjectValueIsIn(values: Set[Any]) extends Filter
 
@@ -38,8 +47,8 @@ object SubjectIsIn {
   def apply(uids: Uid*): SubjectIsIn = new SubjectIsIn(uids.toSet)
 }
 
-object PredicateNameIsIn {
-  def apply(names: String*): PredicateNameIsIn = new PredicateNameIsIn(names.toSet)
+object IntersectPredicateNameIsIn {
+  def apply(names: String*): IntersectPredicateNameIsIn = new IntersectPredicateNameIsIn(names.toSet)
 }
 
 object ObjectTypeIsIn {

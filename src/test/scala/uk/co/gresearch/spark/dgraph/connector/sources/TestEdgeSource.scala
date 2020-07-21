@@ -211,9 +211,9 @@ class TestEdgeSource extends FunSpec
         .dgraphEdges(cluster.grpc)
 
     it("should push predicate filters") {
-      doTestFilterPushDown($"predicate" === "director", Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
-      doTestFilterPushDown($"predicate".isin("director"), Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
-      doTestFilterPushDown($"predicate".isin("director", "starring"), Seq(PredicateNameIsIn("director", "starring")), expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1))))
+      doTestFilterPushDown($"predicate" === "director", Seq(IntersectPredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director"), Seq(IntersectPredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
+      doTestFilterPushDown($"predicate".isin("director", "starring"), Seq(IntersectPredicateNameIsIn("director", "starring")), expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1))))
     }
 
     it("should push object value filters") {

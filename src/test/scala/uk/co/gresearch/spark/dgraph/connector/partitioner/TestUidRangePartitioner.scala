@@ -19,10 +19,9 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import java.util.UUID
 
-import javassist.bytecode.SignatureAttribute.ObjectType
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, Has, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, PredicateNameIsIn, Schema, SubjectIsIn, Target, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector._
 
 class TestUidRangePartitioner extends FunSpec {
 
@@ -114,8 +113,12 @@ class TestUidRangePartitioner extends FunSpec {
 
       Seq(
         Seq(SubjectIsIn(Uid("0x1"))),
-        Seq(PredicateNameIsIn("pred")),
-        Seq(PredicateNameIsIn("pred"), ObjectValueIsIn("value")),
+        Seq(IntersectPredicateNameIsIn("pred")),
+        Seq(IntersectPredicateNameIsIn("pred"), ObjectValueIsIn("value")),
+        Seq(PredicateNameIs("pred")),
+        Seq(PredicateNameIs("pred"), ObjectValueIsIn("value")),
+        Seq(IntersectPredicateValueIsIn(Set("pred"), Set("value"))),
+        Seq(SinglePredicateValueIsIn("pred", Set("value"))),
         Seq(ObjectTypeIsIn("type")),
         Seq(ObjectValueIsIn("type"))
       ).foreach {

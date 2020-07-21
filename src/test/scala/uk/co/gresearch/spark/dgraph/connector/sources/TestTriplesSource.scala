@@ -433,20 +433,20 @@ class TestTriplesSource extends FunSpec
     it("should push predicate filters") {
       doTestFilterPushDown(
         $"predicate" === "name",
-        Seq(PredicateNameIsIn("name")), Seq.empty,
+        Seq(IntersectPredicateNameIsIn("name")), Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name"),
-        Seq(PredicateNameIsIn("name")),
+        Seq(IntersectPredicateNameIsIn("name")),
         Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name", "starring"),
-        Seq(PredicateNameIsIn("name", "starring")),
+        Seq(IntersectPredicateNameIsIn("name", "starring")),
         Seq.empty,
         (t: TypedTriple) => Seq("name", "starring").contains(t.predicate),
         (t: StringTriple) => Seq("name", "starring").contains(t.predicate)

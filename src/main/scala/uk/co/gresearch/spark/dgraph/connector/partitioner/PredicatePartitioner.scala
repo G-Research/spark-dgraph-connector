@@ -69,6 +69,7 @@ case class PredicatePartitioner(schema: Schema,
   /**
    * Replaces ObjectTypeIsIn filter in required and optional filters
    * using replaceObjectTypeIsInFilter(filters: Seq[Filter]).
+   *
    * @param filters filters
    * @return filters with ObjectTypeIsIn replaced
    */
@@ -79,20 +80,17 @@ case class PredicatePartitioner(schema: Schema,
     )
 
   /**
-   * Replaces ObjectTypeIsIn filter with PredicateNameIsIn filter having all predicate names
-   * of the respective type. Only with PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   * Replaces ObjectTypeIsIn filter with IntersectPredicateNameIsIn filter having all predicate names
+   * of the respective type. Only with (Intersect)PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   *
    * @param filters filters
    * @return filters with ObjectTypeIsIn replaced
    */
   def replaceObjectTypeIsInFilter(filters: Seq[Filter]): Seq[Filter] =
     filters.map {
       case ObjectTypeIsIn(types) =>
-        println(types)
-        println(schema.predicates.map(_.dgraphType))
-        println(schema.predicates.map(_.sparkType))
         val predicateNames = schema.predicates.filter(p => types.contains(p.sparkType)).map(_.predicateName)
-        println(predicateNames)
-        PredicateNameIsIn(predicateNames)
+        IntersectPredicateNameIsIn(predicateNames)
       case f: Filter => f
     }
 
@@ -102,10 +100,12 @@ case class PredicatePartitioner(schema: Schema,
   def filter(clusterState: ClusterState, filter: connector.Filter): ClusterState =
     filter match {
       case _: AlwaysFalse => clusterState.copy(groupPredicates = Map.empty)
-      case f: PredicateNameIsIn => clusterState.copy(
+      // only intersect PredicateNameIsIn limits the predicates for Has and Get
+      case f: IntersectPredicateNameIsIn => clusterState.copy(
         groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
       )
-      case f: PredicateValueIsIn => clusterState.copy(
+      // only intersect PredicateValueIsIn limits the predicates for Has and Get
+      case f: IntersectPredicateValueIsIn => clusterState.copy(
         groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
       )
       case _: ObjectTypeIsIn =>
@@ -177,12 +177,12 @@ object PredicatePartitioner extends ClusterStateHelper {
     val predicateNames = predicates.map(_.predicateName)
     val ops =
       filters.flatMap {
-        case PredicateNameIsIn(preds) =>
-          val predNames = preds.intersect(predicateNames)
+        case f: PredicateNameIsIn =>
+          val predNames = f.names.intersect(predicateNames)
           Seq(Has(predNames.intersect(properties), predNames.intersect(edges)))
-        case PredicateValueIsIn(preds, vals) =>
-          val predNames = preds.intersect(predicateNames)
-          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)), IsIn(preds, vals))
+        case f: PredicateValueIsIn =>
+          val predNames = f.names.intersect(predicateNames)
+          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)), IsIn(f.names, f.values))
         case _ => Seq.empty
       }
         .map(_.asInstanceOf[Operator])
@@ -209,7 +209,10 @@ object PredicatePartitioner extends ClusterStateHelper {
       val edgeNames = edges.map(_.predicateName)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)).get(predicatesPartitions(index))
+        Partition(
+          targets.rotateLeft(index),
+          getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
+        ).get(predicatesPartitions(index))
       }
     }.toSeq
 
