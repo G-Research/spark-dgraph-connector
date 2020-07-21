@@ -344,7 +344,7 @@ The following table lists all supported Spark filters:
 
 ## Metrics
 
-The connector collects metrics per partition that provide insights in throughout and timing of the communication
+The connector (Spark ≥3.0 only) collects metrics per partition that provide insights in throughout and timing of the communication
 to the Dgraph cluster. For each request to Dgraph (a chunk), the number of received bytes, uids and retrieval time are recorded and
 summed per partition. The values can be seen on the Spark UI for the respective stages that performs the read:
 
