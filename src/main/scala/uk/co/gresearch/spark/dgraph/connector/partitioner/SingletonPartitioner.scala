@@ -17,10 +17,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Target}
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Schema, Target}
 
-case class SingletonPartitioner(targets: Seq[Target]) extends Partitioner {
+case class SingletonPartitioner(targets: Seq[Target], schema: Schema) extends Partitioner {
 
-  override def getPartitions: Seq[Partition] = Seq(Partition(targets, None, None, None))
+  override def getPartitions: Seq[Partition] = Seq(Partition(targets, schema.predicates, None, None))
 
 }

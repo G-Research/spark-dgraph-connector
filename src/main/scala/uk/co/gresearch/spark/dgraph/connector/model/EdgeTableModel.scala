@@ -13,17 +13,6 @@ case class EdgeTableModel(execution: ExecutorProvider,
                           metrics: PartitionMetrics = NoPartitionMetrics())
   extends GraphTableModel {
 
-  /**
-   * Turn a partition query into a GraphQl query.
-   *
-   * @param query partition query
-   * @param chunk chunk of the result set to query
-   * @return graphql query
-   */
-  override def toGraphQl(query: PartitionQuery, chunk: Option[Chunk]): GraphQl =
-  // TODO: query for edges-only when supported
-    query.forPropertiesAndEdges(chunk)
-
   override def withMetrics(metrics: PartitionMetrics): EdgeTableModel = copy(metrics = metrics)
 
 }

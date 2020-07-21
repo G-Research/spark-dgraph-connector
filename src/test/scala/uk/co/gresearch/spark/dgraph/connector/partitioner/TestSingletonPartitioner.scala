@@ -18,7 +18,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Target}
+import uk.co.gresearch.spark.dgraph.connector.{Partition, Predicate, Schema, Target}
 
 class TestSingletonPartitioner extends FunSpec {
 
@@ -27,11 +27,13 @@ class TestSingletonPartitioner extends FunSpec {
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
 
     it("should partition") {
-      val partitioner = SingletonPartitioner(targets)
+      val predicates = Set(Predicate("pred", "type", "type"))
+      val schema = Schema(predicates)
+      val partitioner = SingletonPartitioner(targets, schema)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets, None, None, None)))
+      assert(partitions.toSet === Set(Partition(targets, predicates, None, None)))
     }
 
   }
