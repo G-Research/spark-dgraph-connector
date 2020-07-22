@@ -25,6 +25,6 @@ case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
     clusterState.groupMembers.map { case (group, alphas) =>
       (group, alphas, getGroupPredicates(clusterState, group, schema))
     }.filter(_._3.nonEmpty).map { case (_, alphas, predicates) =>
-      Partition(alphas.toSeq, predicates, None, None)
+      Partition(alphas.toSeq).has(predicates)
     }.toSeq
 }

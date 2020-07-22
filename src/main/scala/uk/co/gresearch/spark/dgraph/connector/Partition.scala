@@ -24,15 +24,39 @@ import org.apache.spark.sql.connector.read.InputPartition
  * Providing object values will return only those triples that match the predicate name and value.
  *
  * @param targets Dgraph alpha nodes
- * @param predicates predicates to read
- * @param uids optional uid ranges
- * @param values optional object values
+ * @param operators set of operators
  */
-case class Partition(targets: Seq[Target],
-                     predicates: Set[Predicate],
-                     uids: Option[UidRange],
-                     values: Option[Map[String, Set[Any]]])
+case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
   extends InputPartition {
+
+  def has(predicates: Set[Predicate]): Partition =
+    copy(operators = operators ++ Set(Has(predicates)))
+
+  def has(properties: Set[String], edges: Set[String]): Partition =
+    copy(operators = operators ++ Set(Has(properties, edges)))
+
+  def get(predicates: Set[Predicate]): Partition =
+    copy(operators = operators ++ Set(Get(predicates)))
+
+  def getAll(): Partition =
+    copy(operators = operators ++ operators.filter(_.isInstanceOf[Has]).map(_.asInstanceOf[Has]).map(has => Get(has.properties, has.edges)))
+
+  def eq(predicate: String, values: Set[Any]): Partition =
+    copy(operators = operators ++ Set(IsIn(predicate, values)))
+
+  def eq(predicates: Set[String], values: Set[Any]): Partition =
+    copy(operators = operators ++ Set(IsIn(predicates, values)))
+
+  val uids: Option[UidRange] =
+    Some(operators.filter(_.isInstanceOf[UidRange]).map(_.asInstanceOf[UidRange]))
+      .filter(_.nonEmpty)
+      .map(_.head)
+
+  val predicates: Set[String] =
+    operators.flatMap {
+      case op: Get => Some(op.properties ++ op.edges)
+      case _ => None
+    }.headOption.getOrElse(Set.empty)
 
   // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()

@@ -17,7 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Has, Partition, Schema}
 
 case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitionsPerAlpha: Int)
   extends Partitioner with ClusterStateHelper {
@@ -27,7 +27,7 @@ case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitio
 
   override def getPartitions: Seq[Partition] = {
     PredicatePartitioner.getPartitions(
-      schema, clusterState, getGroupTargets(clusterState, _).size * partitionsPerAlpha, Map.empty
+      schema, clusterState, getGroupTargets(clusterState, _).size * partitionsPerAlpha, Set.empty
     )
   }
 

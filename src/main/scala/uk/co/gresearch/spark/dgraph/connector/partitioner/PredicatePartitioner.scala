@@ -37,9 +37,13 @@ case class PredicatePartitioner(schema: Schema,
   def getPartitionsForPredicates(predicates: Set[_]): Int =
     if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
 
-  override def supportsFilters(filters: Seq[connector.Filter]): Boolean = filters.map {
+  val props: Set[String] = schema.predicates.filterNot(_.dgraphType.eq("uid")).map(_.predicateName)
+  val edges: Set[String] = schema.predicates.filter(_.dgraphType.eq("uid")).map(_.predicateName)
+
+  override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters.map {
     case _: AlwaysFalse => true
     case _: PredicateNameIsIn => true
+    case _: PredicateValueIsIn => true
     case _: ObjectTypeIsIn => true
     // only supported together with PredicateNameIsIn or ObjectTypeIsIn
     case _: ObjectValueIsIn => filters.exists {
@@ -56,15 +60,16 @@ case class PredicatePartitioner(schema: Schema,
     val processedFilters = replaceObjectTypeIsInFilter(filters)
     println(s"replaced filters: $processedFilters")
     val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
+    println(s"simplified filters: $simplifiedFilters")
     val cState = filter(clusterState, simplifiedFilters)
-    val values = getValues(simplifiedFilters)
     val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
-    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, values)
+    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, simplifiedFilters)
   }
 
   /**
    * Replaces ObjectTypeIsIn filter in required and optional filters
    * using replaceObjectTypeIsInFilter(filters: Seq[Filter]).
+   *
    * @param filters filters
    * @return filters with ObjectTypeIsIn replaced
    */
@@ -75,50 +80,38 @@ case class PredicatePartitioner(schema: Schema,
     )
 
   /**
-   * Replaces ObjectTypeIsIn filter with PredicateNameIsIn filter having all predicate names
-   * of the respective type. Only with PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   * Replaces ObjectTypeIsIn filter with IntersectPredicateNameIsIn filter having all predicate names
+   * of the respective type. Only with (Intersect)PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   *
    * @param filters filters
    * @return filters with ObjectTypeIsIn replaced
    */
-  def replaceObjectTypeIsInFilter(filters: Seq[Filter]): Seq[Filter] =
+  def replaceObjectTypeIsInFilter(filters: Set[Filter]): Set[Filter] =
     filters.map {
       case ObjectTypeIsIn(types) =>
-        println(types)
-        println(schema.predicates.map(_.dgraphType))
-        println(schema.predicates.map(_.sparkType))
         val predicateNames = schema.predicates.filter(p => types.contains(p.sparkType)).map(_.predicateName)
-        println(predicateNames)
-        PredicateNameIsIn(predicateNames)
+        IntersectPredicateNameIsIn(predicateNames)
       case f: Filter => f
     }
 
-  def filter(clusterState: ClusterState, filters: Seq[connector.Filter]): ClusterState =
+  def filter(clusterState: ClusterState, filters: Set[connector.Filter]): ClusterState =
     filters.foldLeft(clusterState)(filter)
 
   def filter(clusterState: ClusterState, filter: connector.Filter): ClusterState =
     filter match {
       case _: AlwaysFalse => clusterState.copy(groupPredicates = Map.empty)
-      case f: PredicateNameIsIn => clusterState.copy(
+      // only intersect PredicateNameIsIn limits the predicates for Has and Get
+      case f: IntersectPredicateNameIsIn => clusterState.copy(
+        groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
+      )
+      // only intersect PredicateValueIsIn limits the predicates for Has and Get
+      case f: IntersectPredicateValueIsIn => clusterState.copy(
         groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
       )
       case _: ObjectTypeIsIn =>
         throw new IllegalArgumentException("any ObjectTypeIsIn filter should have been replaced in replaceObjectTypeIsInFilter")
       case _ => clusterState
     }
-
-  def getValues(filters: Seq[Filter]): Map[String, Set[Any]] = {
-    val predicates = filters.flatMap {
-      case PredicateNameIsIn(predicateNames) => Some(predicateNames)
-      case _ => None
-    }.headOption.getOrElse(Set.empty)
-
-    val values = filters.flatMap {
-      case ObjectValueIsIn(values) => Some(values)
-      case _ => None
-    }.headOption.getOrElse(Set.empty)
-
-    predicates.map(predicate => predicate -> values).toMap.filter(_._2.nonEmpty)
-  }
 
 }
 
@@ -172,22 +165,53 @@ object PredicatePartitioner extends ClusterStateHelper {
       .map(_._2.map(_._1).toSet)
   }
 
+  /**
+   * Provides operators that implement the given filters (if supported) for the given predicates.
+   * @param filters filters
+   * @param predicates predicates to filter
+   * @param properties names of properties
+   * @param edges names of edges
+   * @return operators
+   */
+  def getFilterOperators(filters: Set[Filter], predicates: Set[Predicate], properties: Set[String], edges: Set[String]): Set[Operator] = {
+    val predicateNames = predicates.map(_.predicateName)
+    val ops =
+      filters.flatMap {
+        case f: PredicateNameIsIn =>
+          val predNames = f.names.intersect(predicateNames)
+          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)))
+        case f: PredicateValueIsIn =>
+          val predNames = f.names.intersect(predicateNames)
+          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)), IsIn(f.names, f.values))
+        case _ => Seq.empty
+      }
+        .map(_.asInstanceOf[Operator])
+
+    if (!ops.exists(_.isInstanceOf[Has])) {
+      Set[Operator](Has(predicateNames.intersect(properties), predicateNames.intersect(edges))) ++ ops
+    } else {
+      ops
+    }
+  }
+
   def getPartitions(schema: Schema,
                     clusterState: ClusterState,
                     partitionsInGroup: (String) => Int,
-                    values: Map[String, Set[Any]]): Seq[Partition] =
+                    filters: Set[Filter]): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
-      val groupPredicateNames = groupPredicates.map(_.predicateName)
       val predicatesPartitions = partition(groupPredicates, partitions)
-      // using filter here because result of filter keys is not serializable in Scala < 2.13
-      // https://github.com/scala/bug/issues/6654
-      val groupValues = Some(values.filter(v => groupPredicateNames.contains(v._1))).filter(_.nonEmpty)
+      val (props, edges) = schema.predicates.partition(_.dgraphType != "uid")
+      val propNames = props.map(_.predicateName)
+      val edgeNames = edges.map(_.predicateName)
 
       predicatesPartitions.indices.map { index =>
-        Partition(targets.rotateLeft(index), predicatesPartitions(index), None, groupValues)
+        Partition(
+          targets.rotateLeft(index),
+          getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
+        ).get(predicatesPartitions(index))
       }
     }.toSeq
 

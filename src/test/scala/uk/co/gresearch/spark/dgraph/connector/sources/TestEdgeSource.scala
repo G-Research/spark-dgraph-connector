@@ -153,7 +153,7 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, Set(Predicate("director", "uid"), Predicate("starring", "uid")), None, None))))
+      assert(partitions === Seq(Some(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))))
     }
 
     it("should load as a predicate partitions") {
@@ -171,8 +171,8 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid")), None, None)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("starring", "uid")), None, None))
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll())
       )
 
       assert(partitions.toSet === expected)
@@ -193,12 +193,10 @@ class TestEdgeSource extends FunSpec
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
-      // we can only count and retrieve triples, not edges only, and filter for edges in the connector
-      // this produces empty partitions: https://github.com/G-Research/spark-dgraph-connector/issues/19
-      // so we see a partitioning like (1,2),(3),(),(),() or (),(4),(5),(),(9)
-      val uids = Set(sw1, sw2, sw3)
-      val expected = allUids.grouped(2).map(p => p.toSet.intersect(uids)).toList
-      assert(partitions === expected, s"all uids: $allUids uids with edges: $uids all uids grouped: ${allUids.grouped(2)} expected: $expected")
+      // we retrieve partitions in chunks of 2 uids, if there are uids allocated but unused then we get partitions with less than 2 uids
+      val uids = Set(sw1, sw2, sw3).map(_.toInt)
+      val expected = (1 to highestUid.toInt).grouped(2).map(_.toSet intersect uids).toSeq
+      assert(partitions === expected)
     }
 
     lazy val edges =
@@ -211,18 +209,46 @@ class TestEdgeSource extends FunSpec
         .dgraphEdges(cluster.grpc)
 
     it("should push predicate filters") {
-      doTestFilterPushDown($"predicate" === "director", Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
-      doTestFilterPushDown($"predicate".isin("director"), Seq(PredicateNameIsIn("director")), expectedDf = expectedEdges.filter(_.getString(1) == "director"))
-      doTestFilterPushDown($"predicate".isin("director", "starring"), Seq(PredicateNameIsIn("director", "starring")), expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1))))
+      doTestFilterPushDown(
+        $"predicate" === "director",
+        Set(IntersectPredicateNameIsIn("director")),
+        expectedDf = expectedEdges.filter(_.getString(1) == "director")
+      )
+
+      doTestFilterPushDown(
+        $"predicate".isin("director"),
+        Set(IntersectPredicateNameIsIn("director")),
+        expectedDf = expectedEdges.filter(_.getString(1) == "director")
+      )
+
+      doTestFilterPushDown(
+        $"predicate".isin("director", "starring"),
+        Set(IntersectPredicateNameIsIn("director", "starring")),
+        expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1)))
+      )
     }
 
     it("should push object value filters") {
-      doTestFilterPushDown($"objectUid" === leia, Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
-      doTestFilterPushDown($"objectUid".isin(leia), Seq(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(_.getLong(2) == leia))
-      doTestFilterPushDown($"objectUid".isin(leia, lucas), Seq(ObjectValueIsIn(leia, lucas), ObjectTypeIsIn("uid")), expectedDf = expectedEdges.filter(r => Set(leia, lucas).contains(r.getLong(2))))
+      doTestFilterPushDown(
+        $"objectUid" === leia,
+        Set(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(_.getLong(2) == leia)
+      )
+
+      doTestFilterPushDown(
+        $"objectUid".isin(leia),
+        Set(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(_.getLong(2) == leia)
+      )
+
+      doTestFilterPushDown(
+        $"objectUid".isin(leia, lucas),
+        Set(ObjectValueIsIn(leia, lucas), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(r => Set(leia, lucas).contains(r.getLong(2)))
+      )
     }
 
-    def doTestFilterPushDown(condition: Column, expectedFilters: Seq[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
+    def doTestFilterPushDown(condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
       doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
     }
 

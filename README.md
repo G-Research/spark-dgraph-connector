@@ -30,8 +30,7 @@ The connector is at an early stage, but is being continuously developed. It has 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
 - **Not transaction-aware**: Individual partitions do not read the same transaction. The graph should not be
   modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
-- **No filter push-down**: The connector does not support any filter push-down. It always reads the
-  entire graph into Spark where then filters get applied (e.g. filter for predicates, uids or values) ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
+- **Limited filter pushdown**: The connector supports only some types of filter pushdown. ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
 - **Type system**: The connector can only read data for nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
   and use predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
 - **Language tags & facets**: The connector cannot read any string values with language tags or facets.
@@ -321,7 +320,7 @@ Though there is only a single `object` column for the destination node, it is ca
 
 ## Filter Pushdown
 
-The connector supports filter pushdown to improve its efficiency when reading only sub-graphs.
+The connector supports filter pushdown to improve efficiency when reading only sub-graphs.
 This is supported only in conjunction with the [predicate partitioner](#partitioning-by-predicates).
 Spark filters cannot be pushed for any column and any data source because columns have different meaning.
 Columns can be of the following types:
@@ -340,7 +339,7 @@ The following table lists all supported Spark filters:
 |:----------:|-------|-------|
 |`EqualTo`   |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectLong" === 123)`</li><li>`.where($"objectType" === "string")`</li></ul>|
 |`In`        |<ul><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
-|`IsNotNull` |<ul><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
+|`IsNotNull` |<ul><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
 
 ## Metrics
 

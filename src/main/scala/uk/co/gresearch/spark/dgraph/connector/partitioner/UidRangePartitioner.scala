@@ -33,7 +33,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
     throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
       s"another uid partitioner: ${partitioner.getClass.getSimpleName}")
 
-  override def supportsFilters(filters: Seq[Filter]): Boolean = partitioner.supportsFilters(filters)
+  override def supportsFilters(filters: Set[Filter]): Boolean = partitioner.supportsFilters(filters)
 
   override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
 
@@ -56,7 +56,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
           .zipWithIndex
           .map {
             case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))
           }
       } else {
         Seq(partition)
