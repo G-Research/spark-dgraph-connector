@@ -40,7 +40,7 @@ class TestSingletonPartitioner extends FunSpec {
       val partitions = partitioner.getPartitions(model)
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets, predicates, None, None, model)))
+      assert(partitions.toSet === Set(Partition(targets, Set.empty, model).has(predicates)))
     }
 
   }

@@ -54,35 +54,33 @@ class TestAlphaPartitioner extends FunSpec {
       val partitioner = AlphaPartitioner(schema, clusterState, 1)
       val partitions = partitioner.getPartitions(model)
 
-      assert(partitions.length === 4)
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2")), None, None, model),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3"), Predicate("pred4", "type4", "type4")), None, None, model),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred1", "pred2"), Set.empty).getAll(),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred3", "pred4"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5")), None, None, model),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set.empty, model).has(Set("pred5"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host6:9080")), Set(Predicate("pred7", "type7", "type7"), Predicate("pred6", "type6", "type6")), None, None, model)
+        Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred7", "pred6"), Set.empty).getAll()
       ))
     }
 
     Seq(2, 3, 7).foreach(partsPerAlpha =>
       it(s"should partition with $partsPerAlpha partitions per alpha") {
-        val partitioner = AlphaPartitioner(schema, clusterState, 2)
+        val partitioner = AlphaPartitioner(schema, clusterState, partsPerAlpha)
         val partitions = partitioner.getPartitions(model)
 
-        assert(partitions.length === 7)
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred1", "type1", "type1")), None, None, model),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Predicate("pred2", "type2", "type2")), None, None, model),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred3", "type3", "type3")), None, None, model),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Predicate("pred4", "type4", "type4")), None, None, model),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred1"), Set.empty).getAll(),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred2"), Set.empty).getAll(),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred3"), Set.empty).getAll(),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred4"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Predicate("pred5", "type5", "type5")), None, None, model),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set.empty, model).has(Set("pred5"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host6:9080")), Set(Predicate("pred6", "type6", "type6")), None, None, model),
-          Partition(Seq(Target("host6:9080")), Set(Predicate("pred7", "type7", "type7")), None, None, model)
+          Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred6"), Set.empty).getAll(),
+          Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred7"), Set.empty).getAll()
         ))
       }
     )

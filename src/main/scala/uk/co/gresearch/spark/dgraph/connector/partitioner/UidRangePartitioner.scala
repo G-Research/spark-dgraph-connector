@@ -28,7 +28,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
   if (uidsPerPartition <= 0)
     throw new IllegalArgumentException(s"uidsPerPartition must be larger than zero: $uidsPerPartition")
 
-  override def supportsFilters(filters: Seq[Filter]): Boolean = partitioner.supportsFilters(filters)
+  override def supportsFilters(filters: Set[Filter]): Boolean = partitioner.supportsFilters(filters)
 
   override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
 
@@ -56,7 +56,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
           .zipWithIndex
           .map {
             case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.predicates, Some(range), None, model)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range), model)
           }
       } else {
         Seq(partition)

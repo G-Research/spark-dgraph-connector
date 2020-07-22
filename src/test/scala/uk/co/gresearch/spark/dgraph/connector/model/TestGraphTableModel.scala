@@ -4,11 +4,10 @@ import com.google.gson.JsonArray
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
-import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Partition, PartitionQuery, Predicate, Target, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Has, Json, Partition, Predicate, Target, Uid, UidRange}
 
 
 class TestGraphTableModel extends FunSpec {
@@ -19,13 +18,13 @@ class TestGraphTableModel extends FunSpec {
 
     def chunkQuery(after: Uid): String =
       s"""{
-         |  pred1 as var(func: has(<prop>), first: 3, after: ${after.toHexString})
-         |  pred2 as var(func: has(<edge>), first: 3, after: ${after.toHexString})
+         |  pred1 as var(func: has(<edge>), first: 3, after: ${after.toHexString})
+         |  pred2 as var(func: has(<prop>), first: 3, after: ${after.toHexString})
          |
          |  result (func: uid(pred1,pred2), first: 3, after: ${after.toHexString}) {
          |    uid
-         |    <prop>
          |    <edge> { uid }
+         |    <prop>
          |  }
          |}""".stripMargin
 
@@ -36,8 +35,8 @@ class TestGraphTableModel extends FunSpec {
         |  "result": [
         |    {
         |      "uid": "0x123",
-        |      "prop": "str123",
-        |      "edge": [{"uid": "0x123a"}]
+        |      "edge": [{"uid": "0x123a"}],
+        |      "prop": "str123"
         |    },
         |    {
         |      "uid": "0x124",
@@ -58,13 +57,13 @@ class TestGraphTableModel extends FunSpec {
         |  "result": [
         |    {
         |      "uid": "0x132",
-        |      "prop": "str132",
-        |      "edge": [{"uid": "0x132a"}]
+        |      "edge": [{"uid": "0x132a"}],
+        |      "prop": "str132"
         |    },
         |    {
         |      "uid": "0x135",
-        |      "prop": "str135",
-        |      "edge": [{"uid": "0x135a"}]
+        |      "edge": [{"uid": "0x135a"}],
+        |      "prop": "str135"
         |    }
         |  ]
         |}
@@ -73,15 +72,15 @@ class TestGraphTableModel extends FunSpec {
     val uidBeforeLastUidOfSecondHalfChunk = Uid("0x132")
 
     val expecteds = Seq(
-      InternalRow(Uid("0x123").uid, UTF8String.fromString("prop"), UTF8String.fromString("str123"), UTF8String.fromString("string")),
       InternalRow(Uid("0x123").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x123a").toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x123").uid, UTF8String.fromString("prop"), UTF8String.fromString("str123"), UTF8String.fromString("string")),
       InternalRow(Uid("0x124").uid, UTF8String.fromString("prop"), UTF8String.fromString("str124"), UTF8String.fromString("string")),
       InternalRow(Uid("0x125").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125a").toString), UTF8String.fromString("uid")),
       InternalRow(Uid("0x125").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125b").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x132").uid, UTF8String.fromString("prop"), UTF8String.fromString("str132"), UTF8String.fromString("string")),
       InternalRow(Uid("0x132").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x132a").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x135").uid, UTF8String.fromString("prop"), UTF8String.fromString("str135"), UTF8String.fromString("string")),
-      InternalRow(Uid("0x135").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x135a").toString), UTF8String.fromString("uid"))
+      InternalRow(Uid("0x132").uid, UTF8String.fromString("prop"), UTF8String.fromString("str132"), UTF8String.fromString("string")),
+      InternalRow(Uid("0x135").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x135a").toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x135").uid, UTF8String.fromString("prop"), UTF8String.fromString("str135"), UTF8String.fromString("string"))
     )
 
     it("should read empty result") {
@@ -187,7 +186,7 @@ class TestGraphTableModel extends FunSpec {
 
       val rowEncoder = StringTripleEncoder(predicates)
       val model = TestModel(executionProvider, rowEncoder, size)
-      val partition = Partition(targets, predicates.values.toSet, uids, None, model)
+      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uids.map(Set(_)).getOrElse(Set.empty), model)
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)

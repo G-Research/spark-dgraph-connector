@@ -13,7 +13,7 @@ trait FilterPushDownTestHelper extends Assertions {
 
   def doTestFilterPushDownDf[T](ds: Dataset[T],
                                 condition: Column,
-                                expectedFilters: Seq[Filter],
+                                expectedFilters: Set[Filter],
                                 expectedUnpushed: Seq[Expression] = Seq.empty,
                                 expectedDs: Set[T] = Set.empty): Unit = {
     val conditionedDs = ds.where(condition)
@@ -34,7 +34,7 @@ trait FilterPushDownTestHelper extends Assertions {
     assert(scan.reader.isInstanceOf[TripleScan])
 
     val reader = scan.reader.asInstanceOf[TripleScan]
-    assert(reader.filters.toSet === expectedFilters.toSet)
+    assert(reader.filters === expectedFilters)
 
     val actual = conditionedDs.collect()
     assert(actual.toSet === expectedDs)

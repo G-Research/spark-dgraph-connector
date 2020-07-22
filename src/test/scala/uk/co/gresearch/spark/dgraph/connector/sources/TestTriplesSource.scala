@@ -332,7 +332,7 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, predicates, None, None, model))))
+      assert(partitions === Seq(Some(Partition(targets, Set.empty, model).has(predicates))))
     }
 
     it("should load as predicate partitions") {
@@ -349,11 +349,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("release_date", "datetime"), Predicate("starring", "uid")), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("revenue", "float")), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int")), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string")), None, None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid"), Predicate("name", "string")), None, None, model))
+        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("release_date"), Set("starring")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("revenue"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("name"), Set("director")).getAll())
       )
 
       assert(partitions.toSet === expected)
@@ -376,8 +376,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), predicates, Some(UidRange(Uid(1), Uid(8))), None, model)),
-        Some(Partition(Seq(Target(cluster.grpc)), predicates, Some(UidRange(Uid(8), Uid(15))), None, model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(1), Uid(8))), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(8), Uid(15))), model)),
       )
 
       assert(partitions.toSet === expected)
@@ -403,12 +403,12 @@ class TestTriplesSource extends FunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("release_date", "datetime"), Predicate("starring", "uid")), None, None, model),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("revenue", "float")), None, None, model),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.graphql.schema", "string"), Predicate("running_time", "int")), None, None, model),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("dgraph.type", "string"), Predicate("dgraph.graphql.xid", "string")), None, None, model),
-        Partition(Seq(Target(cluster.grpc)), Set(Predicate("director", "uid"), Predicate("name", "string")), None, None, model)
-      ).flatMap(partition => ranges.map(range => Some(partition.copy(uids = Some(range)))))
+        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("release_date"), Set("starring")).getAll(),
+        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("revenue"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("name"), Set("director")).getAll()
+      ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
 
       assert(partitions.toSet === expected)
     }
@@ -426,8 +426,10 @@ class TestTriplesSource extends FunSpec
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
-      // ignore the existence or absence of graphQlSchema in the result, otherwise flaky test, see TestNodeSource
-      assert(partitions.map(_ - graphQlSchema) === allUids.grouped(7).map(_.toSet - graphQlSchema).toSeq)
+      // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
+      val allUidInts = allUids.map(_.toInt).toSet
+      val expected = (1 to highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
+      assert(partitions === expected)
     }
 
     lazy val typedTriples =
@@ -451,82 +453,82 @@ class TestTriplesSource extends FunSpec
     it("should push predicate filters") {
       doTestFilterPushDown(
         $"predicate" === "name",
-        Seq(PredicateNameIsIn("name")), Seq.empty,
+        Set(IntersectPredicateNameIsIn("name")), Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name"),
-        Seq(PredicateNameIsIn("name")),
+        Set(IntersectPredicateNameIsIn("name")),
         Seq.empty,
         (t: TypedTriple) => t.predicate.equals("name"),
         (t: StringTriple) => t.predicate.equals("name")
       )
       doTestFilterPushDown(
         $"predicate".isin("name", "starring"),
-        Seq(PredicateNameIsIn("name", "starring")),
+        Set(IntersectPredicateNameIsIn("name", "starring")),
         Seq.empty,
-        (t: TypedTriple) => Seq("name", "starring").contains(t.predicate),
-        (t: StringTriple) => Seq("name", "starring").contains(t.predicate)
+        (t: TypedTriple) => Set("name", "starring").contains(t.predicate),
+        (t: StringTriple) => Set("name", "starring").contains(t.predicate)
       )
     }
 
     it("should push object type filters") {
       doTestFilterPushDown(
         $"objectType" === "string",
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         Seq.empty,
         (t: TypedTriple) => t.objectType.equals("string"),
         (t: StringTriple) => t.objectType.equals("string")
       )
       doTestFilterPushDown(
         $"objectType".isin("string"),
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         Seq.empty,
         (t: TypedTriple) => t.objectType.equals("string"),
         (t: StringTriple) => t.objectType.equals("string")
       )
       doTestFilterPushDown(
         $"objectType".isin("string", "uid"),
-        Seq(ObjectTypeIsIn("string", "uid")),
+        Set(ObjectTypeIsIn("string", "uid")),
         Seq.empty,
-        (t: TypedTriple) => Seq("string", "uid").contains(t.objectType),
-        (t: StringTriple) => Seq("string", "uid").contains(t.objectType)
+        (t: TypedTriple) => Set("string", "uid").contains(t.objectType),
+        (t: StringTriple) => Set("string", "uid").contains(t.objectType)
       )
     }
 
     it("should push object value filters for typed triples") {
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull,
-        Seq(ObjectTypeIsIn("string")),
+        Set(ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.isDefined)
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull && $"objectUid".isNotNull,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person" && $"objectUid" === 1,
-        Seq(AlwaysFalse),
+        Set(AlwaysFalse),
         expectedDs = Set.empty
       )
     }
@@ -534,7 +536,7 @@ class TestTriplesSource extends FunSpec
     it("should push object value filters for string triples") {
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person",
-        Seq(ObjectValueIsIn("Person")),
+        Set(ObjectValueIsIn("Person")),
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
@@ -542,7 +544,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person" && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -553,7 +555,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person"),
-        Seq(ObjectValueIsIn("Person")),
+        Set(ObjectValueIsIn("Person")),
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
@@ -561,7 +563,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person") && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -572,7 +574,7 @@ class TestTriplesSource extends FunSpec
 
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film"),
-        Seq(ObjectValueIsIn("Person", "Film")),
+        Set(ObjectValueIsIn("Person", "Film")),
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
@@ -580,7 +582,7 @@ class TestTriplesSource extends FunSpec
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film") && $"objectType" === "string",
-        Seq(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         // TableScanBuilder cannot know that EqualTo("objectString") is actually being done by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
         // the partitioner will efficiently read but spark will still filter on top, which is fine
         Seq(
@@ -591,7 +593,7 @@ class TestTriplesSource extends FunSpec
     }
 
     def doTestFilterPushDown(condition: Column,
-                             expectedFilters: Seq[Filter],
+                             expectedFilters: Set[Filter],
                              expectedUnpushed: Seq[Expression],
                              expectedTypedDsFilter: TypedTriple => Boolean,
                              expectedStringDsFilter: StringTriple => Boolean): Unit = {

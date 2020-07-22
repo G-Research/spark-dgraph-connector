@@ -42,22 +42,23 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
         val encoder = TypedTripleEncoder(schema.predicateMap)
         val execution = DgraphExecutorProvider()
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
-        val partition = Partition(targets, schema.predicates, None, None, model)
+        val partition = Partition(targets, Set.empty, model).has(schema.predicates)
         assert(model.modelPartition(partition).length === 47)
       }
 
     }
 
     it("should return partition query") {
-      val partition = Partition(
-        Seq(Target("localhost:9080")),
-        Set(Predicate("pred", "type", "type")),
-        Some(UidRange(Uid(10), Uid(20))),
-        Some(Map("pred" -> Set("value"))),
-        null
-      )
+      val ops =
+        Set[Operator](
+          Has(Set("pred"), Set.empty),
+          UidRange(Uid(10), Uid(20)),
+          IsIn("pred", Set[Any]("value"))
+        )
+
+      val partition = Partition(Seq(Target("localhost:9080")), ops, null)
       val query = partition.query
-      assert(query === PartitionQuery("result", partition.predicates, partition.values))
+      assert(query === PartitionQuery("result", ops))
     }
 
   }

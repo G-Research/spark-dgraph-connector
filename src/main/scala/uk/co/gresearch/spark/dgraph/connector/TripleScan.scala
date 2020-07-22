@@ -53,7 +53,7 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends 
     println(s"pushing filters: ${filters.mkString(", ")}")
     val translated = filters.map(f => f -> translator.translate(f)).toMap
     val (supported, unsupported) = translated.partition(t => t._2.exists(partitioner.supportsFilters))
-    val translatedFilters = Filters(supported.values.flatten.flatten.toSeq, unsupported.values.flatten.flatten.toSeq)
+    val translatedFilters = Filters(supported.values.flatten.flatten.toSet, unsupported.values.flatten.flatten.toSet)
     val simplifiedFilters = FilterTranslator.simplify(translatedFilters, partitioner.supportsFilters)
     println(s"promised filters: ${supported.mapValues(_.get).mkString(", ")}")
     println(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
