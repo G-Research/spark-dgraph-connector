@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter
 
 import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Uid}
 
 import scala.collection.JavaConverters._
@@ -14,6 +15,14 @@ import scala.collection.JavaConverters._
  * Helper methods to turn Dgraph json results into JsonObjects representing Dgraph nodes.
  */
 trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
+
+  /**
+   * Sets the schema of this encoder. This encoder may only partially or not at all use the given schema.
+   * Default implementation ignores the given schema completely.
+   * @param schema a schema
+   * @return encoder with the given schema
+   */
+  override def withSchema(schema: StructType): JsonNodeInternalRowEncoder = this
 
   /**
    * Encodes the given Dgraph json result into InternalRows.
@@ -72,6 +81,8 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
    */
   def getValue(value: JsonElement, valueType: String): Any =
     valueType match {
+      // the uid of a node, the subject of a triple
+      case "subject" => Uid(value.getAsString)
       // https://dgraph.io/docs/query-language/#schema-types
       case "uid" => Uid(value.getAsJsonObject.get("uid").getAsString)
       case "string" => value.getAsString

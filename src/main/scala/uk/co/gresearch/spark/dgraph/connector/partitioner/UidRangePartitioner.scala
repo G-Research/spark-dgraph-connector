@@ -17,6 +17,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
 
 case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
@@ -35,7 +36,9 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
 
   override def supportsFilters(filters: Set[Filter]): Boolean = partitioner.supportsFilters(filters)
 
-  override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
+  override def withFilters(filters: Filters): UidRangePartitioner = copy(partitioner = partitioner.withFilters(filters))
+
+  override def withProjection(projection: Seq[connector.Predicate]): UidRangePartitioner = copy(partitioner = partitioner.withProjection(projection))
 
   override def getPartitions: Seq[Partition] = {
     partitions.flatMap { partition =>

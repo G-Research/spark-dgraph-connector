@@ -7,6 +7,9 @@ to read graphs from a Dgraph cluster directly into
 [DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html),
 [GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html) or
 [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html).
+The connector supports [filter pushdown](https://github.com/apache/spark/blob/v3.0.0/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsPushDownFilters.java#L30),
+[projection pushdown](https://github.com/apache/spark/blob/v3.0.0/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsPushDownRequiredColumns.java#L31)
+and partitioning by orthogonal dimensions [predicates](#partitioning-by-predicates) and [nodes](#partitioning-by-uids).
 
 Example code:
 
@@ -30,7 +33,6 @@ The connector is at an early stage, but is being continuously developed. It has 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
 - **Not transaction-aware**: Individual partitions do not read the same transaction. The graph should not be
   modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
-- **Limited filter pushdown**: The connector supports only some types of filter pushdown. ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
 - **Type system**: The connector can only read data for nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
   and use predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
 - **Language tags & facets**: The connector cannot read any string values with language tags or facets.
@@ -340,6 +342,77 @@ The following table lists all supported Spark filters:
 |`EqualTo`   |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"subject" === 1L)`</li><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectLong" === 123)`</li><li>`.where($"objectType" === "string")`</li></ul>|
 |`In`        |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"subject".isin(1L,2L))`</li><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
 |`IsNotNull` |<ul><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
+
+## Projection Pushdown
+
+The connector supports projection pushdown to improve efficiency when reading only sub-graphs.
+A projection in Spark terms is a `select` operation that selects only a subset of a DataFrame's columns.
+The [Wide Nodes source](#wide-nodes) supports projection pushdown on all [predicate value columns](#filter-pushdown).
+
+## Filter and Projection Pushdown Example
+
+The following query uses filter and projection pushdown. First we define a wide node `DataFrame`:
+
+    val df =
+      spark.read
+        .options(Map(
+          NodesModeOption -> NodesModeWideOption,
+          PartitionerOption -> PredicatePartitionerOption
+        ))
+        .dgraphNodes("localhost:9080")
+
+Then we select some columns (projection) and rows (filter):
+
+    df
+      .select($"subject", $"`dgraph.type`", $"revenue")  // projection
+      .where($"revenue".isNotNull)                       // filter
+      .show()
+
+This selects the columns `subject`, `dgraph.type` and `revenue` for only those rows that actually have a value for `revenue`.
+The underlying query to Dgraph simplifies from (the full graph):
+
+    {
+      pred1 as var(func: has(<dgraph.graphql.schema>), first: 100000, after: 0x0)
+      pred2 as var(func: has(<dgraph.graphql.xid>), first: 100000, after: 0x0)
+      pred3 as var(func: has(<dgraph.type>), first: 100000, after: 0x0)
+      pred4 as var(func: has(<name>), first: 100000, after: 0x0)
+      pred5 as var(func: has(<release_date>), first: 100000, after: 0x0)
+      pred6 as var(func: has(<revenue>), first: 100000, after: 0x0)
+      pred7 as var(func: has(<running_time>), first: 100000, after: 0x0)
+
+      result (func: uid(pred1,pred2,pred3,pred4,pred5,pred6,pred7), first: 100000, after: 0x0) {
+        uid
+        <dgraph.graphql.schema>
+        <dgraph.graphql.xid>
+        <dgraph.type>
+        <name>
+        <release_date>
+        <revenue>
+        <running_time>
+      }
+    }
+
+to (selected predicates and nodes only):
+
+    {
+      pred1 as var(func: has(<revenue>), first: 100000, after: 0x0)
+
+      result (func: uid(pred1), first: 100000, after: 0x0) {
+        uid
+        <dgraph.type>
+        <revenue>
+      }
+    }
+
+The response is faster and only relevant data are transfered between Dgraph and Spark.
+
+|subject|dgraph.type|revenue|
+|:-----:|:---------:|:-----:|
+|      4|       Film| 7.75E8|
+|      5|       Film| 5.34E8|
+|      6|       Film| 5.72E8|
+|      9|       Film| 1.39E8|
+
 
 ## Metrics
 

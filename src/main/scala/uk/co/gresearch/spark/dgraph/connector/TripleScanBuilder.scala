@@ -18,14 +18,17 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
-import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters}
+import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
+import org.apache.spark.sql.types.StructType
+import uk.co.gresearch.spark.dgraph.connector.encoder.ProjectedSchema
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
 import scala.collection.mutable
 
 case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) extends ScanBuilder
-  with SupportsPushDownFilters {
+  with SupportsPushDownFilters
+  with SupportsPushDownRequiredColumns {
 
   val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
   var filters: Filters = EmptyFilters
@@ -59,6 +62,28 @@ case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) e
 
   override def pushedFilters(): Array[sql.sources.Filter] = pushed.clone().toArray
 
-  override def build(): Scan = TripleScan(partitioner.withFilters(filters), model)
+  var requiredSchema: Option[StructType] = None
 
+  override def pruneColumns(requiredSchema: StructType): Unit = {
+    println(s"required columns: ${requiredSchema.fields.toSeq.map(c => s"${c.name} (${c.dataType}${if (c.nullable) " nullable" else ""})").mkString(", ")}")
+    this.requiredSchema = Some(requiredSchema)
+  }
+
+  override def build(): Scan = {
+    // apply optional schema to model
+    val modelWithOptionalSchema = requiredSchema.fold(model)(model.withSchema)
+
+    // get optional projection (projected predicates) from model's encoder
+    val projection: Option[Seq[Predicate]] =
+      Some(modelWithOptionalSchema.encoder)
+        .filter(_.isInstanceOf[ProjectedSchema])
+        .flatMap(_.asInstanceOf[ProjectedSchema].readPredicates)
+
+    // apply optional projection to partitioner
+    val partitionerWithOptionalProjection =
+      projection.foldLeft(partitioner)((part, proj) => part.withProjection(proj))
+
+    // create TripleScan with partitioner, optional projection, filters and optional schema
+    TripleScan(partitionerWithOptionalProjection.withFilters(filters), modelWithOptionalSchema)
+  }
 }

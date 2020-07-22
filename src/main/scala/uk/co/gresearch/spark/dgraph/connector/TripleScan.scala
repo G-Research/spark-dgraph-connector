@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.types.StructType
+import uk.co.gresearch.spark.dgraph.connector.encoder.ProjectedSchema
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
