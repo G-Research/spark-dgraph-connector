@@ -331,11 +331,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll)
       )
 
       assert(partitions.toSet === expected)
@@ -385,11 +385,11 @@ class TestTriplesSource extends FunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll(),
-        Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll()
+        Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll,
+        Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll,
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll,
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll,
+        Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll
       ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
 
       assert(partitions.toSet === expected)
@@ -431,6 +431,29 @@ class TestTriplesSource extends FunSpec
         .option(PredicatePartitionerPredicatesOption, "2")
         .dgraphTriples(cluster.grpc)
         .as[StringTriple]
+
+    it("should push subject filters") {
+      doTestFilterPushDown(
+        $"subject" === leia,
+        Set(SubjectIsIn(Uid(leia))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(leia),
+        (t: StringTriple) => t.subject.equals(leia)
+      )
+
+      doTestFilterPushDown(
+        $"subject".isin(leia),
+        Set(SubjectIsIn(Uid(leia))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(leia),
+        (t: StringTriple) => t.subject.equals(leia)
+      )
+
+      doTestFilterPushDown(
+        $"subject".isin(leia, luke),
+        Set(SubjectIsIn(Uid(leia), Uid(luke))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(leia) || t.subject.equals(luke),
+        (t: StringTriple) => t.subject.equals(leia) || t.subject.equals(luke)
+      )
+    }
 
     it("should push predicate filters") {
       doTestFilterPushDown(

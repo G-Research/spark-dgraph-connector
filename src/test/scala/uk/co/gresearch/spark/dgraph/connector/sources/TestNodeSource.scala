@@ -282,11 +282,11 @@ class TestNodeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("running_time"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date", "name"), Set.empty).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("running_time"), Set.empty).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date", "name"), Set.empty).getAll)
       )
 
       assert(partitions.toSet === expected)
@@ -332,6 +332,32 @@ class TestNodeSource extends FunSpec
           PredicatePartitionerPredicatesOption -> "2"
         ))
         .dgraphNodes(cluster.grpc)
+
+    it("should push subject filters") {
+      doTestsFilterPushDown(
+        $"subject" === leia,
+        Set(SubjectIsIn(Uid(leia))),
+        Seq.empty,
+        (n: TypedNode) => n.subject == leia,
+        (r: Row) => r.getLong(0) == leia
+      )
+
+      doTestsFilterPushDown(
+        $"subject".isin(leia),
+        Set(SubjectIsIn(Uid(leia))),
+        Seq.empty,
+        (n: TypedNode) => n.subject == leia,
+        (r: Row) => r.getLong(0) == leia
+      )
+
+      doTestsFilterPushDown(
+        $"subject".isin(leia, luke),
+        Set(SubjectIsIn(Uid(leia), Uid(luke))),
+        Seq.empty,
+        (n: TypedNode) => Set(leia, luke).contains(n.subject),
+        (r: Row) => Set(leia, luke).contains(r.getLong(0))
+      )
+    }
 
     it("should push predicate filters") {
       doTestFilterPushDown(typedNodes,
@@ -416,7 +442,7 @@ class TestNodeSource extends FunSpec
     }
 
     it("should push object value filters") {
-      doTestFilterPushDown[TypedNode](typedNodes,
+      doTestFilterPushDown(typedNodes,
         $"objectString".isNotNull,
         Set(ObjectTypeIsIn("string")),
         expectedDs = expectedTypedNodes.filter(_.objectString.isDefined)
@@ -454,6 +480,15 @@ class TestNodeSource extends FunSpec
 
     def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
       doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
+    }
+
+    def doTestsFilterPushDown(condition: Column,
+                              expectedFilters: Set[Filter],
+                              expectedUnpushed: Seq[Expression] = Seq.empty,
+                              expectedTypedDsFilter: TypedNode => Boolean,
+                              expectedWideDsFilter: Row => Boolean): Unit = {
+      doTestFilterPushDownDf(typedNodes, condition, expectedFilters, expectedUnpushed, expectedTypedNodes.filter(expectedTypedDsFilter))
+      doTestFilterPushDownDf(wideNodes, condition, expectedFilters, expectedUnpushed, expectedWideNodes.filter(expectedWideDsFilter))
     }
 
   }
