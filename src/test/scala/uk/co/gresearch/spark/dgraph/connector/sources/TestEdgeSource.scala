@@ -182,8 +182,8 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll)
       )
 
       assert(partitions.toSet === expected)
@@ -218,6 +218,26 @@ class TestEdgeSource extends FunSpec
           PredicatePartitionerPredicatesOption -> "2"
         ))
         .dgraphEdges(cluster.grpc)
+
+    it("should push subject filters") {
+      doTestFilterPushDown(
+        $"subject" === leia,
+        Set(SubjectIsIn(Uid(leia))),
+        expectedDf = expectedEdges.filter(_.getLong(0) == leia)
+      )
+
+      doTestFilterPushDown(
+        $"subject".isin(leia),
+        Set(SubjectIsIn(Uid(leia))),
+        expectedDf = expectedEdges.filter(_.getLong(0) == leia)
+      )
+
+      doTestFilterPushDown(
+        $"subject".isin(leia, luke),
+        Set(SubjectIsIn(Uid(leia), Uid(luke))),
+        expectedDf = expectedEdges.filter(r => Set(leia, luke).contains(r.getLong(0)))
+      )
+    }
 
     it("should push predicate filters") {
       doTestFilterPushDown(

@@ -56,12 +56,12 @@ class TestAlphaPartitioner extends FunSpec {
 
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).getAll(),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3", "pred4"), Set.empty).getAll(),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).getAll,
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3", "pred4"), Set.empty).getAll,
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll(),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll,
 
-        Partition(Seq(Target("host6:9080"))).has(Set("pred7", "pred6"), Set.empty).getAll()
+        Partition(Seq(Target("host6:9080"))).has(Set("pred7", "pred6"), Set.empty).getAll
       ))
     }
 
@@ -72,15 +72,15 @@ class TestAlphaPartitioner extends FunSpec {
 
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1"), Set.empty).getAll(),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2"), Set.empty).getAll(),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll(),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred4"), Set.empty).getAll(),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1"), Set.empty).getAll,
+          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2"), Set.empty).getAll,
+          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll,
+          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred4"), Set.empty).getAll,
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll(),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll,
 
-          Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll(),
-          Partition(Seq(Target("host6:9080"))).has(Set("pred7"), Set.empty).getAll()
+          Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll,
+          Partition(Seq(Target("host6:9080"))).has(Set("pred7"), Set.empty).getAll
         ))
       }
     )

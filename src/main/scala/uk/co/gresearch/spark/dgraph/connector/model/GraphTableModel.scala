@@ -44,8 +44,8 @@ trait GraphTableModel {
    */
   def modelPartition(partition: Partition): Iterator[InternalRow] = {
     val executor: JsonGraphQlExecutor = execution.getExecutor(partition)
-    val after = partition.uids.map(range => range.first.before).getOrElse(Uid("0x0"))
-    val until = partition.uids.map(range => range.until)
+    val after = partition.uidRange.map(range => range.first.before).getOrElse(Uid("0x0"))
+    val until = partition.uidRange.map(range => range.until)
     ChunkIterator(after, until, chunkSize, readChunk(partition, executor, encoder, until))
       .flatMap(encoder.fromJson)
   }

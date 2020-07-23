@@ -41,8 +41,11 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
   def get(predicates: Set[Predicate]): Partition =
     copy(operators = operators ++ Set(Get(predicates)))
 
-  def getAll(): Partition =
+  def getAll: Partition =
     copy(operators = operators ++ operators.filter(_.isInstanceOf[Has]).map(_.asInstanceOf[Has]).map(has => Get(has.properties, has.edges)))
+
+  def uids(uids: Uid*): Partition =
+    copy(operators = operators ++ Set(Uids(uids.toSet)))
 
   def eq(predicate: String, values: Set[Any]): Partition =
     copy(operators = operators ++ Set(IsIn(predicate, values)))
@@ -50,10 +53,14 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
   def eq(predicates: Set[String], values: Set[Any]): Partition =
     copy(operators = operators ++ Set(IsIn(predicates, values)))
 
-  val uids: Option[UidRange] =
+  val uidRange: Option[UidRange] =
     Some(operators.filter(_.isInstanceOf[UidRange]).map(_.asInstanceOf[UidRange]))
       .filter(_.nonEmpty)
       .map(_.head)
+
+  val uids: Option[Set[Uid]] =
+    Some(operators.filter(_.isInstanceOf[Uids]).flatMap { case Uids(uids) => uids })
+      .filter(_.nonEmpty)
 
   val predicates: Set[String] =
     operators.flatMap {

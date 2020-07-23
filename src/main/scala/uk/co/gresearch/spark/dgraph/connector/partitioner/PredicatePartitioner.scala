@@ -43,6 +43,7 @@ case class PredicatePartitioner(schema: Schema,
 
   override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters.map {
     case _: AlwaysFalse => true
+    case _: SubjectIsIn => true
     case _: PredicateNameIsIn => true
     case _: PredicateValueIsIn => true
     case _: ObjectTypeIsIn => true
@@ -178,6 +179,8 @@ object PredicatePartitioner extends ClusterStateHelper {
     val predicateNames = predicates.map(_.predicateName)
     val ops =
       filters.flatMap {
+        case SubjectIsIn(uids) =>
+          Seq(Uids(uids))
         case f: PredicateNameIsIn =>
           val predNames = f.names.intersect(predicateNames)
           Seq(Has(predNames.intersect(properties), predNames.intersect(edges)))
