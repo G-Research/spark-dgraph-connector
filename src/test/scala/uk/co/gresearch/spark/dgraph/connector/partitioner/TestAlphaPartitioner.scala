@@ -48,39 +48,39 @@ class TestAlphaPartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should partition with 1 partition per alpha") {
       val partitioner = AlphaPartitioner(schema, clusterState, 1)
-      val partitions = partitioner.getPartitions(model)
+      val partitions = partitioner.getPartitions
 
       assert(partitions.toSet === Set(
         // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred1", "pred2"), Set.empty).getAll(),
-        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred3", "pred4"), Set.empty).getAll(),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).getAll(),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3", "pred4"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set.empty, model).has(Set("pred5"), Set.empty).getAll(),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll(),
 
-        Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred7", "pred6"), Set.empty).getAll()
+        Partition(Seq(Target("host6:9080"))).has(Set("pred7", "pred6"), Set.empty).getAll()
       ))
     }
 
     Seq(2, 3, 7).foreach(partsPerAlpha =>
       it(s"should partition with $partsPerAlpha partitions per alpha") {
         val partitioner = AlphaPartitioner(schema, clusterState, partsPerAlpha)
-        val partitions = partitioner.getPartitions(model)
+        val partitions = partitioner.getPartitions
 
         assert(partitions.toSet === Set(
           // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred1"), Set.empty).getAll(),
-          Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set("pred2"), Set.empty).getAll(),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred3"), Set.empty).getAll(),
-          Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set.empty, model).has(Set("pred4"), Set.empty).getAll(),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1"), Set.empty).getAll(),
+          Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2"), Set.empty).getAll(),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll(),
+          Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred4"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set.empty, model).has(Set("pred5"), Set.empty).getAll(),
+          Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).getAll(),
 
-          Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred6"), Set.empty).getAll(),
-          Partition(Seq(Target("host6:9080")), Set.empty, model).has(Set("pred7"), Set.empty).getAll()
+          Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll(),
+          Partition(Seq(Target("host6:9080"))).has(Set("pred7"), Set.empty).getAll()
         ))
       }
     )

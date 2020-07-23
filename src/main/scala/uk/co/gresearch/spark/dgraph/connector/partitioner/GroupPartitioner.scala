@@ -22,10 +22,10 @@ import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
 
 case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
   extends Partitioner with ClusterStateHelper {
-  override def getPartitions(model: GraphTableModel): Seq[Partition] =
+  override def getPartitions(implicit model: GraphTableModel): Seq[Partition] =
     clusterState.groupMembers.map { case (group, alphas) =>
       (group, alphas, getGroupPredicates(clusterState, group, schema))
     }.filter(_._3.nonEmpty).map { case (_, alphas, predicates) =>
-      Partition(alphas.toSeq, Set.empty, model).has(predicates)
+      Partition(alphas.toSeq)(model).has(predicates)
     }.toSeq
 }

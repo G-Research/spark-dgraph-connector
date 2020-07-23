@@ -256,7 +256,7 @@ class TestNodeSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = TypedNodeEncoder(schema.predicateMap)
-    val model = NodeTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: NodeTableModel = NodeTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -280,7 +280,7 @@ class TestNodeSource extends FunSpec
         Predicate("revenue", "float"),
         Predicate("running_time", "int")
       )
-      assert(partitions === Seq(Some(Partition(targets, Set.empty, model).has(predicates))))
+      assert(partitions === Seq(Some(Partition(targets).has(predicates))))
     }
 
     it("should load as a predicate partitions") {
@@ -298,11 +298,11 @@ class TestNodeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.type"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("revenue"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("running_time"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("release_date", "name"), Set.empty).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("running_time"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date", "name"), Set.empty).getAll())
       )
 
       assert(partitions.toSet === expected)

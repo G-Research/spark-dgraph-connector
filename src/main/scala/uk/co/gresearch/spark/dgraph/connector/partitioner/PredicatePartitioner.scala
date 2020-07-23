@@ -57,7 +57,7 @@ case class PredicatePartitioner(schema: Schema,
 
   override def withFilters(filters: Filters): Partitioner = copy(filters = filters)
 
-  override def getPartitions(model: GraphTableModel): Seq[Partition] = {
+  override def getPartitions(implicit model: GraphTableModel): Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
     println(s"replaced filters: $processedFilters")
     val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
@@ -212,9 +212,8 @@ object PredicatePartitioner extends ClusterStateHelper {
       predicatesPartitions.indices.map { index =>
         Partition(
           targets.rotateLeft(index),
-          getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames),
-          model
-        ).get(predicatesPartitions(index))
+          getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
+        )(model).get(predicatesPartitions(index))
       }
     }.toSeq
 

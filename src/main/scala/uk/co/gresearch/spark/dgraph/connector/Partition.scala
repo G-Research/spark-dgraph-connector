@@ -29,7 +29,7 @@ import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
  * @param operators set of operators
  * @param model table model
  */
-case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty, model: GraphTableModel)
+case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)(implicit model: GraphTableModel)
   extends InputPartition[InternalRow] {
 
   def has(predicates: Set[Predicate]): Partition =

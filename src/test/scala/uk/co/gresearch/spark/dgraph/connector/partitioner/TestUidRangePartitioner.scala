@@ -45,7 +45,7 @@ class TestUidRangePartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")), schema)
     val group = GroupPartitioner(schema, clusterState)
@@ -67,15 +67,15 @@ class TestUidRangePartitioner extends FunSpec {
 
         it(s"should decorate $label partitioner with ${size} uids per partition") {
           val uidPartitioner = UidRangePartitioner(partitioner, size, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
-          val partitions = partitioner.getPartitions(model)
-          val uidPartitions = uidPartitioner.getPartitions(model)
+          val partitions = partitioner.getPartitions
+          val uidPartitions = uidPartitioner.getPartitions
           println(uidPartitions)
 
           val ranges = (0 until (10000 / size)).map(idx => UidRange(Uid(1 + idx * size), Uid(1 + (idx+1) * size)))
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range), model)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))
             }
           )
 
@@ -90,7 +90,7 @@ class TestUidRangePartitioner extends FunSpec {
 
       it(s"should noop $label partitioner with too large uidsPerPartition") {
         val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.toInt, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
-        assert(uidPartitioner.getPartitions(model) === partitioner.getPartitions(model))
+        assert(uidPartitioner.getPartitions === partitioner.getPartitions)
       }
 
     }
@@ -103,14 +103,14 @@ class TestUidRangePartitioner extends FunSpec {
 
     it("should fail with integer overflow partition size") {
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, 1, UidCardinalityEstimator.forMaxLeaseId(Long.MaxValue)).getPartitions(model)
+        UidRangePartitioner(singleton, 1, UidCardinalityEstimator.forMaxLeaseId(Long.MaxValue)).getPartitions
       }
     }
 
     it("should fail on decorating uid partitioner") {
       val uidPartitioner = UidRangePartitioner(singleton, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(1000)).getPartitions(model)
+        UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(1000)).getPartitions
       }
     }
 

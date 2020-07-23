@@ -32,7 +32,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
 
   override def withFilters(filters: Filters): Partitioner = copy(partitioner = partitioner.withFilters(filters))
 
-  override def getPartitions(model: GraphTableModel): Seq[Partition] = {
+  override def getPartitions(implicit model: GraphTableModel): Seq[Partition] = {
     val partitions = partitioner.getPartitions(model)
     if (partitions.exists(_.uids.isDefined))
       throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
@@ -56,7 +56,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
           .zipWithIndex
           .map {
             case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range), model)
+              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))(model)
           }
       } else {
         Seq(partition)

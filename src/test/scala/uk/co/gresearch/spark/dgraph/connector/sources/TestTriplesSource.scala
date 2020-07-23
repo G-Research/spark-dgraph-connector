@@ -317,7 +317,7 @@ class TestTriplesSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -332,7 +332,7 @@ class TestTriplesSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, Set.empty, model).has(predicates))))
+      assert(partitions === Seq(Some(Partition(targets).has(predicates))))
     }
 
     it("should load as predicate partitions") {
@@ -349,11 +349,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("release_date"), Set("starring")).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("revenue"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("name"), Set("director")).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll())
       )
 
       assert(partitions.toSet === expected)
@@ -376,8 +376,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(1), Uid(8))), model)),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(8), Uid(15))), model)),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(1), Uid(8))))),
+        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(8), Uid(15))))),
       )
 
       assert(partitions.toSet === expected)
@@ -403,11 +403,11 @@ class TestTriplesSource extends FunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("release_date"), Set("starring")).getAll(),
-        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("revenue"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll(),
-        Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set("name"), Set("director")).getAll()
+        Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll(),
+        Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll()
       ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
 
       assert(partitions.toSet === expected)

@@ -26,7 +26,7 @@ trait Partitioner {
   /**
    * Gets the partitions.
    */
-  def getPartitions(model: GraphTableModel): Seq[Partition]
+  def getPartitions(implicit model: GraphTableModel): Seq[Partition]
 
   /**
    * Indicates whether this partitioner supports all given filters.

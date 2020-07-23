@@ -46,7 +46,7 @@ class TestGroupPartitioner extends FunSpec {
     )
     val execution = DgraphExecutorProvider()
     val encoder = TypedTripleEncoder(schema.predicateMap)
-    val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should partition") {
       val partitioner = GroupPartitioner(schema, clusterState)
@@ -54,8 +54,8 @@ class TestGroupPartitioner extends FunSpec {
 
       assert(partitions.length === 2)
       assert(partitions.toSet === Set(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set.empty, model).has(Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3"))),
-        Partition(Seq(Target("host4:9080")), Set.empty, model).has(Set(Predicate("pred4", "type4", "type4")))
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2"), Predicate("pred3", "type3", "type3"))),
+        Partition(Seq(Target("host4:9080"))).has(Set(Predicate("pred4", "type4", "type4")))
       ))
     }
 

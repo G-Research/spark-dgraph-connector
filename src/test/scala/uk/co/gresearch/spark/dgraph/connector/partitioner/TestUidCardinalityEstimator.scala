@@ -11,21 +11,21 @@ class TestUidCardinalityEstimator extends FunSpec {
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
   val execution: DgraphExecutorProvider = DgraphExecutorProvider()
   val encoder: TypedTripleEncoder = TypedTripleEncoder(schema.predicateMap)
-  val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
+  implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
   def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {
 
     it("should estimate partition's uid range") {
       val range = UidRange(Uid(1), Uid(1000))
-      val partition = Partition(Seq.empty, Set(range), model)
+      val partition = Partition(Seq.empty, Set(range))
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined)
       assert(actual.get === range.length)
     }
 
     it("should estimate partition without uid range") {
-      val partition = Partition(Seq.empty, Set.empty, model)
+      val partition = Partition(Seq.empty, Set.empty)
       val actual = estimator.uidCardinality(partition)
       assert(actual === expectedEstimationWithoutRange)
     }

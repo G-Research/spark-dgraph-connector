@@ -149,7 +149,7 @@ class TestEdgeSource extends FunSpec
     ))
     val execution = DgraphExecutorProvider()
     val encoder = EdgeEncoder(schema.predicateMap)
-    val model = EdgeTableModel(execution, encoder, ChunkSizeDefault)
+    implicit val model: EdgeTableModel = EdgeTableModel(execution, encoder, ChunkSizeDefault)
 
     it("should load as a single partition") {
       val target = cluster.grpc
@@ -164,7 +164,7 @@ class TestEdgeSource extends FunSpec
           case p: DataSourceRDDPartition[_] => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets, Set.empty, model).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))))
+      assert(partitions === Seq(Some(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))))
     }
 
     it("should load as a predicate partitions") {
@@ -182,8 +182,8 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set.empty, Set("director")).getAll()),
-        Some(Partition(Seq(Target(cluster.grpc)), Set.empty, model).has(Set.empty, Set("starring")).getAll())
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll()),
+        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll())
       )
 
       assert(partitions.toSet === expected)
