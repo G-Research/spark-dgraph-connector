@@ -24,7 +24,6 @@ trait ProjectionPushDownTestHelper extends Assertions {
                                     expectedDs: Set[T]): Unit = {
     val projectedDs = if (selection.nonEmpty) ds.select(selection: _*) else ds
     val plan = projectedDs.queryExecution.optimizedPlan
-    println(plan)
     val relationNode = plan match {
       case Project(project, child) =>
         assert(project.map(_.name) === expectedUnpushedProjection)

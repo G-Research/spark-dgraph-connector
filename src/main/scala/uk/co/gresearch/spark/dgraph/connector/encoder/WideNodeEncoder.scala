@@ -68,9 +68,6 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
    */
   override val readSchema: StructType = readPredicates.fold(schema)(preds => WideNodeEncoder.schema(preds))
 
-  println(s"schema has ${schema.fields.length} columns")
-  println(s"read schema: ${readSchema.fields.length} columns")
-
   /**
    * Column (Row) indices for all column names in read schema.
    */

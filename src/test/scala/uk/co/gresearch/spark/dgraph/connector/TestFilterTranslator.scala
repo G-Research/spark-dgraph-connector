@@ -67,6 +67,7 @@ class TestFilterTranslator extends FunSpec {
       assert(ColumnName.unapply("`name") === Some("`name"))
       assert(ColumnName.unapply("name`") === Some("name`"))
       assert(ColumnName.unapply("dgraph`type") === Some("dgraph`type"))
+      assert(ColumnName.unapply("`dgraph`type`") === Some("dgraph`type"))
     }
 
     describe("translate") {

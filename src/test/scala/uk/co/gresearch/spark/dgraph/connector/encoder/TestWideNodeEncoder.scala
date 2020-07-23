@@ -43,6 +43,10 @@ class TestWideNodeEncoder extends FunSpec {
       Predicate("release_date", "datetime")
     )
 
+    val expectedProjectedReadPredicates = Seq(
+      Predicate("uid", "subject")
+    ) ++ projectedPredicates.toSeq
+
     val expectedSchema = StructType(Seq(
       StructField("subject", LongType, nullable = false),
       StructField("name", StringType, nullable = true),
@@ -367,6 +371,7 @@ class TestWideNodeEncoder extends FunSpec {
       assert(rows === expectedRowsProjectedSchema)
       assert(projectedEncoder.schema === expectedProjectedSchema)
       assert(projectedEncoder.readSchema === expectedProjectedSchema)
+      assert(projectedEncoder.readPredicates === None)
     }
 
     it("should parse JSON response with projected predicates") {
@@ -375,6 +380,7 @@ class TestWideNodeEncoder extends FunSpec {
       assert(rows === expectedRowsProjectedSchema)
       assert(projectedEncoder.schema === expectedProjectedSchema)
       assert(projectedEncoder.readSchema === expectedProjectedSchema)
+      assert(projectedEncoder.readPredicates === None)
     }
 
     it("should parse JSON response with all predicates and projected schema") {
@@ -383,6 +389,7 @@ class TestWideNodeEncoder extends FunSpec {
       assert(rows === expectedRowsProjectedSchema)
       assert(projectedEncoder.schema === encoder.schema)
       assert(projectedEncoder.readSchema === expectedProjectedSchema)
+      assert(projectedEncoder.readPredicates === Some(expectedProjectedReadPredicates))
     }
 
     it("should parse projected JSON response with all predicates and projected schema") {
@@ -391,9 +398,14 @@ class TestWideNodeEncoder extends FunSpec {
       assert(rows === expectedRowsProjectedSchema)
       assert(projectedEncoder.schema === encoder.schema)
       assert(projectedEncoder.readSchema === expectedProjectedSchema)
+      assert(projectedEncoder.readPredicates === Some(expectedProjectedReadPredicates))
     }
 
-    // TODO: test that projection with encoder.schema is ignored by encoder (projected predicates is None)
+    it("should ignore projection of full schema") {
+      val projectedEncoder = WideNodeEncoder(predicates, Some(encoder.schema))
+      assert(projectedEncoder.readPredicates === None)
+    }
+
   }
 
 }

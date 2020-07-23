@@ -372,15 +372,15 @@ This selects the columns `subject`, `dgraph.type` and `revenue` for only those r
 The underlying query to Dgraph simplifies from (the full graph):
 
     {
-      pred1 as var(func: has(<dgraph.graphql.schema>), first: 100000, after: 0x0)
-      pred2 as var(func: has(<dgraph.graphql.xid>), first: 100000, after: 0x0)
-      pred3 as var(func: has(<dgraph.type>), first: 100000, after: 0x0)
-      pred4 as var(func: has(<name>), first: 100000, after: 0x0)
-      pred5 as var(func: has(<release_date>), first: 100000, after: 0x0)
-      pred6 as var(func: has(<revenue>), first: 100000, after: 0x0)
-      pred7 as var(func: has(<running_time>), first: 100000, after: 0x0)
+      pred1 as var(func: has(<dgraph.graphql.schema>))
+      pred2 as var(func: has(<dgraph.graphql.xid>))
+      pred3 as var(func: has(<dgraph.type>))
+      pred4 as var(func: has(<name>))
+      pred5 as var(func: has(<release_date>))
+      pred6 as var(func: has(<revenue>))
+      pred7 as var(func: has(<running_time>))
 
-      result (func: uid(pred1,pred2,pred3,pred4,pred5,pred6,pred7), first: 100000, after: 0x0) {
+      result (func: uid(pred1,pred2,pred3,pred4,pred5,pred6,pred7)) {
         uid
         <dgraph.graphql.schema>
         <dgraph.graphql.xid>
@@ -395,16 +395,16 @@ The underlying query to Dgraph simplifies from (the full graph):
 to (selected predicates and nodes only):
 
     {
-      pred1 as var(func: has(<revenue>), first: 100000, after: 0x0)
+      pred1 as var(func: has(<revenue>))
 
-      result (func: uid(pred1), first: 100000, after: 0x0) {
+      result (func: uid(pred1)) {
         uid
         <dgraph.type>
         <revenue>
       }
     }
 
-The response is faster and only relevant data are transfered between Dgraph and Spark.
+The response is faster as only relevant data are transfered between Dgraph and Spark.
 
 |subject|dgraph.type|revenue|
 |:-----:|:---------:|:-----:|
@@ -412,7 +412,6 @@ The response is faster and only relevant data are transfered between Dgraph and 
 |      5|       Film| 5.34E8|
 |      6|       Film| 5.72E8|
 |      9|       Film| 1.39E8|
-
 
 ## Metrics
 
