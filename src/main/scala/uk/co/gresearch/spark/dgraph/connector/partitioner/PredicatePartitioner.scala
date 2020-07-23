@@ -29,7 +29,8 @@ import scala.language.implicitConversions
 case class PredicatePartitioner(schema: Schema,
                                 clusterState: ClusterState,
                                 predicatesPerPartition: Int,
-                                filters: Filters = EmptyFilters)
+                                filters: Filters = EmptyFilters,
+                                projection: Option[Seq[Predicate]] = None)
   extends Partitioner {
 
   if (predicatesPerPartition <= 0)
@@ -58,6 +59,8 @@ case class PredicatePartitioner(schema: Schema,
 
   override def withFilters(filters: Filters): Partitioner = copy(filters = filters)
 
+  override def withProjection(projection: Seq[Predicate]): Partitioner = copy(projection = Some(projection))
+
   override def getPartitions(implicit model: GraphTableModel): Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
     println(s"replaced filters: $processedFilters")
@@ -65,7 +68,7 @@ case class PredicatePartitioner(schema: Schema,
     println(s"simplified filters: $simplifiedFilters")
     val cState = filter(clusterState, simplifiedFilters)
     val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
-    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, simplifiedFilters, model)
+    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, simplifiedFilters, projection, model)
   }
 
   /**
@@ -202,6 +205,7 @@ object PredicatePartitioner extends ClusterStateHelper {
                     clusterState: ClusterState,
                     partitionsInGroup: (String) => Int,
                     filters: Set[Filter],
+                    projection: Option[Seq[Predicate]],
                     model: GraphTableModel): Seq[Partition] =
     clusterState.groupPredicates.keys.flatMap { group =>
       val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
@@ -216,7 +220,7 @@ object PredicatePartitioner extends ClusterStateHelper {
         Partition(
           targets.rotateLeft(index),
           getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
-        )(model).get(predicatesPartitions(index))
+        )(model).get(projection.foldLeft(predicatesPartitions(index))((preds, proj) => preds.intersect(proj.toSet)))
       }
     }.toSeq
 

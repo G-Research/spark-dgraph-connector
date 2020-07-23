@@ -30,7 +30,7 @@ class TestEdgeEncoder extends FunSpec {
       val encoder = EdgeEncoder(Map.empty)
       val rowOpt = encoder.asInternalRow(Uid(1), "predicate", Uid(2))
 
-      assert(rowOpt.isDefined)
+      assert(rowOpt.isDefined === true)
       val row = rowOpt.get
 
       assert(row.numFields === 3)

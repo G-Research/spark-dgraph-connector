@@ -46,7 +46,7 @@ class TestStringTripleEncoder extends FunSpec {
       val encoder = StringTripleEncoder(schema.predicateMap)
       val row = encoder.asInternalRow(Uid(1), "predicate", value)
 
-      assert(row.isDefined)
+      assert(row.isDefined === true)
       assert(row.get.numFields === 4)
       assert(row.get.getLong(0) === 1)
       assert(row.get.getString(1) === "predicate")

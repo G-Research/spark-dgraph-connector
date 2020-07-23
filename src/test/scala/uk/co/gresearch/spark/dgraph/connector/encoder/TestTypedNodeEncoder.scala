@@ -47,7 +47,7 @@ class TestTypedNodeEncoder extends FunSpec {
         val encoder = TypedNodeEncoder(Map.empty)
         val rowOpt = encoder.asInternalRow(Uid(1), "predicate", value)
 
-        assert(rowOpt.isDefined)
+        assert(rowOpt.isDefined === true)
         val row = rowOpt.get
 
         assert(row.numFields === 10)
@@ -70,7 +70,6 @@ class TestTypedNodeEncoder extends FunSpec {
       val rowOpt = encoder.asInternalRow(Uid(1), "predicate", Uid(2))
       assert(rowOpt.isEmpty)
     }
-
 
     it("should parse JSON response") {
       val schema = Schema(Set(

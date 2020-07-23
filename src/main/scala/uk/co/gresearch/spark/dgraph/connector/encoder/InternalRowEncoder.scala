@@ -10,6 +10,14 @@ import uk.co.gresearch.spark.dgraph.connector.Json
 trait InternalRowEncoder extends ColumnInfo {
 
   /**
+   * Sets the schema of this encoder. This encoder may only partially or not at all use the given schema.
+   * Default implementation ignores the given schema completely.
+   * @param schema a schema
+   * @return encoder with the given schema
+   */
+  def withSchema(schema: StructType): InternalRowEncoder = this
+
+  /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
    * empty schema can be returned here.
    * From: org.apache.spark.sql.connector.catalog.Table.schema

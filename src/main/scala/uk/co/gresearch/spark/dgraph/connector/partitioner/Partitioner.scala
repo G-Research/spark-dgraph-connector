@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
-import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition}
+import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition, Predicate}
 
 trait Partitioner {
 
@@ -38,11 +38,22 @@ trait Partitioner {
   /**
    * Sets the filters to be used by the partitioner. Returns a copy of this partitioner with the filters set.
    * Partitioner has to use the required filters and can use the optional filters.
-   * Actual filters in comply with result of supportsFilters.
+   * Actual given filters have to comply with result of supportsFilters.
+   * Default implementation ignores given filters.
    *
    * @param filters filters
    * @return partitioner with the given filters
    */
   def withFilters(filters: Filters): Partitioner = this
+
+  /**
+   * Sets the projection to be used by the partitioner. Returns a copy of this partitioner with the projection.
+   * Partitioner can use the projection if supported.
+   * Default implementation ignores projection.
+   *
+   * @param projection projection
+   * @return partitioner with the given projection
+   */
+  def withProjection(projection: Seq[Predicate]): Partitioner = this
 
 }

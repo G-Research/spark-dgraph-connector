@@ -300,5 +300,23 @@ class TestPredicatePartitioner extends FunSpec {
       assert(partitions === Seq())
     }
 
+    val subjectPredicate = Seq(Predicate("uid", "subject", "uid"))
+
+    it("should partition with 2 predicates per partition and project predicates") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 2)
+        .withProjection(subjectPredicate ++ schema.predicates.filter(p => Set("pred2", "pred3", "pred4").contains(p.predicateName)))
+
+      val partitions = partitioner.getPartitions
+      assert(partitions === Seq(
+        // predicates are shuffled within group, targets rotate within group, empty group does not get a partition
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).get(Set("pred2"), Set.empty),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll,
+
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5", "pred4"), Set.empty).get(Set("pred4"), Set.empty),
+
+        Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).get(Set.empty, Set.empty)
+      ))
+    }
+
   }
 }

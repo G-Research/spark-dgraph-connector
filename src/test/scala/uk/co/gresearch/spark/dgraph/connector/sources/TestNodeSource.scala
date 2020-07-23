@@ -21,6 +21,8 @@ import java.sql.Timestamp
 
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
@@ -32,7 +34,8 @@ import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 
 class TestNodeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
-  with FilterPushDownTestHelper {
+  with FilterPushdownTestHelper
+  with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
@@ -95,9 +98,22 @@ class TestNodeSource extends FunSpec
       Row(sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131)
     )
 
+    val expectedWideSchema: StructType = StructType(Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("dgraph.graphql.schema", StringType, nullable = true),
+      StructField("dgraph.graphql.xid", StringType, nullable = true),
+        StructField("dgraph.type", StringType, nullable = true),
+        StructField("name", StringType, nullable = true),
+        StructField("release_date", TimestampType, nullable = true),
+        StructField("revenue", DoubleType, nullable = true),
+        StructField("running_time", LongType, nullable = true)
+    ))
+
     def doTestLoadWideNodes(load: () => DataFrame): Unit = {
-      val nodes = load().collect().toSet
+      val df = load()
+      val nodes = df.collect().toSet
       assert(nodes === expectedWideNodes)
+      assert(df.schema === expectedWideSchema)
     }
 
     it("should load nodes via path") {
@@ -344,10 +360,23 @@ class TestNodeSource extends FunSpec
         .read
         .options(Map(
           NodesModeOption -> NodesModeWideOption,
-          PartitionerOption -> PredicatePartitionerOption,
-          PredicatePartitionerPredicatesOption -> "2"
+          PartitionerOption -> PredicatePartitionerOption
         ))
         .dgraphNodes(cluster.grpc)
+
+
+    def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
+      doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
+    }
+
+    def doTestsFilterPushDown(condition: Column,
+                              expectedFilters: Set[Filter],
+                              expectedUnpushed: Seq[Expression] = Seq.empty,
+                              expectedTypedDsFilter: TypedNode => Boolean,
+                              expectedWideDsFilter: Row => Boolean): Unit = {
+      doTestFilterPushDownDf(typedNodes, condition, expectedFilters, expectedUnpushed, expectedTypedNodes.filter(expectedTypedDsFilter))
+      doTestFilterPushDownDf(wideNodes, condition, expectedFilters, expectedUnpushed, expectedWideNodes.filter(expectedWideDsFilter))
+    }
 
     it("should push subject filters") {
       doTestsFilterPushDown(
@@ -375,136 +404,256 @@ class TestNodeSource extends FunSpec
       )
     }
 
-    it("should push predicate filters") {
-      doTestFilterPushDown(typedNodes,
-        $"predicate" === "name",
-        Set(IntersectPredicateNameIsIn("name")),
-        expectedDs = expectedTypedNodes.filter(_.predicate == "name")
-      )
+    describe("typed nodes") {
 
-      doTestFilterPushDown(typedNodes,
-        $"predicate".isin("name"),
-        Set(IntersectPredicateNameIsIn("name")),
-        expectedDs = expectedTypedNodes.filter(_.predicate == "name")
-      )
+      it("should push predicate filters") {
+        doTestFilterPushDown(typedNodes,
+          $"predicate" === "name",
+          Set(IntersectPredicateNameIsIn("name")),
+          expectedDs = expectedTypedNodes.filter(_.predicate == "name")
+        )
 
-      doTestFilterPushDown(typedNodes,
-        $"predicate".isin("name", "starring"),
-        Set(IntersectPredicateNameIsIn("name", "starring")),
-        expectedDs = expectedTypedNodes.filter(t => Set("name", "starring").contains(t.predicate))
-      )
+        doTestFilterPushDown(typedNodes,
+          $"predicate".isin("name"),
+          Set(IntersectPredicateNameIsIn("name")),
+          expectedDs = expectedTypedNodes.filter(_.predicate == "name")
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"predicate".isin("name", "starring"),
+          Set(IntersectPredicateNameIsIn("name", "starring")),
+          expectedDs = expectedTypedNodes.filter(t => Set("name", "starring").contains(t.predicate))
+        )
+      }
+
+      it("should push object type filters") {
+        doTestFilterPushDown(typedNodes,
+          $"objectType" === "string",
+          Set(ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectType == "string")
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectType".isin("string"),
+          Set(ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectType == "string")
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectType".isin("string", "long"),
+          Set(ObjectTypeIsIn("string", "long")),
+          expectedDs = expectedTypedNodes.filter(t => Set("string", "long").contains(t.objectType))
+        )
+      }
+
+      it("should push object value filters") {
+        doTestFilterPushDown(typedNodes,
+          $"objectString".isNotNull,
+          Set(ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectString.isDefined)
+        )
+        doTestFilterPushDown(typedNodes,
+          $"objectString".isNotNull && $"objectLong".isNotNull,
+          Set(AlwaysFalse),
+          expectedDs = Set.empty
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectString" === "Person",
+          Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectString".isin("Person"),
+          Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectString".isin("Person", "Film"),
+          Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
+        )
+
+        doTestFilterPushDown(typedNodes,
+          $"objectString" === "Person" && $"objectLong" === 1,
+          Set(AlwaysFalse),
+          expectedDs = Set.empty
+        )
+
+      }
+
+      it("should not push projection") {
+        doTestProjectionPushDownDf(
+          typedNodes.toDF,
+          Seq($"subject", $"predicate", $"objectString"),
+          None,
+          Seq("subject", "predicate", "objectString"),
+          expectedTypedNodes.toSeq.toDF.collect().map(select(0, 1, 2)).toSet
+        )
+      }
+
     }
 
-    it("should push predicate value filters") {
+    describe("wide node") {
+
+      it("should push predicate value filters") {
+        val columns = wideNodes.columns
+
+        doTestFilterPushDown(wideNodes,
+          $"name".isNotNull,
+          Set(PredicateNameIs("name")),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined)
+        )
+
+        doTestFilterPushDown(wideNodes,
+          $"name".isNotNull && $"running_time".isNotNull,
+          Set(PredicateNameIs("name"), PredicateNameIs("running_time")),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined && !r.isNullAt(columns.indexOf("running_time")))
+        )
+
+        doTestFilterPushDown(wideNodes,
+          $"name".isin("Star Wars: Episode IV - A New Hope"),
+          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope"))),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
+        )
+
+        doTestFilterPushDown(wideNodes,
+          $"name".isin("Star Wars: Episode IV - A New Hope", "Princess Leia"),
+          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope", "Princess Leia"))),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(Set("Star Wars: Episode IV - A New Hope", "Princess Leia").contains))
+        )
+
+        doTestFilterPushDown(wideNodes,
+          $"name" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
+          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getInt(columns.indexOf("running_time"))).exists(_.equals(121)))
+        )
+
+        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getInt(columns.indexOf("running_time")))).exists(_.equals(121)))
+        assert(expected.isEmpty, "expect empty result for this query, check query")
+        doTestFilterPushDown(wideNodes,
+          $"name" === "Luke Skywalker" && $"running_time" === 121,
+          Set(SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
+          expectedDs = expected
+        )
+      }
+
+      val expectedPredicates: Seq[Predicate] = Seq(
+        Predicate("uid", "subject"),
+        Predicate("dgraph.graphql.schema", "string"),
+        Predicate("dgraph.graphql.xid", "string"),
+        Predicate("dgraph.type", "string"),
+        Predicate("name", "string"),
+        Predicate("release_date", "datetime"),
+        Predicate("revenue", "float"),
+        Predicate("running_time", "int")
+      )
+
+      it("should push projection") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          Seq($"subject", $"`dgraph.type`", $"name"),
+          Some(expectedPredicates.filter(p => Set("uid", "dgraph.type", "name").contains(p.predicateName))),
+          Seq.empty,
+          expectedWideNodes.map(select(0, 3, 4))
+        )
+      }
+
+      it("should push projection reordered") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          Seq($"subject", $"name", $"`dgraph.type`"),
+          Some(expectedPredicates.filter(p => Set("uid", "name", "dgraph.type").contains(p.predicateName))),
+          Seq("subject", "name", "dgraph.type"),
+          expectedWideNodes.map(select(0, 4, 3))
+        )
+      }
+
+      it("should push projection without subject") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          Seq($"`dgraph.type`", $"name", $"revenue"),
+          Some(expectedPredicates.filter(p => Set("dgraph.type", "name", "revenue").contains(p.predicateName))),
+          Seq.empty,
+          expectedWideNodes.map(select(3, 4, 6))
+        )
+      }
+
+      it("should push projection with subject only") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          Seq($"subject"),
+          Some(expectedPredicates.filter(p => Set("uid").contains(p.predicateName))),
+          Seq.empty,
+          expectedWideNodes.map(select(0))
+        )
+      }
+
+      it("should not push no projection") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          Seq.empty,
+          None,
+          Seq.empty,
+          expectedWideNodes
+        )
+      }
+
+      it("should not push full projection") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          wideNodes.columns.map(c => col(s"`$c`")),
+          None,
+          Seq.empty,
+          expectedWideNodes
+        )
+      }
+
+      it("should push full projection reordered") {
+        doTestProjectionPushDownDf(
+          wideNodes,
+          wideNodes.columns.reverse.map(c => col(s"`$c`")),
+          None,
+          wideNodes.columns.reverse,
+          expectedWideNodes.map(select(7, 6, 5, 4, 3, 2, 1, 0))
+        )
+      }
+
+      it("should push projection with isNotNull") {
+        doTestProjectionPushDownDf(
+          wideNodes.where($"subject".isNotNull && $"`dgraph.type`".isNotNull && $"name".isNotNull),
+          Seq($"subject", $"`dgraph.type`", $"name"),
+          Some(expectedPredicates.filter(p => Set("uid", "dgraph.type", "name").contains(p.predicateName))),
+          Seq.empty,
+          expectedWideNodes.filter(row => !row.isNullAt(0) && !row.isNullAt(3) && !row.isNullAt(4)).map(select(0, 3, 4))
+        )
+      }
+
+    }
+
+    it("should push filters for backticked columns") {
       val columns = wideNodes.columns
 
       doTestFilterPushDown(wideNodes,
-        $"name".isNotNull,
-        Set(PredicateNameIs("name")),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined)
+        $"`dgraph.type`".isNotNull,
+        Set(PredicateNameIs("dgraph.type")),
+        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).isDefined)
       )
 
       doTestFilterPushDown(wideNodes,
-        $"name".isNotNull && $"running_time".isNotNull,
-        Set(PredicateNameIs("name"), PredicateNameIs("running_time")),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined && !r.isNullAt(columns.indexOf("running_time")))
+        $"`dgraph.type`" === "Film",
+        Set(SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
+        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
       doTestFilterPushDown(wideNodes,
-        $"name".isin("Star Wars: Episode IV - A New Hope"),
-        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope"))),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
+      $"`dgraph.type`".isin("Film"),
+          Set(SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
-      doTestFilterPushDown(wideNodes,
-        $"name".isin("Star Wars: Episode IV - A New Hope", "Princess Leia"),
-        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope", "Princess Leia"))),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(Set("Star Wars: Episode IV - A New Hope", "Princess Leia").contains))
-      )
-
-      doTestFilterPushDown(wideNodes,
-        $"name" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
-        Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getInt(columns.indexOf("running_time"))).exists(_.equals(121)))
-      )
-
-      val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getInt(columns.indexOf("running_time")))).exists(_.equals(121)))
-      assert(expected.isEmpty, "expect empty result for this query, check query")
-      doTestFilterPushDown(wideNodes,
-        $"name" === "Luke Skywalker" && $"running_time" === 121,
-        Set(SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
-        expectedDs = expected
-      )
-    }
-
-    it("should push object type filters") {
-      doTestFilterPushDown(typedNodes,
-        $"objectType" === "string",
-        Set(ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectType == "string")
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectType".isin("string"),
-        Set(ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectType == "string")
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectType".isin("string", "long"),
-        Set(ObjectTypeIsIn("string", "long")),
-        expectedDs = expectedTypedNodes.filter(t => Set("string", "long").contains(t.objectType))
-      )
-    }
-
-    it("should push object value filters") {
-      doTestFilterPushDown(typedNodes,
-        $"objectString".isNotNull,
-        Set(ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectString.isDefined)
-      )
-      doTestFilterPushDown(typedNodes,
-        $"objectString".isNotNull && $"objectLong".isNotNull,
-        Set(AlwaysFalse),
-        expectedDs = Set.empty
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectString" === "Person",
-        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectString".isin("Person"),
-        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectString".isin("Person", "Film"),
-        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
-      )
-
-      doTestFilterPushDown(typedNodes,
-        $"objectString" === "Person" && $"objectLong" === 1,
-        Set(AlwaysFalse),
-        expectedDs = Set.empty
-      )
-    }
-
-    def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
-      doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
-    }
-
-    def doTestsFilterPushDown(condition: Column,
-                              expectedFilters: Set[Filter],
-                              expectedUnpushed: Seq[Expression] = Seq.empty,
-                              expectedTypedDsFilter: TypedNode => Boolean,
-                              expectedWideDsFilter: Row => Boolean): Unit = {
-      doTestFilterPushDownDf(typedNodes, condition, expectedFilters, expectedUnpushed, expectedTypedNodes.filter(expectedTypedDsFilter))
-      doTestFilterPushDownDf(wideNodes, condition, expectedFilters, expectedUnpushed, expectedWideNodes.filter(expectedWideDsFilter))
     }
 
   }

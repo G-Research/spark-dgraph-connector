@@ -19,24 +19,53 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, SupportsPushDownFilters}
+import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 import org.apache.spark.sql.types.StructType
+import uk.co.gresearch.spark.dgraph.connector.encoder.ProjectedSchema
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-case class TripleScan(partitioner: Partitioner, model: GraphTableModel) extends DataSourceReader with SupportsPushDownFilters {
+case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
+  extends DataSourceReader
+    with SupportsPushDownFilters
+    with SupportsPushDownRequiredColumns {
 
-  override def readSchema(): StructType = model.readSchema()
+  var requiredSchema: Option[StructType] = None
 
-  override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] =
-    partitioner.withFilters(filters).getPartitions(model).map(_.asInstanceOf[InputPartition[InternalRow]]).toList.asJava
+  override def pruneColumns(requiredSchema: StructType): Unit = {
+    println(s"required columns: ${requiredSchema.fields.toSeq.map(c => s"${c.name} (${c.dataType}${if (c.nullable) " nullable" else ""})").mkString(", ")}")
+    this.requiredSchema = Some(requiredSchema)
+  }
+
+  // apply optional schema to model
+  def modelWithOptionalSchema: GraphTableModel = requiredSchema.fold(model)(model.withSchema)
+
+  override def readSchema(): StructType = modelWithOptionalSchema.readSchema()
+
+  override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] = {
+    // get optional projection (projected predicates) from model's encoder
+    val projection: Option[Seq[Predicate]] =
+      Some(modelWithOptionalSchema.encoder)
+        .filter(_.isInstanceOf[ProjectedSchema])
+        .flatMap(_.asInstanceOf[ProjectedSchema].readPredicates)
+
+    // apply optional projection to partitioner
+    val partitionerWithOptionalProjection =
+      projection.foldLeft(partitioner)((part, proj) => part.withProjection(proj))
+
+    partitionerWithOptionalProjection
+      .withFilters(filters)
+      .getPartitions(modelWithOptionalSchema)
+      .map(_.asInstanceOf[InputPartition[InternalRow]])
+      .toList.asJava
+  }
 
   val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
   var filters: Filters = EmptyFilters
-  val translator: FilterTranslator = FilterTranslator(model.encoder)
+  val translator: FilterTranslator = FilterTranslator(model.encoder)  // modelWithOptionalSchema not needed here
 
   // We push filters into the Dgraph queries as follows:
   // 1) the FilterTranslator translates them into connector-specific filters

@@ -9,7 +9,7 @@ import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, GraphQl, Partition, PartitionQuery, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, Partition, Uid}
 
 import scala.collection.JavaConverters._
 
@@ -21,6 +21,20 @@ trait GraphTableModel {
   val execution: ExecutorProvider
   val encoder: JsonNodeInternalRowEncoder
   val chunkSize: Int
+
+  /**
+   * Sets the schema of this model. This model may only partially or not at all use the given schema.
+   * @param schema a schema
+   * @return model with the given schema
+   */
+  def withSchema(schema: StructType): GraphTableModel = withEncoder(encoder.withSchema(schema))
+
+  /**
+   * Sets the encoder of this model. Returns a copy of this model with the new encoder set.
+   * @param encoder an encoder
+   * @return model with the given encoder
+   */
+  def withEncoder(encoder: JsonNodeInternalRowEncoder): GraphTableModel = this
 
   /**
    * Returns the schema of this table. If the table is not readable and doesn't have a schema, an

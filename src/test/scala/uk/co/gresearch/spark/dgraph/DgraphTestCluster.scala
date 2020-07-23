@@ -22,7 +22,7 @@ import java.util.UUID
 import com.google.gson.{Gson, JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.scalatest.{Assertions, BeforeAndAfterAll, Suite}
 import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
@@ -146,7 +146,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
 
 }
 
-case class DgraphCluster(name: String, version: String) {
+case class DgraphCluster(name: String, version: String) extends Assertions {
 
   var process: Option[Process] = None
   var sync: Object = new Object
@@ -176,14 +176,14 @@ case class DgraphCluster(name: String, version: String) {
       process = launchCluster(portOffset.get)
       process
     }.next()
-    assert(process.isDefined)
+    assert(process.isDefined === true)
 
     alterSchema()
     uids = insertData()
   }
 
   def stop(): Unit = {
-    assert(process.isDefined)
+    assert(process.isDefined === true)
     println("stopping dgraph cluster")
     assert(Process(Seq("docker", "container", "kill", name)).run().exitValue() == 0)
     process.foreach(_.exitValue())

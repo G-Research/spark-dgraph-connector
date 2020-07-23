@@ -22,7 +22,7 @@ import java.sql.Timestamp
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.{Column, DataFrame, Dataset}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
@@ -33,7 +33,8 @@ import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestTriplesSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
-  with FilterPushDownTestHelper {
+  with FilterPushdownTestHelper
+  with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
@@ -622,6 +623,23 @@ class TestTriplesSource extends FunSpec
                              expectedStringDsFilter: StringTriple => Boolean): Unit = {
       doTestFilterPushDownDf(typedTriples, condition, expectedFilters, expectedUnpushed, expectedTypedTriples.filter(expectedTypedDsFilter))
       doTestFilterPushDownDf(stringTriples, condition, expectedFilters, expectedUnpushed, expectedStringTriples.filter(expectedStringDsFilter))
+    }
+
+
+    it("should not push projection") {
+      doTestProjectionPushDownDf(typedTriples.toDF(),
+        Seq($"subject", $"predicate", $"objectUid", $"objectString"),
+        None,
+        Seq("subject", "predicate", "objectUid", "objectString"),
+        expectedTypedTriples.toSeq.toDF().collect().toSet.map(select(0, 1, 2, 3))
+      )
+
+      doTestProjectionPushDownDf(stringTriples.toDF(),
+        Seq($"subject", $"predicate", $"objectString"),
+        None,
+        Seq("subject", "predicate", "objectString"),
+        expectedStringTriples.toSeq.toDF().collect().toSet.map(select(0, 1, 2))
+      )
     }
 
   }

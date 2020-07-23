@@ -142,9 +142,22 @@ class TestUidRangePartitioner extends FunSpec {
       // deliberately not EmptyFilters here to test with our own instance
       val filters = Filters(Set.empty, Set.empty)
       val actual =
-        uidPartitioner.withFilters(filters).asInstanceOf[UidRangePartitioner]
-          .partitioner.asInstanceOf[connector.partitioner.PredicatePartitioner].filters
+        uidPartitioner.withFilters(filters)
+          .partitioner.asInstanceOf[connector.partitioner.PredicatePartitioner]
+          .filters
       assert(actual eq filters)
+    }
+
+    it("should forward projection to decorated partitioner") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val projection = schema.predicates.toSeq
+      val actual =
+        uidPartitioner.withProjection(projection)
+          .partitioner.asInstanceOf[connector.partitioner.PredicatePartitioner]
+          .projection
+      assert(actual.isDefined === true)
+      assert(actual.get eq projection)
     }
 
   }

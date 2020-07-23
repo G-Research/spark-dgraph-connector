@@ -30,7 +30,8 @@ import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 
 class TestEdgeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
-  with FilterPushDownTestHelper {
+  with FilterPushdownTestHelper
+  with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
@@ -281,6 +282,32 @@ class TestEdgeSource extends FunSpec
 
     def doTestFilterPushDown(condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
       doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
+    }
+
+    it("should not push projection") {
+      doTestProjectionPushDownDf(
+        edges,
+        Seq($"subject", $"objectUid"),
+        None,
+        Seq("subject", "objectUid"),
+        expectedEdges.map(select(0, 2))
+      )
+
+      doTestProjectionPushDownDf(
+        edges,
+        Seq($"subject", $"predicate", $"objectUid"),
+        None,
+        Seq.empty,
+        expectedEdges
+      )
+
+      doTestProjectionPushDownDf(
+        edges,
+        Seq.empty,
+        None,
+        Seq.empty,
+        expectedEdges
+      )
     }
 
   }

@@ -20,7 +20,7 @@ class TestUidCardinalityEstimator extends FunSpec {
       val range = UidRange(Uid(1), Uid(1000))
       val partition = Partition(Seq.empty, Set(range))
       val actual = estimator.uidCardinality(partition)
-      assert(actual.isDefined)
+      assert(actual.isDefined === true)
       assert(actual.get === range.length)
     }
 
@@ -28,7 +28,7 @@ class TestUidCardinalityEstimator extends FunSpec {
       val uids = Uids(Set(Uid(1), Uid(2), Uid(3)))
       val partition = Partition(Seq.empty, Set(uids))
       val actual = estimator.uidCardinality(partition)
-      assert(actual.isDefined)
+      assert(actual.isDefined === true)
       assert(actual.get === uids.uids.size)
     }
 
