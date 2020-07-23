@@ -39,8 +39,8 @@ case class PredicatePartitioner(schema: Schema,
   def getPartitionsForPredicates(predicates: Set[_]): Int =
     if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
 
-  val props: Set[String] = schema.predicates.filterNot(_.dgraphType.eq("uid")).map(_.predicateName)
-  val edges: Set[String] = schema.predicates.filter(_.dgraphType.eq("uid")).map(_.predicateName)
+  val props: Set[String] = schema.predicates.filter(_.isProperty).map(_.predicateName)
+  val edges: Set[String] = schema.predicates.filter(_.isEdge).map(_.predicateName)
 
   override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters.map {
     case _: AlwaysFalse => true
@@ -212,7 +212,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
       val predicatesPartitions = partition(groupPredicates, partitions)
-      val (props, edges) = schema.predicates.partition(_.dgraphType != "uid")
+      val (props, edges) = schema.predicates.partition(_.isProperty)
       val propNames = props.map(_.predicateName)
       val edgeNames = edges.map(_.predicateName)
 

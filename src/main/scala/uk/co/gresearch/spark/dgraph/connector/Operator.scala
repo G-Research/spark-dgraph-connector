@@ -52,8 +52,8 @@ case class UidRange(first: Uid, until: Uid) extends Operator {
 case class Has(properties: Set[String], edges: Set[String]) extends Operator
 object Has {
   def apply(predicates: Set[Predicate]): Has = {
-    val props = predicates.filter(_.dgraphType != "uid").map(_.predicateName)
-    val edges = predicates.filter(_.dgraphType == "uid").map(_.predicateName)
+    val props = predicates.filter(_.isProperty).map(_.predicateName)
+    val edges = predicates.filter(_.isEdge).map(_.predicateName)
     Has(props, edges)
   }
 }
@@ -66,8 +66,8 @@ object Has {
 case class Get(properties: Set[String], edges: Set[String]) extends Operator
 object Get {
   def apply(predicates: Set[Predicate]): Get = {
-    val props = predicates.filter(_.dgraphType != "uid").map(_.predicateName)
-    val edges = predicates.filter(_.dgraphType == "uid").map(_.predicateName)
+    val props = predicates.filter(_.isProperty).map(_.predicateName)
+    val edges = predicates.filter(_.isEdge).map(_.predicateName)
     Get(props, edges)
   }
 }

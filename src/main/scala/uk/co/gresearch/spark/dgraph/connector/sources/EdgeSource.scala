@@ -34,7 +34,7 @@ class EdgeSource() extends TableProviderBase
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
-    val schema = getSchema(targets).filter(_.dgraphType == "uid")
+    val schema = getSchema(targets).filter(_.isEdge)
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, options)
     val encoder = EdgeEncoder(schema.predicateMap)

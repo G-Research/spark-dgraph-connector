@@ -94,7 +94,10 @@ package object connector {
     override def toString: String = password
   }
 
-  case class Predicate(predicateName: String, dgraphType: String, sparkType: String)
+  case class Predicate(predicateName: String, dgraphType: String, sparkType: String) {
+    def isProperty: Boolean = dgraphType != "uid"
+    def isEdge: Boolean = dgraphType == "uid"
+  }
 
   object Predicate {
     def apply(predicateName: String, dgraphType: String): Predicate =
