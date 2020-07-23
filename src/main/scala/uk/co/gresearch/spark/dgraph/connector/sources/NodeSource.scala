@@ -63,7 +63,7 @@ class NodeSource() extends TableProviderBase
   override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
     val adjustedOptions = adjustOptions(options)
     val targets = getTargets(adjustedOptions)
-    val schema = getSchema(targets).filter(_.dgraphType != "uid")
+    val schema = getSchema(targets).filter(_.isProperty)
     getNodeMode(adjustedOptions) match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder.schema
       case Some(NodesModeWideOption) => WideNodeEncoder.schema(schema.predicateMap)
@@ -82,7 +82,7 @@ class NodeSource() extends TableProviderBase
     val adjustedOptions = adjustOptions(options)
 
     val targets = getTargets(adjustedOptions)
-    val schema = getSchema(targets).filter(_.dgraphType != "uid")
+    val schema = getSchema(targets).filter(_.isProperty)
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, adjustedOptions)
     val nodeMode = getNodeMode(adjustedOptions)

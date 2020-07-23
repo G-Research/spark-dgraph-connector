@@ -142,10 +142,8 @@ object WideNodeEncoder {
 
   def schema(predicates: Seq[Predicate]): StructType =
     StructType(
-      predicates
-        // exclude edges (dgraph type "uid")
-        .filter(_.dgraphType != "uid")
-        .map(toStructField)
+      // exclude edges
+      predicates.filterNot(_.isEdge).map(toStructField)
     )
 
   def columnNameForPredicateName(predicateName: String): String = predicateName match {
