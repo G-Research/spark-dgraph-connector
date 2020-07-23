@@ -4,7 +4,6 @@ import com.google.gson.JsonArray
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
-import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
@@ -22,6 +21,15 @@ class TestGraphTableModel extends FunSpec {
          |  pred2 as var(func: has(<prop>), first: 3, after: ${after.toHexString})
          |
          |  result (func: uid(pred1,pred2), first: 3, after: ${after.toHexString}) {
+         |    uid
+         |    <edge> { uid }
+         |    <prop>
+         |  }
+         |}""".stripMargin
+
+    def chunkQueryUids(uids: Set[Uid], size: Int, after: Uid): String =
+      s"""{
+         |  result (func: uid(${uids.map(_.toHexString).mkString(",")}), first: $size, after: ${after.toHexString}) {
          |    uid
          |    <edge> { uid }
          |    <prop>
@@ -70,6 +78,44 @@ class TestGraphTableModel extends FunSpec {
         |""".stripMargin
     val lastUidOfSecondHalfChunk = Uid("0x135")
     val uidBeforeLastUidOfSecondHalfChunk = Uid("0x132")
+
+    val x124ChunkResult =
+      """{
+        |  "result": [
+        |    {
+        |      "uid": "0x124",
+        |      "prop": "str124"
+        |    }
+        |  ]
+        |}
+        |""".stripMargin
+
+    val x124x125ChunkResult =
+      """{
+        |  "result": [
+        |    {
+        |      "uid": "0x124",
+        |      "prop": "str124"
+        |    },
+        |    {
+        |      "uid": "0x125",
+        |      "edge": [{"uid": "0x125a"},{"uid": "0x125b"}]
+        |    }
+        |  ]
+        |}
+        |""".stripMargin
+
+    val x135ChunkResult =
+      """{
+        |  "result": [
+        |    {
+        |      "uid": "0x135",
+        |      "edge": [{"uid": "0x135a"}],
+        |      "prop": "str135"
+        |    }
+        |  ]
+        |}
+        |""".stripMargin
 
     val expecteds = Seq(
       InternalRow(Uid("0x123").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x123a").toString), UTF8String.fromString("uid")),
@@ -170,7 +216,40 @@ class TestGraphTableModel extends FunSpec {
       doTest(results, expected, Some(range))
     }
 
-    def doTest(results: Map[String, String], expected: Seq[InternalRow], uids: Option[UidRange] = None, size: Int = 3): Unit = {
+    it("should read single chunks with uid") {
+      val uids = Uids(Set(Uid("0x124")))
+      val results = Map(
+        chunkQueryUids(uids.uids, 2, Uid(0)) -> x124ChunkResult
+      )
+
+      val expected = expecteds.filter(_.getLong(0) == 0x124)
+      doTest(results, expected, None, Some(uids), size = 2)
+    }
+
+    it("should read all chunks with uids") {
+      val uids = Uids(Set(Uid("0x124"), Uid("0x125"), Uid("0x135")))
+      val results = Map(
+        chunkQueryUids(uids.uids, 2, Uid("0x0")) -> x124x125ChunkResult,
+        chunkQueryUids(uids.uids, 2, Uid("0x125")) -> x135ChunkResult,
+      )
+
+      val expected = expecteds.filter(r => Set(0x124, 0x125, 0x135).contains(r.getLong(0).toInt))
+      doTest(results, expected, None, Some(uids), size = 2)
+    }
+
+    it("should read all chunks with some unused uids") {
+      val uids = Uids(Set(Uid("0x124"), Uid("0x125"), Uid("0x126"), Uid("0x127"), Uid("0x132"), Uid("0x135"), Uid("0x140"), Uid("0x141"), Uid("0x142")))
+      val results = Map(
+        chunkQueryUids(uids.uids, 2, Uid("0x0")) -> x124x125ChunkResult,
+        chunkQueryUids(uids.uids, 2, Uid("0x125")) -> secondHalfChunkResult,
+        chunkQueryUids(uids.uids, 2, Uid("0x135")) -> emptyChunkResult,
+      )
+
+      val expected = expecteds.filter(r => Set(0x124, 0x125, 0x132, 0x135).contains(r.getLong(0).toInt))
+      doTest(results, expected, None, Some(uids), size = 2)
+    }
+
+    def doTest(results: Map[String, String], expected: Seq[InternalRow], uidRange: Option[UidRange] = None, uids: Option[Uids] = None, size: Int = 3): Unit = {
       val targets = Seq(Target("localhost:8090"))
       val predicates = Seq(Predicate("prop", "string"), Predicate("edge", "uid")).map(p => p.predicateName -> p).toMap
 
@@ -186,7 +265,7 @@ class TestGraphTableModel extends FunSpec {
 
       val rowEncoder = StringTripleEncoder(predicates)
       val model = TestModel(executionProvider, rowEncoder, size)
-      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uids.map(Set(_)).getOrElse(Set.empty))
+      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uidRange.map(Set(_)).getOrElse(Set.empty) ++ uids.map(Set(_)).getOrElse(Set.empty))
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)

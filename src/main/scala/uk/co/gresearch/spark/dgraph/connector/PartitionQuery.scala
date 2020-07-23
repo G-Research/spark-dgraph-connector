@@ -31,6 +31,11 @@ import uk.co.gresearch.spark.dgraph.connector
  */
 case class PartitionQuery(resultName: String, operators: Set[Operator]) {
 
+  val uidsOps: Set[Uid] =
+    operators
+      .filter(_.isInstanceOf[Uids])
+      .flatMap { case Uids(uids) => uids }
+
   val hasPredicates: Set[Set[String]] =
     operators
       .filter(_.isInstanceOf[Has])
@@ -80,13 +85,20 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
     val predicateQueries = getPredicateQueries(chunk)
     val predicateQueriesValues =
       Some(predicateQueries.toSeq.sortBy(_._1).map(_._2).map(query => s"\n  $query").mkString)
-        .filter(_.nonEmpty)
-        .map(f => s"$f\n")
+        .filter(_.nonEmpty).map(f => s"$f\n")
         .getOrElse("")
+    val predicateQueriesValuesWhenNoUids =
+      Some(uidsOps)
+        .filter(_.isEmpty).map(_ => predicateQueriesValues)
+        .getOrElse("")
+    val uids =
+      Some(uidsOps)
+        .filter(_.nonEmpty).map(_.map(_.toHexString)).map(_.mkString(","))
+        .getOrElse(predicateQueries.keys.toSeq.sorted.mkString(","))
     val resultOperatorFilter = resultOperatorFilters.map(f => s"@filter($f) ").getOrElse("")
     val query =
-      s"""{$predicateQueriesValues
-         |  ${resultName} (func: uid(${predicateQueries.keys.toSeq.sorted.mkString(",")})${getChunkString(chunk)}) $resultOperatorFilter{
+      s"""{$predicateQueriesValuesWhenNoUids
+         |  ${resultName} (func: uid($uids)${getChunkString(chunk)}) $resultOperatorFilter{
          |    uid
          |${predicatePaths.map(path => s"    $path\n").mkString}  }
          |}""".stripMargin

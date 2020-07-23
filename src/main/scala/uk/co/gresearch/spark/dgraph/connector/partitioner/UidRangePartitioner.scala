@@ -29,7 +29,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
 
   val partitions: Seq[Partition] = partitioner.getPartitions
 
-  if (partitions.exists(_.uids.isDefined))
+  if (partitions.exists(_.uidRange.isDefined))
     throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
       s"another uid partitioner: ${partitioner.getClass.getSimpleName}")
 

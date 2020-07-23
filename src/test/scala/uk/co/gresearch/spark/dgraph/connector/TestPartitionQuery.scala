@@ -23,6 +23,9 @@ class TestPartitionQuery extends FunSpec {
 
   describe("PartitionQuery") {
 
+    val uid = Set[Operator](Uids(Set(Uid(1))))
+    val uids = Set[Operator](Uids(Set(Uid(1), Uid(2))))
+
     val propName = "prop"
     val edgeName = "edge"
     val prop = Set(Predicate(propName, "string"))
@@ -62,6 +65,40 @@ class TestPartitionQuery extends FunSpec {
       GreaterOrEqual(Set(prop1Name, prop2Name), 1),
       GreaterThan(Set(prop1Name, prop2Name), 1),
     )
+
+    it("should provide query with uid") {
+      val query = PartitionQuery("result", uid)
+      assert(query.forChunk(None).string ===
+        """{
+          |  result (func: uid(0x1)) {
+          |    uid
+          |  }
+          |}""".stripMargin)
+    }
+
+    it("should provide query with uids") {
+      val query = PartitionQuery("result", uids)
+      assert(query.forChunk(None).string ===
+        """{
+          |  result (func: uid(0x1,0x2)) {
+          |    uid
+          |  }
+          |}""".stripMargin)
+    }
+
+    it("should provide query with uids and has") {
+      val query = PartitionQuery("result", uids ++ hasPredicates)
+      assert(query.forChunk(None).string ===
+        """{
+          |  result (func: uid(0x1,0x2)) {
+          |    uid
+          |    <edge1> { uid }
+          |    <edge2> { uid }
+          |    <prop1>
+          |    <prop2>
+          |  }
+          |}""".stripMargin)
+    }
 
     it("should provide query for explicitly no predicates") {
       val query = PartitionQuery("result", hasNoPredicates)
