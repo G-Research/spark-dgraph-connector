@@ -24,15 +24,12 @@ Example code:
 
 ## Limitations
 
-The connector is at an early stage, but is being continuously developed. It has the following limitations:
+The connector is under continuous development. It has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
 - **Not transaction-aware**: Individual partitions do not read the same transaction. The graph should not be
   modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
-- **Type system**: The connector can only read data for nodes that have a type ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)) (`dgraph.type`)
-  and use predicates that are in the node's type schema ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
 - **Language tags & facets**: The connector cannot read any string values with language tags or facets.
-- **Maturity**: Untested with non-trivial-size real-world graphs.
 
 Beside the **language tags & facets**, which is a limitation of Dgraph, all the other issues mentioned
 above will be addressed in the near future.
