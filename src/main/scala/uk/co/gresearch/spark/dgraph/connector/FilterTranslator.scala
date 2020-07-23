@@ -2,8 +2,19 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
 import org.apache.spark.sql.sources._
-import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
+
+/**
+ * A column name is enclosed with backticks when it contains dots (.). This unapply is used to
+ * remove those backticks during pattern matching if they exist.
+ */
+object ColumnName {
+  def unapply(columnName: String): Option[String] =
+    if (columnName.startsWith("`") && columnName.endsWith("`"))
+      Some(columnName.drop(1).dropRight(1))
+    else
+      Some(columnName)
+}
 
 case class FilterTranslator(columnInfo: ColumnInfo) {
 
@@ -13,43 +24,43 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
    * @return Some dgraph filters
    */
   def translate(filter: sql.sources.Filter): Option[Set[Filter]] = filter match {
-    case IsNotNull(column) if columnInfo.isPredicateValueColumn(column) =>
+    case IsNotNull(ColumnName(column)) if columnInfo.isPredicateValueColumn(column) =>
       Some(Set(PredicateNameIs(column)))
-    case IsNotNull(column) if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
+    case IsNotNull(ColumnName(column)) if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
       Some(Set(ObjectTypeIsIn(columnInfo.getObjectType(column).get)))
 
-    case EqualTo(column, value) if columnInfo.isSubjectColumn(column) && Option(value).isDefined =>
+    case EqualTo(ColumnName(column), value) if columnInfo.isSubjectColumn(column) && Option(value).isDefined =>
       Some(Set(SubjectIsIn(Uid(value.toLong))))
-    case EqualTo(column, value) if columnInfo.isPredicateColumn(column) && Option(value).isDefined =>
+    case EqualTo(ColumnName(column), value) if columnInfo.isPredicateColumn(column) && Option(value).isDefined =>
       Some(Set(IntersectPredicateNameIsIn(value.toString)))
-    case EqualTo(column, value) if columnInfo.isPredicateValueColumn(column) && Option(value).isDefined =>
+    case EqualTo(ColumnName(column), value) if columnInfo.isPredicateValueColumn(column) && Option(value).isDefined =>
       Some(Set(SinglePredicateValueIsIn(column, Set(value))))
-    case EqualTo(column, value) if columnInfo.isObjectValueColumn(column) && Option(value).isDefined =>
+    case EqualTo(ColumnName(column), value) if columnInfo.isObjectValueColumn(column) && Option(value).isDefined =>
       Some(Set(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
-    case EqualTo(column, value) if columnInfo.isObjectTypeColumn(column) && Option(value).isDefined =>
+    case EqualTo(ColumnName(column), value) if columnInfo.isObjectTypeColumn(column) && Option(value).isDefined =>
       Some(Set(ObjectTypeIsIn(value.toString)))
 
-    case In(column, values)
+    case In(ColumnName(column), values)
       if columnInfo.isSubjectColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(SubjectIsIn(values.map(value => Uid(value.toLong)): _*)))
-    case In(column, values)
+    case In(ColumnName(column), values)
       if columnInfo.isPredicateColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(IntersectPredicateNameIsIn(values.map(_.toString): _*)))
-    case In(column, values)
+    case In(ColumnName(column), values)
       if columnInfo.isPredicateValueColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(SinglePredicateValueIsIn(column, values.toSet)))
-    case In(column, values)
+    case In(ColumnName(column), values)
       if columnInfo.isObjectValueColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
-    case In(column, values)
+    case In(ColumnName(column), values)
       if columnInfo.isObjectTypeColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>

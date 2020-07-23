@@ -88,7 +88,7 @@ class NodeSource() extends TableProviderBase
     val nodeMode = getNodeMode(adjustedOptions)
     val encoder = nodeMode match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
-      case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicateMap)
+      case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicates)
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
       case None => TypedNodeEncoder(schema.predicateMap)
     }

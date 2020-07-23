@@ -102,6 +102,7 @@ package object connector {
   }
 
   def sparkDataType(dgraphDataType: String): String = dgraphDataType match {
+    case "subject" => "uid"
     case "uid" => "uid"
     case "string" => "string"
     case "int" => "long"

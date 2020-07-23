@@ -47,7 +47,7 @@ class TestTypedTripleEncoder extends FunSpec {
       val encoder = TypedTripleEncoder(schema.predicateMap)
       val rowOpt = encoder.asInternalRow(Uid(1), "predicate", value)
 
-      assert(rowOpt.isDefined)
+      assert(rowOpt.isDefined === true)
       val row = rowOpt.get
 
       assert(row.numFields === 11)

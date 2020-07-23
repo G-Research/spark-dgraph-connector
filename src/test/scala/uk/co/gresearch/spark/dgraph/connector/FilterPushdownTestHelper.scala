@@ -7,7 +7,7 @@ import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
 import org.scalatest.Assertions
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
-trait FilterPushDownTestHelper extends Assertions {
+trait FilterPushdownTestHelper extends Assertions {
 
   def doTestFilterPushDownDf[T](ds: Dataset[T],
                                 condition: Column,
@@ -22,7 +22,7 @@ trait FilterPushDownTestHelper extends Assertions {
         assert(unpushedFilters.map(_.sql) === expectedUnpushed.map(_.sql))
         filter.child
       case _ =>
-        assert(expectedUnpushed.isEmpty, "some unpushed filters expected but there none filters actually unpushed")
+        assert(expectedUnpushed.isEmpty, "some unpushed filters expected but none filters actually unpushed")
         plan
     }
     assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
