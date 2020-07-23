@@ -8,6 +8,8 @@ Follow this procedure to release a new version from default branch `spark-3.0`:
 
 - Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.0] - 2020-06-09`. No need to mention the branch as `CHANGELOG.md` is branch-specific.
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.0-3.0-SNAPSHOT` → `1.1.0-3.0`.
+- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version, e.g. replace all `1.0.0-3.0` with `1.1.0-3.0` and `1.0.0-2.4` with `1.1.0-2.4`, respectively.
+  All these changes should occur in the `Using Spark Dgraph Connector` section.
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.0`. Do not push to github yet.
 - Tag that commit with a version tag like `v1.1.0_spark-3.0` and message like `Release v1.1.0`. Do not push to github yet.
 - Release the version with `mvn clean deploy`. This will be put into a staging repository and not automatically released (due to `<autoReleaseAfterClose>false</autoReleaseAfterClose>` in your [`pom.xml`](pom.xml) file).
@@ -96,6 +98,8 @@ but the version increment occurs on [patch level](https://semver.org/):
 
 - Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.1] - 2020-06-09`. No need to mention the branch as `CHANGELOG.md` is branch-specific.
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.1-3.0-SNAPSHOT` → `1.1.1-3.0`.
+- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version, e.g. replace all `1.1.0-3.0` with `1.1.1-3.0` and `1.1.0-2.4` with `1.1.1-2.4`, respectively.
+  All these changes should occur in the `Using Spark Dgraph Connector` section.
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.1`. Do not push to github yet.
 - Tag that commit with a version tag like `v1.1.1_spark-3.0` and message like `Release v1.1.1`. Do not push to github yet.
 - Release the version with `mvn clean deploy`. This will be put into a staging repository and not automatically released (due to `<autoReleaseAfterClose>false</autoReleaseAfterClose>` in your [`pom.xml`](pom.xml) file).
@@ -116,5 +120,3 @@ Repeat above release process for those branches with the same versions, e.g. ver
     git tag -a v1.1.0_spark-3.0 -m "Release v1.1.0"
     git push origin spark-3.0 v1.1.0_spark-3.0
     git commit -a -m "Post-release version bump to 1.2.0"
-
-    git tag -d v1.1.0_spark-3.0
