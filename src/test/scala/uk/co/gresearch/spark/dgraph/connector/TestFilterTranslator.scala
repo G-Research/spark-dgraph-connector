@@ -60,6 +60,15 @@ class TestFilterTranslator extends FunSpec {
 
   describe("FilterTranslator") {
 
+    it("should remove backticks from column name") {
+      assert(ColumnName.unapply("name") === Some("name"))
+      assert(ColumnName.unapply("`name`") === Some("name"))
+      assert(ColumnName.unapply("`dgraph.type`") === Some("dgraph.type"))
+      assert(ColumnName.unapply("`name") === Some("`name"))
+      assert(ColumnName.unapply("name`") === Some("name`"))
+      assert(ColumnName.unapply("dgraph`type") === Some("dgraph`type"))
+    }
+
     describe("translate") {
 
       def testTranslate(filter: sql.sources.Filter, expected: Option[Set[Filter]]): Unit = {
@@ -136,6 +145,26 @@ class TestFilterTranslator extends FunSpec {
 
       it("should translate AlwaysFalse") {
         testTranslate(sql.sources.AlwaysFalse, Some(Set(AlwaysFalse)))
+      }
+
+      it("should translate backticked column names") {
+        def backtick(columnName: String): String = s"`$columnName`"
+
+        testTranslate(IsNotNull(backtick(predicateValueColumn)), Some(Set(PredicateNameIs(predicateValueColumn))))
+        testTranslate(IsNotNull(backtick(objectStringColumn)), Some(Set(ObjectTypeIsIn("string"))))
+
+        testTranslate(EqualTo(backtick(predicateColumn), "val"), Some(Set(IntersectPredicateNameIsIn("val"))))
+        testTranslate(EqualTo(backtick(predicateValueColumn), "val"), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
+        testTranslate(EqualTo(backtick(objectStringColumn), "val"), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
+        testTranslate(EqualTo(backtick(allObjectStringColumn), "val"), Some(Set(ObjectValueIsIn("val"))))
+        testTranslate(EqualTo(backtick(objectTypeColumn), "type"), Some(Set(ObjectTypeIsIn("type"))))
+
+        testTranslate(In(backtick(subjectColumn), Array(1)), Some(Set(SubjectIsIn(Uid(1)))))
+        testTranslate(In(backtick(predicateColumn), Array("val")), Some(Set(IntersectPredicateNameIsIn("val"))))
+        testTranslate(In(backtick(predicateValueColumn), Array("val")), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
+        testTranslate(In(backtick(objectStringColumn), Array("val")), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
+        testTranslate(In(backtick(allObjectStringColumn), Array("val")), Some(Set(ObjectValueIsIn("val"))))
+        testTranslate(In(backtick(objectTypeColumn), Array("type")), Some(Set(ObjectTypeIsIn("type"))))
       }
 
     }
