@@ -100,22 +100,34 @@ package object connector {
   }
 
   object Predicate {
+
     def apply(predicateName: String, dgraphType: String): Predicate =
       Predicate(predicateName, dgraphType, sparkDataType(dgraphType))
-  }
 
-  def sparkDataType(dgraphDataType: String): String = dgraphDataType match {
-    case "subject" => "uid"
-    case "uid" => "uid"
-    case "string" => "string"
-    case "int" => "long"
-    case "float" => "double"
-    case "datetime" => "timestamp"
-    case "bool" => "boolean"
-    case "geo" => "geo"
-    case "password" => "password"
-    case "default" => "default"
-    case s => throw new IllegalArgumentException(s"unknown dgraph type: $s")
+    def columnNameForPredicateName(predicateName: String): String = predicateName match {
+      case "uid" => "subject"
+      case x => x
+    }
+
+    def predicateNameForColumnName(columnName: String): String = columnName match {
+      case "subject" => "uid"
+      case x => x
+    }
+
+    def sparkDataType(dgraphDataType: String): String = dgraphDataType match {
+      case "subject" => "uid"
+      case "uid" => "uid"
+      case "string" => "string"
+      case "int" => "long"
+      case "float" => "double"
+      case "datetime" => "timestamp"
+      case "bool" => "boolean"
+      case "geo" => "geo"
+      case "password" => "password"
+      case "default" => "default"
+      case s => throw new IllegalArgumentException(s"unknown dgraph type: $s")
+    }
+
   }
 
   case class Chunk(after: Uid, length: Long) {

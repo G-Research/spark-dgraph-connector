@@ -4,6 +4,7 @@ import org.apache.spark.sql.catalyst.plans.logical.Project
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import org.apache.spark.sql.{Column, Dataset, Row}
 import org.scalatest.Assertions
+import uk.co.gresearch.spark.dgraph.connector.Predicate.columnNameForPredicateName
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 trait ProjectionPushDownTestHelper extends Assertions {
@@ -20,21 +21,20 @@ trait ProjectionPushDownTestHelper extends Assertions {
   def doTestProjectionPushDownDf[T](ds: Dataset[T],
                                     selection: Seq[Column],
                                     expectedProjection: Option[Seq[Predicate]],
-                                    expectedUnpushedProjection: Seq[String],
                                     expectedDs: Set[T]): Unit = {
+    val expectedOutput =
+      expectedProjection.map(_.map(p => columnNameForPredicateName(p.predicateName)).toSet)
+        .getOrElse(ds.columns.toSet)
     val projectedDs = if (selection.nonEmpty) ds.select(selection: _*) else ds
     val plan = projectedDs.queryExecution.optimizedPlan
     val relationNode = plan match {
-      case Project(project, child) =>
-        assert(project.map(_.name) === expectedUnpushedProjection)
-        child
-      case _ =>
-        assert(expectedUnpushedProjection.isEmpty, "some unpushed projections expected but none actually unpushed")
-        plan
+      case Project(_, child) => child
+      case _ => plan
     }
     assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
 
     val relation = relationNode.asInstanceOf[DataSourceV2ScanRelation]
+    assert(relation.outputSet.map(_.name).toSet === expectedOutput)
     assert(relation.scan.isInstanceOf[TripleScan])
 
     val scan = relation.scan.asInstanceOf[TripleScan]

@@ -24,8 +24,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+import uk.co.gresearch.spark.dgraph.connector.Predicate.{columnNameForPredicateName, predicateNameForColumnName}
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Uid}
-import uk.co.gresearch.spark.dgraph.connector.encoder.WideNodeEncoder.predicateNameForColumnName
 
 import scala.collection.JavaConverters._
 
@@ -145,16 +145,6 @@ object WideNodeEncoder {
       // exclude edges
       predicates.filterNot(_.isEdge).map(toStructField)
     )
-
-  def columnNameForPredicateName(predicateName: String): String = predicateName match {
-    case "uid" => "subject"
-    case x => x
-  }
-
-  def predicateNameForColumnName(columnName: String): String = columnName match {
-    case "subject" => "uid"
-    case x => x
-  }
 
   /**
    * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, respectively)

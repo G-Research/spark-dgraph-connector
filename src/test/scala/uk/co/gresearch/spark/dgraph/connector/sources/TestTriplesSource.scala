@@ -612,14 +612,12 @@ class TestTriplesSource extends FunSpec
       doTestProjectionPushDownDf(typedTriples.toDF(),
         Seq($"subject", $"predicate", $"objectUid", $"objectString"),
         None,
-        Seq("subject", "predicate", "objectUid", "objectString"),
         expectedTypedTriples.toSeq.toDF().collect().toSet.map(select(0, 1, 2, 3))
       )
 
       doTestProjectionPushDownDf(stringTriples.toDF(),
         Seq($"subject", $"predicate", $"objectString"),
         None,
-        Seq("subject", "predicate", "objectString"),
         expectedStringTriples.toSeq.toDF().collect().toSet.map(select(0, 1, 2))
       )
     }

@@ -278,7 +278,6 @@ class TestEdgeSource extends FunSpec
         edges,
         Seq($"subject", $"objectUid"),
         None,
-        Seq("subject", "objectUid"),
         expectedEdges.map(select(0, 2))
       )
 
@@ -286,7 +285,6 @@ class TestEdgeSource extends FunSpec
         edges,
         Seq($"subject", $"predicate", $"objectUid"),
         None,
-        Seq.empty,
         expectedEdges
       )
 
@@ -294,7 +292,6 @@ class TestEdgeSource extends FunSpec
         edges,
         Seq.empty,
         None,
-        Seq.empty,
         expectedEdges
       )
     }
