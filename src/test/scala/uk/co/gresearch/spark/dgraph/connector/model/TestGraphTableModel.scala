@@ -265,7 +265,7 @@ class TestGraphTableModel extends FunSpec {
 
       val rowEncoder = StringTripleEncoder(predicates)
       implicit val model: TestModel = TestModel(executionProvider, rowEncoder, size)
-      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uidRange.map(Set(_)).getOrElse(Set.empty) ++ uids.map(Set(_)).getOrElse(Set.empty))
+      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uidRange.map(Set(_)).getOrElse(Set.empty) ++ uids.map(Set(_)).getOrElse(Set.empty)).getAll
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)
@@ -273,7 +273,6 @@ class TestGraphTableModel extends FunSpec {
 
     it("should filter array") {
       val array = getChunk((1 to 10).map(id => Uid(id * 7)))
-      println(array)
       assert(GraphTableModel.filter(array, Uid(100)) === getChunk((1 to 10).map(id => Uid(id * 7))))
       assert(GraphTableModel.filter(array, Uid(71)) === getChunk((1 to 10).map(id => Uid(id * 7))))
       assert(GraphTableModel.filter(array, Uid(70)) === getChunk((1 to 9).map(id => Uid(id * 7))))

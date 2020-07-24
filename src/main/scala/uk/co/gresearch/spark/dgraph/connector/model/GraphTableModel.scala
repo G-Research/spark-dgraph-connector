@@ -9,14 +9,14 @@ import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonNodeInternalRowEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
-import uk.co.gresearch.spark.dgraph.connector.{Chunk, Partition, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Chunk, Logging, Partition, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Represents a specific model of graph data in a tabular form.
  */
-trait GraphTableModel {
+trait GraphTableModel extends Logging {
 
   val execution: ExecutorProvider
   val encoder: JsonNodeInternalRowEncoder
@@ -75,10 +75,19 @@ trait GraphTableModel {
     val json = executor.query(graphql)
     val endTs = Clock.systemUTC().instant().toEpochMilli
     val array = until.foldLeft(encoder.getResult(json, query.resultName))(filter)
-    println(s"stage=${Option(TaskContext.get()).map(_.stageId()).orNull} part=${Option(TaskContext.get()).map(_.partitionId()).orNull}: " +
-      s"read ${json.string.length} bytes with ${partition.predicates.size} predicates for " +
-      s"${chunk.length} uids after ${chunk.after.toHexString} ${until.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
-      s"with ${array.size()} nodes in ${(endTs - startTs)/1000.0}s")
+
+    log.info(s"read chunk " +
+      Option(TaskContext.get()).map(tc =>
+        s"in stage ${loggingFormat.format(tc.stageId())} partition ${loggingFormat.format(tc.partitionId())} "
+      ).getOrElse("") +
+      s"of ${loggingFormat.format(json.string.length)} bytes " +
+      s"with ${loggingFormat.format(partition.predicates.size)} predicates " +
+      s"for ${loggingFormat.format(chunk.length)} uids " +
+      s"after ${chunk.after.toHexString} " +
+      s"${until.map(e => s"until ${e.toHexString} ").getOrElse("")}" +
+      s"with ${loggingFormat.format(array.size())} nodes " +
+      s"in ${loggingFormat.format((endTs - startTs)/1000.0)}s")
+
     array
   }
 

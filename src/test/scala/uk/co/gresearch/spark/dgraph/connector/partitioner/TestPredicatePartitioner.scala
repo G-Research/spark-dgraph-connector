@@ -48,7 +48,6 @@ class TestPredicatePartitioner extends FunSpec {
 
       it(s"should partition $P predicates into $N partitions") {
         val partitions = PredicatePartitioner.partition(predicates, N)
-        println(partitions.map(_.map(_.predicateName)))
         assert(partitions.length === math.min(N, P))
         (0 until math.min(P % N, P)).foreach(p =>
           assert(partitions(p).size === P / N + 1, s"the ${p + 1}-th partition should have size ${P / N + 1}")
@@ -267,7 +266,6 @@ class TestPredicatePartitioner extends FunSpec {
         Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2", "pred3"), Set.empty))),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred4"), Set.empty)))
       ))
-      partitions2.foreach(p => println(p.query.forChunk(None).string))
     }
 
     it("should not apply ObjectValueIsIn filter only") {

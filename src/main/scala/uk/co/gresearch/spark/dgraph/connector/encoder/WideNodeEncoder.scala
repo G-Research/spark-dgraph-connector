@@ -25,7 +25,7 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import uk.co.gresearch.spark.dgraph.connector.Predicate.{columnNameForPredicateName, predicateNameForColumnName}
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Logging, Password, Predicate, Uid}
 
 import scala.collection.JavaConverters._
 
@@ -35,7 +35,7 @@ import scala.collection.JavaConverters._
  */
 case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[StructType] = None)
   extends JsonNodeInternalRowEncoder
-    with ProjectedSchema with ColumnInfoProvider {
+    with ProjectedSchema with ColumnInfoProvider with Logging {
 
   // puts subject first
   val allPredicates: Seq[Predicate] = Seq(Predicate("uid", "subject")) ++ predicates.toSeq.sortBy(_.predicateName)
@@ -101,36 +101,47 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
   def toNode(node: JsonObject): InternalRow = {
     val values = Array.fill[Any](columns.size)(null)
 
-    // put all values into corresponding columns of 'values'
-    node.entrySet().iterator().asScala
-      .map { e =>
-        (
-          columns.get(e.getKey),
-          allPredicatesMap.get(e.getKey).map(_.dgraphType),
-          e.getValue,
-        )
-      }
-      .filter( e => e._1.isDefined && e._2.isDefined )
-      .foreach {
-        case (Some(p), Some(t), o) =>
-          val obj = getValue(o, t)
-          val objectValue = t match {
-            case "subject" => obj.asInstanceOf[Uid].uid
-            case "string" => UTF8String.fromString(obj.asInstanceOf[String])
-            case "int" => obj
-            case "float" => obj
-            case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])
-            case "boolean" => obj
-            case "geo" => UTF8String.fromString(obj.asInstanceOf[Geo].geo)
-            case "password" => UTF8String.fromString(obj.asInstanceOf[Password].password)
-            case "default" => UTF8String.fromString(obj.toString)
-            case _ => UTF8String.fromString(obj.toString)
-          }
-          values(p) = objectValue
-        case (_, _, _) => throw new IllegalStateException("should never happen, filter for each guarantees that, this line is just to avoid compile warning")
-      }
+    try {
+      // put all values into corresponding columns of 'values'
+      node
+        .entrySet()
+        .iterator().asScala
+        .map { e =>
+          (
+            columns.get(e.getKey),
+            allPredicatesMap.get(e.getKey).map(_.dgraphType),
+            e.getValue,
+          )
+        }
+        .filter(e => e._1.isDefined && e._2.isDefined)
+        .foreach {
+          case (Some(p), Some(t), o) =>
+            val obj = getValue(o, t)
+            val objectValue = t match {
+              case "subject" => obj.asInstanceOf[Uid].uid
+              case "string" => UTF8String.fromString(obj.asInstanceOf[String])
+              case "int" => obj
+              case "float" => obj
+              case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])
+              case "boolean" => obj
+              case "geo" => UTF8String.fromString(obj.asInstanceOf[Geo].geo)
+              case "password" => UTF8String.fromString(obj.asInstanceOf[Password].password)
+              case "default" => UTF8String.fromString(obj.toString)
+              case _ => UTF8String.fromString(obj.toString)
+            }
+            values(p) = objectValue
+          case (_, _, _) =>
+            throw new IllegalStateException("should never happen, " +
+              "the filter before foreach guarantees that, " +
+              "this line is just to avoid compile warning")
+        }
 
-    InternalRow.fromSeq(values)
+      InternalRow.fromSeq(values)
+    } catch {
+      case t: Throwable =>
+        log.error(s"failed to encode node: $node")
+        throw t
+    }
   }
 
 }

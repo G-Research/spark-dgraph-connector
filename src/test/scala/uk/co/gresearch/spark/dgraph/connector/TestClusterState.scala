@@ -117,7 +117,7 @@ class TestClusterState extends FunSpec {
           |}
           |""".stripMargin
 
-      val state = ClusterState.fromJson(json)
+      val state = ClusterState.fromJson(Json(json))
 
       assert(state.groupMembers === Map(
         "1" -> Set(Target("localhost:9080"), Target("localhost:9081")),

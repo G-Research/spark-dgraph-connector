@@ -569,6 +569,15 @@ Furthermore, we need to set `protobuf-java >= 3.4.0` in the `pom.xml` file:
         at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
         at java.lang.Thread.run(Thread.java:748)
 
+## Logging
+
+The connector uses Spark's Log4j standard logging framework. Add the following line to your `log4j.properties` to set
+the log level of the connector specifically:
+
+    log4j.logger.uk.co.gresearch.spark.dgraph.connector=DEBUG
+
+See `SPARK_HOME/conf/log4j.properties.template` for a template file.
+
 ## Testing
 
 Some unit tests require a Dgraph cluster running at `localhost:9080`. It has to be set up as

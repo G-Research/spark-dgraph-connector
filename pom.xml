@@ -83,6 +83,13 @@
       <version>0.5.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.10</version>
+    </dependency>
+
+    <!-- Spark core pulls in too old of a version -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <dependency>
       <groupId>com.google.protobuf</groupId>

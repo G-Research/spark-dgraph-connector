@@ -4,7 +4,8 @@ import com.google.gson.{JsonArray, JsonElement}
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Uid}
 import uk.co.gresearch.spark.dgraph.connector.model.ChunkIterator.getLastUid
 
-case class ChunkIterator(after: Uid, until: Option[Uid], chunkSize: Int, readChunk: Chunk => JsonArray) extends Iterator[JsonArray] {
+case class ChunkIterator(after: Uid, until: Option[Uid], chunkSize: Int, readChunk: Chunk => JsonArray)
+  extends Iterator[JsonArray] {
 
   if (chunkSize <= 0)
     throw new IllegalArgumentException(s"Chunk size must be larger than zero: $chunkSize")
