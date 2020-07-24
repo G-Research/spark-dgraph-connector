@@ -3,10 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased] - YYYY-MM-DD
+## [0.4.0] - 2020-07-24
 
 ### Added
-- Add Spark filter pushdown and projection pushdown to improve efficiency when loading only a subgraph.
+- Add Spark filter pushdown and projection pushdown to improve efficiency when loading only subgraphs.
   Filters like `.where($"revenue".isNotNull)` and projections like ``.select($"subject", $"`dgraph.type`", $"revenue")``
   will be pushed to Dgraph and only the relevant graph data will
   be read ([issue #7](https://github.com/G-Research/spark-dgraph-connector/issues/7)).
@@ -14,11 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   default number of predicates per partition of `1000` from before 0.3.0 ([issue #22](https://github.com/G-Research/spark-dgraph-connector/issues/22)).
 - The `PredicatePartitioner` combined with `UidRangePartitioner` is the default partitioner now.
 - Add stream-like reading of partitions from Dgraph. Partitions are split into smaller chunks.
-  Works with predicate partitioning only, so it cannot be combined with uid partitioning.
+  This make Spark read Dgraph partitions of any size.
 - Add Dgraph metrics to measure throughput, visible in Spark UI Stages page and through `SparkListener`.
 
 ### Security
-- Move Google Guava dependency version fix to 24.1.1-jre due to [known security vulnerability
+- Move Google Guava dependency version to 24.1.1-jre due to [known security vulnerability
   fixed in 24.1.1](https://github.com/advisories/GHSA-mvr2-9pj6-7w5j)
 
 ## [0.3.0] - 2020-06-22
