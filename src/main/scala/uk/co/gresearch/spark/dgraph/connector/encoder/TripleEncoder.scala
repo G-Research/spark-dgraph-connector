@@ -19,14 +19,14 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
-import uk.co.gresearch.spark.dgraph.connector.{Json, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Json, Logging, Predicate, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Encodes triples as InternalRows from Dgraph json results.
  */
-trait TripleEncoder extends JsonNodeInternalRowEncoder {
+trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
 
   val predicates: Map[String, Predicate]
 
@@ -46,15 +46,29 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder {
    * @return InternalRows
    */
   def toTriples(node: JsonObject): Iterator[InternalRow] = {
-    val uidString = node.remove("uid").getAsString
-    val uid = Uid(uidString)
-    node.entrySet().iterator().asScala
-      .flatMap(e => predicates.get(e.getKey).map(_.dgraphType).map(t => (e.getKey, e.getValue, t)))
-      .flatMap{ case (p, v, t) =>
-        getValues(v).flatMap(v =>
-          asInternalRow(uid, p, getValue(v, t))
+    try {
+      val uidString = node.remove("uid").getAsString
+      val uid = Uid(uidString)
+      node
+        .entrySet()
+        .iterator().asScala
+        .flatMap(e =>
+          predicates
+            .get(e.getKey)
+            .map(_.dgraphType)
+            .map(t => (e.getKey, e.getValue, t))
         )
-      }
+        .flatMap { case (p, v, t) =>
+          getValues(v)
+            .flatMap(v =>
+              asInternalRow(uid, p, getValue(v, t))
+            )
+        }
+    } catch {
+      case t: Throwable =>
+        log.error(s"failed to encode node: $node")
+        throw t
+    }
   }
 
   /**

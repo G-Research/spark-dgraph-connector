@@ -32,7 +32,8 @@ import scala.collection.JavaConverters._
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider {
+  with ClusterStateProvider with PartitionerProvider
+  with Logging {
 
   /**
    * Sets the number of predicates per partition to max int when predicate partitioner is used
@@ -45,7 +46,7 @@ class NodeSource() extends TableProviderBase
     if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
       getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))) {
       if (getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)) {
-        println("WARN: predicate partitioner enforced to a single partition to support wide node source")
+        log.warn("predicate partitioner enforced to a single partition to support wide node source")
       }
 
       new CaseInsensitiveStringMap(

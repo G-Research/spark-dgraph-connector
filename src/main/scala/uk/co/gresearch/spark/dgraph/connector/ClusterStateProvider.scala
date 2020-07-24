@@ -17,7 +17,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-trait ClusterStateProvider {
+import java.time.Clock
+
+trait ClusterStateProvider extends Logging {
 
   def getClusterState(targets: Seq[Target]): ClusterState = {
     val clusterStates = targets.map(getClusterState).flatten
@@ -33,16 +35,31 @@ trait ClusterStateProvider {
   def getClusterState(target: Target): Option[ClusterState] = {
     val url = s"http://${target.withPort(target.port-1000).target}/state"
     try {
+      val startTs = Clock.systemUTC().instant().toEpochMilli
       val request = requests.get(url)
+      val endTs = Clock.systemUTC().instant().toEpochMilli
+      val json = Json(request.text())
+
+      log.info(s"retrieved cluster state from ${target.target} " +
+        s"with ${json.string.getBytes.length} bytes " +
+        s"in ${(endTs - startTs) / 1000.0}s")
+      log.trace(s"retrieved cluster state: ${abbreviate(json.string)}")
+
       if (request.statusCode == 200) {
-        Some(ClusterState.fromJson(request.text()))
+        try {
+          Some(ClusterState.fromJson(json))
+        } catch {
+          case t: Throwable =>
+            log.error(s"failed to parse cluster state json: ${abbreviate(json.string)}")
+            throw t
+        }
       } else {
-        println(s"retrieving state from $url failed: ${request.statusCode} ${request.statusMessage}")
+        log.error(s"retrieving state from $url failed: ${request.statusCode} ${request.statusMessage}")
         None
       }
     } catch {
       case t: Throwable =>
-        println(s"retrieving state from $url failed: ${t.getMessage}")
+        log.error(s"retrieving state from $url failed: ${t.getMessage}")
         None
     }
   }

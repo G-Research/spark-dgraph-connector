@@ -30,7 +30,7 @@ case class PredicatePartitioner(schema: Schema,
                                 predicatesPerPartition: Int,
                                 filters: Filters = EmptyFilters,
                                 projection: Option[Seq[Predicate]] = None)
-  extends Partitioner {
+  extends Partitioner with Logging {
 
   if (predicatesPerPartition <= 0)
     throw new IllegalArgumentException(s"predicatesPerPartition must be larger than zero: $predicatesPerPartition")
@@ -62,11 +62,13 @@ case class PredicatePartitioner(schema: Schema,
 
   override def getPartitions: Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
-    println(s"replaced filters: $processedFilters")
     val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
-    println(s"simplified filters: $simplifiedFilters")
     val cState = filter(clusterState, simplifiedFilters)
     val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
+
+    log.trace(s"replaced filters: $processedFilters")
+    log.trace(s"simplified filters: $simplifiedFilters")
+
     PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, simplifiedFilters, projection)
   }
 

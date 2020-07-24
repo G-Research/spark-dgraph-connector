@@ -22,10 +22,7 @@ case class AccumulatorPartitionMetrics(readBytes: LongAccumulator,
                                        chunkTime: DoubleAccumulator)
   extends PartitionMetrics with Serializable {
 
-  override def incReadBytes(bytes: Long): Unit = {
-    println(s"increment accum $readBytes")
-    readBytes.add(bytes)
-  }
+  override def incReadBytes(bytes: Long): Unit = readBytes.add(bytes)
 
   override def incReadUids(uids: Long): Unit = readUids.add(uids)
 

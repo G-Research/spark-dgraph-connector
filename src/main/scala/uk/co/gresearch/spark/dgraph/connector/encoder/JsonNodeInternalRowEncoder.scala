@@ -7,14 +7,14 @@ import java.time.format.DateTimeFormatter
 import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Logging, Password, Uid}
 
 import scala.collection.JavaConverters._
 
 /**
  * Helper methods to turn Dgraph json results into JsonObjects representing Dgraph nodes.
  */
-trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
+trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
 
   /**
    * Sets the schema of this encoder. This encoder may only partially or not at all use the given schema.
@@ -49,7 +49,13 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder {
    * @return Json array
    */
   def getResult(json: Json, member: String): JsonArray = {
-    new Gson().fromJson(json.string, classOf[JsonObject]).getAsJsonArray(member)
+    try {
+      new Gson().fromJson(json.string, classOf[JsonObject]).getAsJsonArray(member)
+    } catch {
+      case t: Throwable =>
+        log.error(s"failed to parse element '$member' in dgraph json result: ${abbreviate(json.string)}")
+        throw t
+    }
   }
 
   /**

@@ -30,8 +30,8 @@ case class ClusterState(groupMembers: Map[String, Set[Target]],
 
 object ClusterState {
 
-  def fromJson(json: String): ClusterState = {
-    val root = new Gson().fromJson(json, classOf[JsonObject])
+  def fromJson(json: Json): ClusterState = {
+    val root = new Gson().fromJson(json.string, classOf[JsonObject])
     val groups = root.getAsJsonObject("groups")
     val groupMap =
       groups

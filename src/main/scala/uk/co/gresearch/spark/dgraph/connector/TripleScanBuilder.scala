@@ -26,9 +26,11 @@ import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
 import scala.collection.mutable
 
-case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) extends ScanBuilder
-  with SupportsPushDownFilters
-  with SupportsPushDownRequiredColumns {
+case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel)
+  extends ScanBuilder
+    with SupportsPushDownFilters
+    with SupportsPushDownRequiredColumns
+    with Logging {
 
   val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
   var filters: Filters = EmptyFilters
@@ -46,17 +48,20 @@ case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) e
   // Filters(promised, optional) is the structure to hold those two set of filters.
   // The FilterTranslator implements some simplification logic of a Seq[Filter].
   override def pushFilters(filters: Array[sql.sources.Filter]): Array[sql.sources.Filter] = {
-    println(s"pushing filters: ${filters.mkString(", ")}")
     val translated = filters.map(f => f -> translator.translate(f)).toMap
     val (supported, unsupported) = translated.partition(t => t._2.exists(partitioner.supportsFilters))
     val translatedFilters = Filters(supported.values.flatten.flatten.toSet, unsupported.values.flatten.flatten.toSet)
     val simplifiedFilters = FilterTranslator.simplify(translatedFilters, partitioner.supportsFilters)
-    println(s"promised filters: ${supported.mapValues(_.get).mkString(", ")}")
-    println(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
-    println(s"pushed filters: ${translated.filter(_._2.isDefined).keys.mkString(", ")}")
-    println(s"applied filters: ${simplifiedFilters.mkString(", ")}")
     this.pushed ++= translated.filter(_._2.isDefined).keys
     this.filters = simplifiedFilters
+
+    if (filters.nonEmpty) log.debug(s"pushing filters: ${filters.mkString(", ")}")
+    if (supported.nonEmpty) log.trace(s"promised filters: ${supported.mapValues(_.get).mkString(", ")}")
+    if (unsupported.nonEmpty) log.debug(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
+    // only report pushed filters if filters are given
+    if (filters.nonEmpty) log.debug(s"pushed filters: ${translated.filter(_._2.isDefined).keys.mkString(", ")}")
+    if (simplifiedFilters.nonEmpty) log.trace(s"applied filters: ${simplifiedFilters.mkString(", ")}")
+
     unsupported.keys.toArray
   }
 
@@ -65,7 +70,10 @@ case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel) e
   var requiredSchema: Option[StructType] = None
 
   override def pruneColumns(requiredSchema: StructType): Unit = {
-    println(s"required columns: ${requiredSchema.fields.toSeq.map(c => s"${c.name} (${c.dataType}${if (c.nullable) " nullable" else ""})").mkString(", ")}")
+    if (log.isDebugEnabled) {
+      val columns = abbreviate(requiredSchema.fields.toSeq.map(_.name).mkString(", "))
+      log.debug(s"required columns: $columns")
+    }
     this.requiredSchema = Some(requiredSchema)
   }
 

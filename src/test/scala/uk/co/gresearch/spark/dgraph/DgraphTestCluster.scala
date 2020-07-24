@@ -27,13 +27,14 @@ import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
-import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Target, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Logging, Target, Uid}
 
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.sys.process.{Process, ProcessLogger}
 
-trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
+trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
 
   val clusterVersion = "20.03.3"
   val clusterAlwaysStartUp = false  // ignores running cluster and starts a new if true
@@ -59,7 +60,8 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
   lazy val highestUid: Long = cluster.uids.values.max
 
   def runningDockerDgraphCluster: List[String] =
-    Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList).filter(_.nonEmpty).getOrElse(List.empty)
+    Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList)
+      .filter(_.nonEmpty).getOrElse(List.empty)
 
   override protected def beforeAll(): Unit = {
     if (testClusterRunning && !clusterAlwaysStartUp) {
@@ -69,8 +71,8 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
       cluster.uids = cluster.getUids(json)
     } else {
       if(runningDockerDgraphCluster.nonEmpty) {
-        println(s"killing unit test docker dgraph cluster running from an earlier test run: ${runningDockerDgraphCluster.mkString(", ")}")
-        val result = Process(Seq("docker", "container", "kill") ++ runningDockerDgraphCluster).run().exitValue()
+        log.warn(s"killing unit test docker dgraph cluster running from an earlier test run: ${runningDockerDgraphCluster.mkString(", ")}")
+        val result = DgraphTestCluster.run(Seq("docker", "container", "kill") ++ runningDockerDgraphCluster : _*)
         assert(result === 0, s"could not kill running docker container ${runningDockerDgraphCluster.mkString(", ")}")
       }
 
@@ -97,7 +99,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
     @tailrec
     def attempt(no: Int, limit: Int): Uid = {
       val json = DgraphExecutor(Seq(Target(cluster.grpc))).query(query)
-      println(s"dgraph.graphql.schema node: $json")
+      log.debug(s"retrieved dgraph.graphql.schema node: ${json.string}")
 
       val encoder = TestEncoder()
       val nodes = encoder.getNodes(encoder.getResult(json, "result")).toSeq
@@ -146,7 +148,7 @@ trait DgraphTestCluster extends BeforeAndAfterAll { this: Suite =>
 
 }
 
-case class DgraphCluster(name: String, version: String) extends Assertions {
+case class DgraphCluster(name: String, version: String) extends Assertions with Logging {
 
   var process: Option[Process] = None
   var sync: Object = new Object
@@ -171,7 +173,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
 
   def start(): Unit = {
     (1 to 5).iterator.flatMap { offset =>
-      println(s"starting dgraph cluster (port offset=$offset)")
+      log.info(s"starting dgraph cluster (port offset=$offset)")
       portOffset = Some(offset)
       process = launchCluster(portOffset.get)
       process
@@ -184,8 +186,8 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
 
   def stop(): Unit = {
     assert(process.isDefined === true)
-    println("stopping dgraph cluster")
-    assert(Process(Seq("docker", "container", "kill", name)).run().exitValue() == 0)
+    log.info("stopping dgraph cluster")
+    assert(DgraphTestCluster.run("docker", "container", "kill", name) == 0)
     process.foreach(_.exitValue())
   }
 
@@ -194,9 +196,9 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
   def launchCluster(portOffset: Int): Option[Process] = {
     val logger = ProcessLogger(line => {
       //if (dgraphLogLines.exists(line.matches))
-      println(s"Docker: $line")
+      log.info(s"Docker: $line")
       if (line.contains("CID set for cluster:")) {
-        println("dgraph cluster is up")
+        log.info("dgraph test cluster is up")
         // notify main thread about cluster being ready
         sync.synchronized {
           started = true
@@ -233,7 +235,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
   }
 
   def alterSchema(): Unit = {
-    println("altering schema")
+    log.info("altering schema")
     val url = s"http://${http}/alter"
     val data =
       """  director: [uid] .
@@ -261,7 +263,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
   }
 
   def insertData(): Map[String, Long] = {
-    println("mutating dgraph")
+    log.info("mutating dgraph")
     val url = s"http://${http}/mutate?commitNow=true"
     val headers = Seq("Content-Type" -> "application/rdf")
     val data =
@@ -328,7 +330,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
       Some(requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data), readTimeout = 60000))
     } catch {
       case t: Throwable =>
-        t.printStackTrace()
+        log.error(s"sending request to dgraph cluster failed: $url", t)
         None
     }
 
@@ -347,11 +349,11 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
 
   def hasErrors(response: Option[Response]): Boolean = {
     if (!response.exists(_.statusCode == 200)) {
-      if (response.isDefined) println(s"received status ${response.get.statusCode}: ${response.get.statusMessage}")
+      if (response.isDefined) log.error(s"received status ${response.get.statusCode}: ${response.get.statusMessage}")
       true
     } else {
       val text = response.get.text()
-      println(s"dgraph schema response: $text")
+      log.info(s"dgraph schema response: $text")
 
       val json = new Gson().fromJson(text, classOf[JsonObject])
       val errors =
@@ -359,7 +361,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
           .map(_.asScala.map(_.getAsJsonObject))
           .getOrElse(Seq.empty[JsonObject])
       // dgraph schema response: {"errors":[{"message":"errIndexingInProgress. Please retry","extensions":{"code":"Error"}}]}
-      errors.foreach(error => println(error.getAsJsonPrimitive("message").getAsString))
+      errors.foreach(error => log.error(error.getAsJsonPrimitive("message").getAsString))
       errors.nonEmpty
     }
   }
@@ -385,16 +387,25 @@ case class DgraphCluster(name: String, version: String) extends Assertions {
 
 }
 
-object DgraphTestCluster {
+object DgraphTestCluster extends Logging {
 
   lazy val isDgraphClusterRunning: Boolean =
     new ClusterStateProvider { }.getClusterState(Target("localhost:9080")).isDefined
 
-  lazy val isDockerInstalled: Boolean =
+  lazy val isDockerInstalled: Boolean = run("docker", "--version") == 0
+
+  def run(cmd: String*): Int = {
+    val lines = mutable.MutableList.empty[String]
     try {
-      Process(Seq("docker", "--version")).run().exitValue() == 0
+      val logger = ProcessLogger((line: String) => lines += line, (line: String) => lines += line)
+      Process(cmd).run(logger).exitValue()
     } catch {
-      case _: Throwable => false
+      case t: Throwable =>
+        log.error(s"failed to run docker: ${t.getMessage}")
+        -1
+    } finally {
+      lines.foreach(line => log.info(s"Docker: $line"))
     }
+  }
 
 }
