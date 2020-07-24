@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.FunSpec
+import uk.co.gresearch.spark.dgraph.connector.Predicate.sparkDataType
 import uk.co.gresearch.spark.dgraph.connector._
 
 class TestStringTripleEncoder extends FunSpec {

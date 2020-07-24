@@ -489,7 +489,6 @@ class TestNodeSource extends FunSpec
           typedNodes.toDF,
           Seq($"subject", $"predicate", $"objectString"),
           None,
-          Seq("subject", "predicate", "objectString"),
           expectedTypedNodes.toSeq.toDF.collect().map(select(0, 1, 2)).toSet
         )
       }
@@ -556,7 +555,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           Seq($"subject", $"`dgraph.type`", $"name"),
           Some(expectedPredicates.filter(p => Set("uid", "dgraph.type", "name").contains(p.predicateName))),
-          Seq.empty,
           expectedWideNodes.map(select(0, 3, 4))
         )
       }
@@ -566,7 +564,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           Seq($"subject", $"name", $"`dgraph.type`"),
           Some(expectedPredicates.filter(p => Set("uid", "name", "dgraph.type").contains(p.predicateName))),
-          Seq("subject", "name", "dgraph.type"),
           expectedWideNodes.map(select(0, 4, 3))
         )
       }
@@ -576,7 +573,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           Seq($"`dgraph.type`", $"name", $"revenue"),
           Some(expectedPredicates.filter(p => Set("dgraph.type", "name", "revenue").contains(p.predicateName))),
-          Seq.empty,
           expectedWideNodes.map(select(3, 4, 6))
         )
       }
@@ -586,7 +582,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           Seq($"subject"),
           Some(expectedPredicates.filter(p => Set("uid").contains(p.predicateName))),
-          Seq.empty,
           expectedWideNodes.map(select(0))
         )
       }
@@ -596,7 +591,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           Seq.empty,
           None,
-          Seq.empty,
           expectedWideNodes
         )
       }
@@ -606,7 +600,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           wideNodes.columns.map(c => col(s"`$c`")),
           None,
-          Seq.empty,
           expectedWideNodes
         )
       }
@@ -616,7 +609,6 @@ class TestNodeSource extends FunSpec
           wideNodes,
           wideNodes.columns.reverse.map(c => col(s"`$c`")),
           None,
-          wideNodes.columns.reverse,
           expectedWideNodes.map(select(7, 6, 5, 4, 3, 2, 1, 0))
         )
       }
@@ -626,7 +618,6 @@ class TestNodeSource extends FunSpec
           wideNodes.where($"subject".isNotNull && $"`dgraph.type`".isNotNull && $"name".isNotNull),
           Seq($"subject", $"`dgraph.type`", $"name"),
           Some(expectedPredicates.filter(p => Set("uid", "dgraph.type", "name").contains(p.predicateName))),
-          Seq.empty,
           expectedWideNodes.filter(row => !row.isNullAt(0) && !row.isNullAt(3) && !row.isNullAt(4)).map(select(0, 3, 4))
         )
       }
