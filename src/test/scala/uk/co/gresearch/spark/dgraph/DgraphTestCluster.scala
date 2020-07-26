@@ -35,7 +35,7 @@ import scala.sys.process.{Process, ProcessLogger}
 
 trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
 
-  val clusterVersion = "20.03.3"
+  val clusterVersion = "20.03.4"
   val clusterAlwaysStartUp = false  // ignores running cluster and starts a new if true
   val cluster: DgraphCluster = DgraphCluster(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
   def clusterTarget: String = cluster.grpc
@@ -219,7 +219,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
         "-p", portMap(6080),
         "-p", portMap(8080),
         "-p", portMap(9080),
-        s"dgraph/standalone:v${version}",
+        s"dgraph/dgraph:v${version}",
         "/bin/bash", "-c",
         s"dgraph zero --port_offset $portOffset &" +
           s"dgraph alpha --port_offset $portOffset --lru_mb 1024 --zero localhost:${5080 + portOffset}"
