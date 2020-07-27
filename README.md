@@ -11,7 +11,7 @@ The connector supports [filter pushdown](https://github.com/apache/spark/blob/v3
 [projection pushdown](https://github.com/apache/spark/blob/v3.0.0/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsPushDownRequiredColumns.java#L31)
 and partitioning by orthogonal dimensions [predicates](#partitioning-by-predicates) and [nodes](#partitioning-by-uids).
 
-Example code:
+Example Scala code:
 
     val target = "localhost:9080"
 
@@ -25,6 +25,12 @@ Example code:
     val triples: DataFrame = spark.read.dgraphTriples(target)
     val edges: DataFrame = spark.read.dgraphEdges(target)
     val nodes: DataFrame = spark.read.dgraphNodes(target)
+
+With PySpark (pyspark 2.4.2 and ≥3.0) you can use the `spark.read.format(…).load(…)` approach:
+
+    spark.read.format("uk.co.gresearch.spark.dgraph.connector.triples").load("localhost:9080")
+    spark.read.format("uk.co.gresearch.spark.dgraph.connector.nodes").load("localhost:9080")
+    spark.read.format("uk.co.gresearch.spark.dgraph.connector.edges").load("localhost:9080")
 
 ## Limitations
 
@@ -64,6 +70,18 @@ Add this dependency to your `pom.xml` file to use the latest version:
   <version>0.4.0-3.0</version>
 </dependency>
 ```
+
+### PySpark Shell:
+
+Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Connector dependency as follows:
+
+    pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.1-3.0 --exclude-packages org.slf4j:slf4j-api --conf spark.driver.userClassPathFirst=true
+
+### Python script :
+
+Run your Python script that uses PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector via spark-submit:
+
+    spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.1-3.0 --exclude-packages org.slf4j:slf4j-api --conf spark.driver.userClassPathFirst=true [script.py]
 
 ## Examples
 
