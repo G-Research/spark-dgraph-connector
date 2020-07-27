@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Load data from Dgraph cluster as [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) `GraphFrame`.
+- Add example how to load Dgraph data in PySpark. Fixed dependency conflicts between connector dependencies and Spark.
 
 ## [0.4.0] - 2020-07-24
 

@@ -90,6 +90,18 @@
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
       <version>20.03.0</version>
+      <exclusions>
+        <!-- Spark comes with a specific netty version, we want to compile against that version -->
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-codec-http2</artifactId>
+        </exclusion>
+        <!-- Spark comes with a specific netty version, we want to compile against that version -->
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler-proxy</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -104,7 +116,7 @@
       <version>3.10</version>
     </dependency>
 
-    <!-- Spark core pulls in too old of a version -->
+    <!-- Spark Core pulls in too old of a version -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
@@ -112,8 +124,9 @@
       <version>3.4.0</version>
     </dependency>
 
+    <!-- Spark Core pulls in too old of a version -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
-    <!-- Version 20.0 would is the first known to work but it has a security vulnerability fixed in 24.1.1 -->
+    <!-- Version 20.0 is the first known to work but it has a security vulnerability fixed in 24.1.1 -->
     <!-- https://github.com/advisories/GHSA-mvr2-9pj6-7w5j -->
     <dependency>
       <groupId>com.google.guava</groupId>
