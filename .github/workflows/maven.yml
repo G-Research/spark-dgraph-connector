@@ -3,12 +3,12 @@ name: CI
 on:
   push:
     branches:
-    - spark-2.4
-    - spark-3.0
+      - spark-*
+    tags:
+      - v*
   pull_request:
     branches:
-    - spark-2.4
-    - spark-3.0
+      - spark-*
 
 jobs:
   build-and-test:
