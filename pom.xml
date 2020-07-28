@@ -77,14 +77,22 @@
       <version>20.03.0</version>
       <exclusions>
         <!-- Spark comes with a specific netty version, we want to compile against that version -->
+        <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
         <exclusion>
           <groupId>io.netty</groupId>
           <artifactId>netty-codec-http2</artifactId>
         </exclusion>
         <!-- Spark comes with a specific netty version, we want to compile against that version -->
+        <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
         <exclusion>
           <groupId>io.netty</groupId>
           <artifactId>netty-handler-proxy</artifactId>
+        </exclusion>
+        <!-- Spark comes with a specific slf4j-api jar, we don't want to pull in another one -->
+        <!-- This fixes: java.lang.LinkageError: loader constraint violation: when resolving method 'org.slf4j.ILoggerFactory org.slf4j.impl.StaticLoggerBinder.getLoggerFactory()' -->
+        <exclusion>
+          <groupId>org.slf4j</groupId>
+          <artifactId>slf4j-api</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
