@@ -49,7 +49,7 @@ above will be addressed in the near future.
 
 The Spark Dgraph Connector is available for Spark 2.4 and Spark 3.0, both with Scala 2.12.
 Use Maven artifact ID `spark-dgraph-connector_2.12`. The Spark version is part of the package version,
-e.g. 0.4.1-2.4 and 0.4.1-3.0, respectively.
+e.g. 0.4.2-2.4 and 0.4.2-3.0, respectively.
 Minor versions are kept in sync between those two packages, such that identical minor versions contain identical feature sets (where supported by the respective Spark version).
 
 ### SBT
@@ -57,7 +57,7 @@ Minor versions are kept in sync between those two packages, such that identical 
 Add this line to your `build.sbt` file to use the latest version for Spark 3.0:
 
 ```sbt
-libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "0.4.1-3.0"
+libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "0.4.2-3.0"
 ```
 
 ### Maven
@@ -68,7 +68,7 @@ Add this dependency to your `pom.xml` file to use the latest version:
 <dependency>
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector_2.12</artifactId>
-  <version>0.4.1-3.0</version>
+  <version>0.4.2-3.0</version>
 </dependency>
 ```
 
@@ -76,11 +76,11 @@ Add this dependency to your `pom.xml` file to use the latest version:
 
 Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Connector dependency (version ≥0.4.2) as follows:
 
-    pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.1-3.0 --conf spark.driver.userClassPathFirst=true
+    pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true
 
 Run your Python script that uses PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.4.2) via `spark-submit`:
 
-    spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.1-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
+    spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
 
 The `--conf spark.driver.userClassPathFirst=true` is required to avoid the following exception:
 

@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector_2.12</artifactId>
-  <version>0.4.2-3.0-SNAPSHOT</version>
+  <version>0.4.2-3.0</version>
   <name>Spark Dgraph Connector</name>
   <description>A Spark connector for Dgraph databases</description>
   <inceptionYear>2020</inceptionYear>
