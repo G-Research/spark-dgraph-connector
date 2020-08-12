@@ -35,7 +35,11 @@ import scala.sys.process.{Process, ProcessLogger}
 
 trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
 
-  val clusterVersion = "20.03.4"
+  // Set this environment variable to a dgraph version to run all unit tests against that cluster version
+  // keep env var name and value in-sync with dgraph-instance.start.sh
+  val DgraphVersionEnvVar = "DGRAPH_TEST_CLUSTER_VERSION"
+  val DgraphDefaultVersion = "20.07.0"
+  val clusterVersion: String = sys.env.getOrElse(DgraphVersionEnvVar, DgraphDefaultVersion)
   val clusterAlwaysStartUp = false  // ignores running cluster and starts a new if true
   val cluster: DgraphCluster = DgraphCluster(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
   def clusterTarget: String = cluster.grpc
@@ -78,6 +82,8 @@ trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
       cluster.start()
     }
     cluster.uids = cluster.uids ++ lookupGraphQlSchema()
+
+    log.debug(s"cluster uids: ${cluster.uids.map { case (key, value) => s"$key=$value"}.mkString(", ")}")
   }
 
   override protected def afterAll(): Unit = {
@@ -172,12 +178,17 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
 
   def start(): Unit = {
     (1 to 5).iterator.flatMap { offset =>
-      log.info(s"starting dgraph cluster (port offset=$offset)")
+      log.info(s"starting dgraph cluster (version=$version port-offset=$offset)")
       portOffset = Some(offset)
       process = launchCluster(portOffset.get)
       process
     }.next()
     assert(process.isDefined === true)
+
+    // https://discuss.dgraph.io/t/shuri-20-07-0-does-not-auto-populate-dgraph-graphql-instance/9369
+    // for 20.07.0 and later we need to DROP_ALL to get an empty dgraph.graphql node with dgraph.graphql.schema = ""
+    // this is created by 20.03.3 and 20.03.4 automatically
+    if (version >= "20.07.0") dropAll()
 
     alterSchema()
     uids = insertData()
@@ -222,7 +233,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
         s"dgraph/dgraph:v${version}",
         "/bin/bash", "-c",
         s"dgraph zero --port_offset $portOffset &" +
-          s"dgraph alpha --port_offset $portOffset --lru_mb 1024 --zero localhost:${5080 + portOffset}"
+          s"dgraph alpha --port_offset $portOffset --lru_mb 1024 --whitelist 0.0.0.0/0 --zero localhost:${5080 + portOffset}"
       )).run(logger)
 
     sync.synchronized {
@@ -231,6 +242,13 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
     }
 
     if (started) Some(process) else None
+  }
+
+  def dropAll(): Unit = {
+    log.info("dropping all")
+    val url = s"http://${http}/alter"
+    val data = """{"drop_all": true}"""
+    attempt(url, data)
   }
 
   def alterSchema(): Unit = {
