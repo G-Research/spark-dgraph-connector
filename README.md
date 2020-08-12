@@ -91,16 +91,20 @@ which PySpark cannot find without `spark.driver.userClassPathFirst=true`. See [D
 
 ## Examples
 
-The following examples use a local Dgraph instance setup as described in the
+The following examples use a local Dgraph (≥20.03.3) instance setup as described in the
 [Dgraph Quickstart Guide](https://dgraph.io/docs/get-started).
 Run [Step 1](https://dgraph.io/docs/get-started/#step-1-run-dgraph) to start an instance,
+a `DROP_ALL` for Dgraph ≥20.07.0 only,
 [Step 2](https://dgraph.io/docs/get-started/#step-2-run-mutation) to load example graph data, and
 [Step 3](https://dgraph.io/docs/get-started/#step-3-alter-schema) to add a schema. These steps are
 provided in the following scripts:
 
     ./dgraph-instance.start.sh
+    ./dgraph-instance.drop_all.sh  # for Dgraph ≥20.07.0 only
     ./dgraph-instance.insert.sh
     ./dgraph-instance.schema.sh
+
+The Dgraph version can optionally be set via `DGRAPH_TEST_CLUSTER_VERSION` environment variable.
 
 The connection to Dgraph can be established via a `target`, which is the [hostname and gRPC port of a
 Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `<hostname>:<port>`.
@@ -628,8 +632,12 @@ See `SPARK_HOME/conf/log4j.properties.template` for a template file.
 
 ## Testing
 
-Some unit tests require a Dgraph cluster running at `localhost:9080`. It has to be set up as
+Some unit tests require a Dgraph (≥20.03.3) cluster running at `localhost:9080`. It has to be set up as
 described in the [Examples](#examples) section. If that cluster is not running, the unit tests will
 launch and set up such a cluster for you. This requires `docker` to be installed on your machine
 and will make the tests take longer. If you run those tests frequently it is recommended you run
 the cluster setup yourself.
+
+You can set the Dgraph version that is started automatically
+by setting environment variable `DGRAPH_TEST_CLUSTER_VERSION`.
+The default version is defined in `uk.co.gresearch.spark.dgraph.DgraphTestCluster.DgraphDefaultVersion`.
