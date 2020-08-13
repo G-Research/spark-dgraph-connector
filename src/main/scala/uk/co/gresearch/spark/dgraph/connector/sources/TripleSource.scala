@@ -21,13 +21,23 @@ import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
 class TripleSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider {
+  with ClusterStateProvider with PartitionerProvider
+  with TransactionProvider {
+
+  private var transaction: Option[Transaction] = None
+
+  override def getTransaction(targets: Seq[Target]): Transaction = {
+    if (transaction.isEmpty) {
+      transaction = Some(super.getTransaction(targets))
+    }
+    transaction.get
+  }
 
   override def shortName(): String = "dgraph-triples"
 
@@ -36,9 +46,11 @@ class TripleSource() extends TableProviderBase
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
+    val transaction = getTransaction(targets)
+    val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets)
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, options)
+    val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val tripleMode = getTripleMode(options)
     val encoder = tripleMode match {
       case Some(TriplesModeStringOption) => StringTripleEncoder(schema.predicateMap)
@@ -46,7 +58,6 @@ class TripleSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
       case None => TypedTripleEncoder(schema.predicateMap)
     }
-    val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)
     new TripleScan(partitioner, model)

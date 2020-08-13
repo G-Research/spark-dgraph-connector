@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.{Column, DataFrame, Row}
@@ -147,7 +148,8 @@ class TestEdgeSource extends FunSpec
       Predicate("director", "uid"),
       Predicate("starring", "uid")
     ))
-    val execution = DgraphExecutorProvider()
+    val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
+    val execution = DgraphExecutorProvider(transaction)
     val encoder = EdgeEncoder(schema.predicateMap)
     implicit val model: EdgeTableModel = EdgeTableModel(execution, encoder, ChunkSizeDefault)
 

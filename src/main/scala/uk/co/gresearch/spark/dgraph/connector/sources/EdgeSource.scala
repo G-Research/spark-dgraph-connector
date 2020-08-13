@@ -21,23 +21,25 @@ import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
 class EdgeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider {
+  with ClusterStateProvider with PartitionerProvider
+  with TransactionProvider {
 
   override def shortName(): String = "dgraph-edges"
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
+    val transaction = getTransaction(targets)
+    val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets).filter(_.isEdge)
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, options)
+    val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val encoder = EdgeEncoder(schema.predicateMap)
-    val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = EdgeTableModel(execution, encoder, chunkSize)
     new TripleScan(partitioner, model)

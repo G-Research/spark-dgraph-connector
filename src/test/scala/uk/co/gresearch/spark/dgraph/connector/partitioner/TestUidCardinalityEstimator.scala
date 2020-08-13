@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import io.dgraph.DgraphProto.TxnContext
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
@@ -25,7 +26,8 @@ import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 class TestUidCardinalityEstimator extends FunSpec {
 
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
-  val execution: DgraphExecutorProvider = DgraphExecutorProvider()
+  val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
+  val execution: DgraphExecutorProvider = DgraphExecutorProvider(transaction)
   val encoder: TypedTripleEncoder = TypedTripleEncoder(schema.predicateMap)
   implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 

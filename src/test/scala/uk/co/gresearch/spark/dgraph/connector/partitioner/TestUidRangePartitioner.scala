@@ -18,6 +18,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import java.util.UUID
 
+import io.dgraph.DgraphProto.TxnContext
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
@@ -26,6 +27,8 @@ import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, Schema, SubjectIsIn, Target, Uid, UidRange, _}
 
 class TestUidRangePartitioner extends FunSpec {
+
+  val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
 
   describe("UidRangePartitioner") {
 
@@ -42,7 +45,7 @@ class TestUidRangePartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
-    val execution = DgraphExecutorProvider()
+    val execution = DgraphExecutorProvider(transaction)
     val encoder = TypedTripleEncoder(schema.predicateMap)
     implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 

@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.apache.spark.sql.sources.v2.DataSourceOptions
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, Transaction}
 
 trait PartitionerProvider {
 
@@ -28,9 +28,10 @@ trait PartitionerProvider {
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
+                     transaction: Transaction,
                      options: DataSourceOptions): Partitioner =
     partitionerOptions
-      .flatMap(_.getPartitioner(schema, clusterState, options))
+      .flatMap(_.getPartitioner(schema, clusterState, transaction, options))
       .headOption
       .getOrElse(throw new RuntimeException("Could not find any suitable partitioner"))
 

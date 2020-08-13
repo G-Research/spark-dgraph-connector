@@ -18,10 +18,11 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
+import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.{Column, DataFrame, Dataset}
+import org.apache.spark.sql.{Column, DataFrame}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
@@ -39,55 +40,7 @@ class TestTriplesSource extends FunSpec
 
   describe("TriplesDataSource") {
 
-    lazy val expectedTypedTriples = Set(
-      TypedTriple(graphQlSchema, "dgraph.type", None, Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
-      TypedTriple(graphQlSchema, "dgraph.graphql.xid", None, Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
-      TypedTriple(graphQlSchema, "dgraph.graphql.schema", None, Some(""), None, None, None, None, None, None, "string"),
-      TypedTriple(st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-      TypedTriple(st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
-      TypedTriple(st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
-      TypedTriple(st1, "revenue", None, None, None, Some(1.39E8), None, None, None, None, "double"),
-      TypedTriple(st1, "running_time", None, None, Some(132), None, None, None, None, None, "long"),
-      TypedTriple(leia, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(leia, "name", None, Some("Princess Leia"), None, None, None, None, None, None, "string"),
-      TypedTriple(lucas, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(lucas, "name", None, Some("George Lucas"), None, None, None, None, None, None, "string"),
-      TypedTriple(irvin, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(irvin, "name", None, Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw1, "director", Some(lucas), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw1, "name", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
-      TypedTriple(sw1, "revenue", None, None, None, Some(7.75E8), None, None, None, None, "double"),
-      TypedTriple(sw1, "running_time", None, None, Some(121), None, None, None, None, None, "long"),
-      TypedTriple(sw1, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw1, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw1, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw2, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw2, "director", Some(irvin), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw2, "name", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw2, "release_date", None, None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
-      TypedTriple(sw2, "revenue", None, None, None, Some(5.34E8), None, None, None, None, "double"),
-      TypedTriple(sw2, "running_time", None, None, Some(124), None, None, None, None, None, "long"),
-      TypedTriple(sw2, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw2, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw2, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(luke, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(luke, "name", None, Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
-      TypedTriple(han, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(han, "name", None, Some("Han Solo"), None, None, None, None, None, None, "string"),
-      TypedTriple(richard, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-      TypedTriple(richard, "name", None, Some("Richard Marquand"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw3, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw3, "director", Some(richard), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw3, "name", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
-      TypedTriple(sw3, "release_date", None, None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
-      TypedTriple(sw3, "revenue", None, None, None, Some(5.72E8), None, None, None, None, "double"),
-      TypedTriple(sw3, "running_time", None, None, Some(131), None, None, None, None, None, "long"),
-      TypedTriple(sw3, "starring", Some(leia), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw3, "starring", Some(luke), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(sw3, "starring", Some(han), None, None, None, None, None, None, None, "uid"),
-    )
+    lazy val expectedTypedTriples = TestTriplesSource.getExpectedTypedTriples(this)
 
     def doTestLoadTypedTriples(load: () => DataFrame): Unit = {
       val triples = load().as[TypedTriple].collect().toSet
@@ -315,7 +268,8 @@ class TestTriplesSource extends FunSpec
       Predicate("director", "uid"),
       Predicate("starring", "uid")
     ))
-    val execution = DgraphExecutorProvider()
+    val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
+    val execution = DgraphExecutorProvider(transaction)
     val encoder = TypedTripleEncoder(schema.predicateMap)
     implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
@@ -640,5 +594,60 @@ class TestTriplesSource extends FunSpec
     }
 
   }
+
+}
+
+object TestTriplesSource {
+
+  def getExpectedTypedTriples(cluster: DgraphTestCluster): Set[TypedTriple] =
+    Set(
+      TypedTriple(cluster.graphQlSchema, "dgraph.type", None, Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.graphQlSchema, "dgraph.graphql.xid", None, Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.graphQlSchema, "dgraph.graphql.schema", None, Some(""), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.st1, "revenue", None, None, None, Some(1.39E8), None, None, None, None, "double"),
+      TypedTriple(cluster.st1, "running_time", None, None, Some(132), None, None, None, None, None, "long"),
+      TypedTriple(cluster.leia, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.leia, "name", None, Some("Princess Leia"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.lucas, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.lucas, "name", None, Some("George Lucas"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.irvin, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.irvin, "name", None, Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "director", Some(cluster.lucas), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "name", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw1, "revenue", None, None, None, Some(7.75E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw1, "running_time", None, None, Some(121), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw1, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "director", Some(cluster.irvin), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "name", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "release_date", None, None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw2, "revenue", None, None, None, Some(5.34E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw2, "running_time", None, None, Some(124), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw2, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.luke, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.luke, "name", None, Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.han, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.han, "name", None, Some("Han Solo"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.richard, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.richard, "name", None, Some("Richard Marquand"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "director", Some(cluster.richard), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "name", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "release_date", None, None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedTriple(cluster.sw3, "revenue", None, None, None, Some(5.72E8), None, None, None, None, "double"),
+      TypedTriple(cluster.sw3, "running_time", None, None, Some(131), None, None, None, None, None, "long"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
+      TypedTriple(cluster.sw3, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+    )
 
 }

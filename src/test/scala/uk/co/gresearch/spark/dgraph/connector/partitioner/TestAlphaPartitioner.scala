@@ -18,6 +18,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import java.util.UUID
 
+import io.dgraph.DgraphProto.TxnContext
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
@@ -25,6 +26,8 @@ import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestAlphaPartitioner extends FunSpec {
+
+  val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
 
   describe("AlphaPartitioner") {
 
@@ -45,7 +48,7 @@ class TestAlphaPartitioner extends FunSpec {
       10000,
       UUID.randomUUID()
     )
-    val execution = DgraphExecutorProvider()
+    val execution = DgraphExecutorProvider(transaction)
     val encoder = TypedTripleEncoder(schema.predicateMap)
     implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 
