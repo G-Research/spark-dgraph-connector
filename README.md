@@ -38,8 +38,7 @@ With PySpark (pyspark 2.4.2 and ≥3.0) you can use the `spark.read.format(…).
 The connector is under continuous development. It has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
-- **Not transaction-aware**: Individual partitions do not read the same transaction. The graph should not be
-  modified while reading it into Spark ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
+- **Limited Lifetime of Transactions**: The connector reads all partitions within the same transaction, but concurrent mutations can reduce the lifetime of that transaction.
 - **Language tags & facets**: The connector cannot read any string values with language tags or facets.
 
 Beside the **language tags & facets**, which is a limitation of Dgraph, all the other issues mentioned
@@ -78,7 +77,7 @@ Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Co
 
     pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true
 
-Run your Python script that uses PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.4.2) via `spark-submit`:
+Run your Python scripts that use PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.4.2) via `spark-submit`:
 
     spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
 
@@ -555,7 +554,7 @@ However, this would be would slow, but it proves the connector can handle any si
 
 ## Dependencies
 
-The GRPC library used by the dgraph client requires `guava ≥ 20.0`, where `≥ 24.1.1-jre` is recommended, hence the:
+The GRPC library used by the dgraph client requires Guava ≥20.0, where ≥24.1.1-jre is recommended, hence the:
 
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -577,7 +576,7 @@ The GRPC library used by the dgraph client requires `guava ≥ 20.0`, where `≥
       at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
       at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
 
-Furthermore, we need to set `protobuf-java ≥ 3.4.0` in the `pom.xml` file:
+Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
 
     <dependency>
       <groupId>com.google.protobuf</groupId>

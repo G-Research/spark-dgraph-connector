@@ -24,13 +24,14 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
+import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
 class TripleSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider {
+  with ClusterStateProvider with PartitionerProvider
+  with TransactionProvider {
 
   override def shortName(): String = "dgraph-triples"
 
@@ -50,9 +51,11 @@ class TripleSource() extends TableProviderBase
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
+    val transaction = getTransaction(targets)
+    val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets)
     val clusterState = getClusterState(targets)
-    val partitioner = getPartitioner(schema, clusterState, options)
+    val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val tripleMode = getTripleMode(options)
     val encoder = tripleMode match {
       case Some(TriplesModeStringOption) => StringTripleEncoder(schema.predicateMap)
@@ -60,7 +63,6 @@ class TripleSource() extends TableProviderBase
       case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
       case None => TypedTripleEncoder(schema.predicateMap)
     }
-    val execution = DgraphExecutorProvider()
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)
     TripleTable(partitioner, model, clusterState.cid)
