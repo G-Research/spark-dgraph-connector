@@ -13,25 +13,33 @@ and partitioning by orthogonal dimensions [predicates](#partitioning-by-predicat
 
 Example Scala code:
 
-    val target = "localhost:9080"
+```scala
+val target = "localhost:9080"
 
-    import uk.co.gresearch.spark.dgraph.graphx._
-    val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph(target)
+import uk.co.gresearch.spark.dgraph.graphx._
+val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph.graphx(target)
+val edges: RDD[Edge[EdgeProperty]] = spark.read.dgraph.edges(target)
+val vertices: RDD[(VertexId, VertexProperty)] = spark.read.dgraph.vertices(target)
 
-    import uk.co.gresearch.spark.dgraph.graphframes._
-    val graph: GraphFrame = spark.read.dgraph(target)
+import uk.co.gresearch.spark.dgraph.graphframes._
+val graph: GraphFrame = spark.read.dgraph.graphframes(target)
+val edges: DataFrame = spark.read.dgraph.edges(target)
+val vertices: DataFrame = spark.read.dgraph.vertices(target)
 
-    import uk.co.gresearch.spark.dgraph.connector._
-    val triples: DataFrame = spark.read.dgraphTriples(target)
-    val edges: DataFrame = spark.read.dgraphEdges(target)
-    val nodes: DataFrame = spark.read.dgraphNodes(target)
+import uk.co.gresearch.spark.dgraph.connector._
+val triples: DataFrame = spark.read.dgraph.triples(target)
+val edges: DataFrame = spark.read.dgraph.edges(target)
+val nodes: DataFrame = spark.read.dgraph.nodes(target)
+```
 
 With PySpark (pyspark 2.4.2 and ≥3.0) you can use the `spark.read.format(…).load(…)` approach
 (see [PySpark Shell and Python script](#pyspark-shell-and-python-script)):
 
-    spark.read.format("uk.co.gresearch.spark.dgraph.connector.triples").load("localhost:9080")
-    spark.read.format("uk.co.gresearch.spark.dgraph.connector.nodes").load("localhost:9080")
-    spark.read.format("uk.co.gresearch.spark.dgraph.connector.edges").load("localhost:9080")
+```python
+spark.read.format("uk.co.gresearch.spark.dgraph.triples").load("localhost:9080")
+spark.read.format("uk.co.gresearch.spark.dgraph.nodes").load("localhost:9080")
+spark.read.format("uk.co.gresearch.spark.dgraph.edges").load("localhost:9080")
+```
 
 ## Limitations
 
@@ -75,11 +83,15 @@ Add this dependency to your `pom.xml` file to use the latest version:
 
 Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Connector dependency (version ≥0.4.2) as follows:
 
-    pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true
+```shell script
+pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true
+```
 
 Run your Python scripts that use PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.4.2) via `spark-submit`:
 
-    spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
+```shell script
+spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
+```
 
 The `--conf spark.driver.userClassPathFirst=true` is required to avoid the following exception:
 
@@ -98,10 +110,12 @@ a `DROP_ALL` for Dgraph ≥20.07.0 only,
 [Step 3](https://dgraph.io/docs/get-started/#step-3-alter-schema) to add a schema. These steps are
 provided in the following scripts:
 
-    ./dgraph-instance.start.sh
-    ./dgraph-instance.drop_all.sh  # for Dgraph ≥20.07.0 only
-    ./dgraph-instance.insert.sh
-    ./dgraph-instance.schema.sh
+```shell script
+./dgraph-instance.start.sh
+./dgraph-instance.drop_all.sh  # for Dgraph ≥20.07.0 only
+./dgraph-instance.insert.sh
+./dgraph-instance.schema.sh
+```
 
 The Dgraph version can optionally be set via `DGRAPH_TEST_CLUSTER_VERSION` environment variable.
 
@@ -115,30 +129,38 @@ You can load the entire Dgraph database into an
 [Apache Spark GraphX](https://spark.apache.org/docs/latest/graphx-programming-guide.html)
 graph. For example:
 
-    import uk.co.gresearch.spark.dgraph.graphx._
+```scala
+import uk.co.gresearch.spark.dgraph.graphx._
 
-    val graph = spark.read.dgraph("localhost:9080")
+val graph = spark.read.dgraph.graphx("localhost:9080")
+```
 
 Example code to perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
 computation on the graph to test that the connector is working:
 
-    val pageRank = graph.pageRank(0.0001)
-    pageRank.vertices.foreach(println)
+```scala
+val pageRank = graph.pageRank(0.0001)
+pageRank.vertices.foreach(println)
+```
 
 ### GraphFrames
 
 You can load the entire Dgraph database into a
 [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) graph. For example:
 
-    import uk.co.gresearch.spark.dgraph.graphframes._
+```scala
+import uk.co.gresearch.spark.dgraph.graphframes._
 
-    val graph: GraphFrame = spark.read.dgraph("localhost:9080")
+val graph: GraphFrame = spark.read.dgraph.graphframes("localhost:9080")
+```
 
 Example code to perform a [PageRank](https://graphframes.github.io/graphframes/docs/_site/user-guide.html#pagerank)
 computation on this graph to test that the connector is working:
 
-    val pageRank = graph.pageRank.maxIter(10)
-    pageRank.run().triplets.show(false)
+```scala
+val pageRank = graph.pageRank.maxIter(10)
+pageRank.run().triplets.show(false)
+```
 
 Note: Predicates get renamed when they are loaded from the Dgraph database. Any `.` (dot) in the name
 is replaced by a `_` (underscore). To guarantee uniqueness of names, underscores in the original predicate
@@ -161,9 +183,11 @@ Dgraph data can be loaded into Spark DataFrames in various forms:
 
 You can load the entire Dgraph database as triples into an [Apache Spark DataFrame](https://spark.apache.org/docs/latest/sql-programming-guide.html#datasets-and-dataframes). For example:
 
-    import uk.co.gresearch.spark.dgraph.connector._
+```scala
+import uk.co.gresearch.spark.dgraph.connector._
 
-    val triples = spark.read.dgraphTriples("localhost:9080")
+val triples = spark.read.dgraph.triples("localhost:9080")
+```
 
 The returned `DataFrame` has the following schema:
 
@@ -201,13 +225,15 @@ This model allows you to store the fully-typed triples in a `DataFrame`.
 
 The triples can also be loaded in an un-typed, narrow form:
 
-    import uk.co.gresearch.spark.dgraph.connector._
+```scala
+import uk.co.gresearch.spark.dgraph.connector._
 
-    spark
-      .read
-      .option(TriplesModeOption, TriplesModeStringOption)
-      .dgraphTriples("localhost:9080")
-      .show
+spark
+  .read
+  .option(TriplesModeOption, TriplesModeStringOption)
+  .dgraph.triples("localhost:9080")
+  .show
+```
 
 The resulting `DataFrame` has the following schema:
 
@@ -240,9 +266,11 @@ with the actual type of the object. Here is an example:
 
 You can load all nodes into a `DataFrame` in a fully-typed form. This contains all the nodes' properties but no edges to other nodes:
 
-    import uk.co.gresearch.spark.dgraph.connector._
+```scala
+import uk.co.gresearch.spark.dgraph.connector._
 
-    spark.read.dgraphNodes("localhost:9080")
+spark.read.dgraph.nodes("localhost:9080")
+```
 
 The returned `DataFrame` has the following schema:
 
@@ -276,12 +304,14 @@ The schema of the returned `DataFrame` is very similar to the typed triples sche
 
 Nodes can also be loaded in a wide, fully-typed format:
 
-    import uk.co.gresearch.spark.dgraph.connector._
+```scala
+import uk.co.gresearch.spark.dgraph.connector._
 
-    spark
-      .read
-      .option(NodesModeOption, NodesModeWideOption)
-      .dgraphNodes("localhost:9080")
+spark
+  .read
+  .option(NodesModeOption, NodesModeWideOption)
+  .dgraph.nodes("localhost:9080")
+```
 
 The returned `DataFrame` has the following schema format, which is dependent on the schema of the underlying Dgraph database.
 Node properties are stored in typed columns and are ordered alphabetically (property columns start after the `subject` column):
@@ -316,9 +346,11 @@ Note: The Wide Nodes source enforces the [predicate partitioner](#partitioning-b
 
 Edges can be loaded as follows:
 
-    import uk.co.gresearch.spark.dgraph.connector._
+```scala
+import uk.co.gresearch.spark.dgraph.connector._
 
-    spark.read.dgraphEdges("localhost:9080")
+spark.read.dgraph.edges("localhost:9080")
+```
 
 The returned `DataFrame` has the following simple schema:
 
@@ -377,20 +409,24 @@ The [Wide Nodes source](#wide-nodes) supports projection pushdown on all [predic
 
 The following query uses filter and projection pushdown. First we define a wide node `DataFrame`:
 
-    val df =
-      spark.read
-        .options(Map(
-          NodesModeOption -> NodesModeWideOption,
-          PartitionerOption -> PredicatePartitionerOption
-        ))
-        .dgraphNodes("localhost:9080")
+```scala
+val df =
+  spark.read
+    .options(Map(
+      NodesModeOption -> NodesModeWideOption,
+      PartitionerOption -> PredicatePartitionerOption
+    ))
+    .dgraph.nodes("localhost:9080")
+```
 
 Then we select some columns (projection) and rows (filter):
 
-    df
-      .select($"subject", $"`dgraph.type`", $"revenue")  // projection
-      .where($"revenue".isNotNull)                       // filter
-      .show()
+```scala
+df
+  .select($"subject", $"`dgraph.type`", $"revenue")  // projection
+  .where($"revenue".isNotNull)                       // filter
+  .show()
+```
 
 This selects the columns `subject`, `dgraph.type` and `revenue` for only those rows that actually have a value for `revenue`.
 The underlying query to Dgraph simplifies from (the full graph):
@@ -448,13 +484,15 @@ summed per partition. The values can be seen on the Spark UI for the respective 
 The connector uses [Spark Accumulators](http://spark.apache.org/docs/1.6.2/api/java/org/apache/spark/Accumulator.html)
 to collect these metrics. They can be accessed by the Spark driver via a `SparkListener`:
 
-      val handler = new SparkListener {
-        override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit =
-          stageCompleted.stageInfo.accumulables.values.foreach(println)
-      }
+```scala
+val handler = new SparkListener {
+  override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit =
+    stageCompleted.stageInfo.accumulables.values.foreach(println)
+}
 
-      spark.sparkContext.addSparkListener(handler)
-      spark.read.dgraphTriples("localhost:9080").count()
+spark.sparkContext.addSparkListener(handler)
+spark.read.dgraph.triples("localhost:9080").count()
+```
 
 
 The following metrics are available:
@@ -466,21 +504,6 @@ The following metrics are available:
 |`Dgraph Time`|Time waited for Dgraph to respond in Seconds.|
 |`Dgraph Uids`|Number of Uids read.|
 
-
-## Special Use Cases
-
-### Nodes without types (dgraph.type)
-
-A graph where nodes do not have any type (`dgraph.type`) can only be read with the `PredicatePartitioner` (see below),
-and then only with a single predicate per partition.
-Any other partitioner relies on the [Dgraphs type system](https://dgraph.io/docs/query-language/#type-system)
-and will therefore not "see" those nodes ([issue #4](https://github.com/G-Research/spark-dgraph-connector/issues/4)).
-
-### Nodes with types and predicates that are not part of its types
-
-A graph where nodes have predicates that are not part of the nodes' types can only be read with the `PredicatePartitioner` (see below).
-Any other partitioner relies on the [Dgraphs type system](https://dgraph.io/docs/query-language/#type-system)
-and will therefore not "see" those predicates ([issue #5](https://github.com/G-Research/spark-dgraph-connector/issues/5)).
 
 ## Partitioning
 
@@ -556,11 +579,13 @@ However, this would be would slow, but it proves the connector can handle any si
 
 The GRPC library used by the dgraph client requires Guava ≥20.0, where ≥24.1.1-jre is recommended, hence the:
 
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>[24.1.1-jre,)</version>
-    </dependency>
+```xml
+<dependency>
+  <groupId>com.google.guava</groupId>
+  <artifactId>guava</artifactId>
+  <version>[24.1.1-jre,)</version>
+</dependency>
+```
 
 …in the `pom.xml`file. Otherwise, we would see this error:
 
@@ -578,11 +603,13 @@ The GRPC library used by the dgraph client requires Guava ≥20.0, where ≥24.1
 
 Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
 
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>[3.4.0,]</version>
-    </dependency>
+```xml
+<dependency>
+  <groupId>com.google.protobuf</groupId>
+  <artifactId>protobuf-java</artifactId>
+  <version>[3.4.0,]</version>
+</dependency>
+```
 
 …to get rid of these errors:
 

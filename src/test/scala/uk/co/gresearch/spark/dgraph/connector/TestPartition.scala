@@ -32,7 +32,7 @@ class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
       // test that a partition works with N predicates
       // the query grows linearly with N, so does the processing time
       it(s"should read $predicates predicates") {
-        val targets = Seq(Target(cluster.grpc))
+        val targets = Seq(Target(dgraph.target))
         val existingPredicates = getSchema(targets).predicates.slice(0, predicates)
         val syntheticPredicates =
           (1 to (predicates - existingPredicates.size)).map(pred =>

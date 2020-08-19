@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Add example how to load Dgraph data in PySpark. Fixed dependency conflicts between connector dependencies and Spark.
 
 ### Changed
+- Refactored connector API, renamed `spark.read.dgraph*` methods to `spark.read.dgraph.*`.
+- Moved `triples`, `edges` and `nodes` sources from package `uk.co.gresearch.spark.dgraph.connector` to `uk.co.gresearch.spark.dgraph`.
 - Moved Dgraph client to 20.03.1 and Dgraph test cluster to 20.07.0.
 
 ## [0.4.0] - 2020-07-24

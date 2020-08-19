@@ -18,14 +18,16 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
+import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.{Column, DataFrame}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.DgraphTestCluster
+import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
 import uk.co.gresearch.spark.dgraph.connector._
+
+import scala.reflect.runtime.universe._
 
 class TestTriplesSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
@@ -36,62 +38,14 @@ class TestTriplesSource extends FunSpec
 
   describe("TriplesDataSource") {
 
-    lazy val expectedTypedTriples = TestTriplesSource.getExpectedTypedTriples(this)
+    lazy val expecteds = TriplesSourceExpecteds(dgraph)
+    lazy val expectedTypedTriples = expecteds.getExpectedTypedTriples
+    lazy val expectedStringTriples = expecteds.getExpectedStringTriples
 
     def doTestLoadTypedTriples(load: () => DataFrame): Unit = {
       val triples = load().as[TypedTriple].collect().toSet
       assert(triples === expectedTypedTriples)
     }
-
-    lazy val expectedStringTriples = Set(
-      StringTriple(graphQlSchema, "dgraph.type", "dgraph.graphql", "string"),
-      StringTriple(graphQlSchema, "dgraph.graphql.xid", "dgraph.graphql.schema", "string"),
-      StringTriple(graphQlSchema, "dgraph.graphql.schema", "", "string"),
-      StringTriple(st1, "dgraph.type", "Film", "string"),
-      StringTriple(st1, "name", "Star Trek: The Motion Picture", "string"),
-      StringTriple(st1, "release_date", "1979-12-07 00:00:00.0", "timestamp"),
-      StringTriple(st1, "revenue", "1.39E8", "double"),
-      StringTriple(st1, "running_time", "132", "long"),
-      StringTriple(leia, "dgraph.type", "Person", "string"),
-      StringTriple(leia, "name", "Princess Leia", "string"),
-      StringTriple(lucas, "dgraph.type", "Person", "string"),
-      StringTriple(lucas, "name", "George Lucas", "string"),
-      StringTriple(irvin, "dgraph.type", "Person", "string"),
-      StringTriple(irvin, "name", "Irvin Kernshner", "string"),
-      StringTriple(sw1, "dgraph.type", "Film", "string"),
-      StringTriple(sw1, "director", lucas.toString, "uid"),
-      StringTriple(sw1, "name", "Star Wars: Episode IV - A New Hope", "string"),
-      StringTriple(sw1, "release_date", "1977-05-25 00:00:00.0", "timestamp"),
-      StringTriple(sw1, "revenue", "7.75E8", "double"),
-      StringTriple(sw1, "running_time", "121", "long"),
-      StringTriple(sw1, "starring", leia.toString, "uid"),
-      StringTriple(sw1, "starring", luke.toString, "uid"),
-      StringTriple(sw1, "starring", han.toString, "uid"),
-      StringTriple(sw2, "dgraph.type", "Film", "string"),
-      StringTriple(sw2, "director", irvin.toString, "uid"),
-      StringTriple(sw2, "name", "Star Wars: Episode V - The Empire Strikes Back", "string"),
-      StringTriple(sw2, "release_date", "1980-05-21 00:00:00.0", "timestamp"),
-      StringTriple(sw2, "revenue", "5.34E8", "double"),
-      StringTriple(sw2, "running_time", "124", "long"),
-      StringTriple(sw2, "starring", leia.toString, "uid"),
-      StringTriple(sw2, "starring", luke.toString, "uid"),
-      StringTriple(sw2, "starring", han.toString, "uid"),
-      StringTriple(luke, "dgraph.type", "Person", "string"),
-      StringTriple(luke, "name", "Luke Skywalker", "string"),
-      StringTriple(han, "dgraph.type", "Person", "string"),
-      StringTriple(han, "name", "Han Solo", "string"),
-      StringTriple(richard, "dgraph.type", "Person", "string"),
-      StringTriple(richard, "name", "Richard Marquand", "string"),
-      StringTriple(sw3, "dgraph.type", "Film", "string"),
-      StringTriple(sw3, "director", richard.toString, "uid"),
-      StringTriple(sw3, "name", "Star Wars: Episode VI - Return of the Jedi", "string"),
-      StringTriple(sw3, "release_date", "1983-05-25 00:00:00.0", "timestamp"),
-      StringTriple(sw3, "revenue", "5.72E8", "double"),
-      StringTriple(sw3, "running_time", "131", "long"),
-      StringTriple(sw3, "starring", leia.toString, "uid"),
-      StringTriple(sw3, "starring", luke.toString, "uid"),
-      StringTriple(sw3, "starring", han.toString, "uid"),
-    )
 
     def doTestLoadStringTriples(load: () => DataFrame): Unit = {
       val triples = load().as[StringTriple].collect().toSet
@@ -115,7 +69,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .load(cluster.grpc)
+          .load(dgraph.target)
       )
     }
 
@@ -124,7 +78,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .load(cluster.grpc, cluster.grpcLocalIp)
+          .load(dgraph.target, dgraph.targetLocalIp)
       )
     }
 
@@ -133,7 +87,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .option(TargetOption, cluster.grpc)
+          .option(TargetOption, dgraph.target)
           .load()
       )
     }
@@ -143,7 +97,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .format(TriplesSource)
-          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
+          .option(TargetsOption, s"""["${dgraph.target}","${dgraph.targetLocalIp}"]""")
           .load()
       )
     }
@@ -152,7 +106,7 @@ class TestTriplesSource extends FunSpec
       doTestLoadTypedTriples(() =>
         spark
           .read
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -160,7 +114,7 @@ class TestTriplesSource extends FunSpec
       doTestLoadTypedTriples(() =>
         spark
           .read
-          .dgraphTriples(cluster.grpc, cluster.grpcLocalIp)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -169,7 +123,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeStringOption)
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -178,7 +132,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -193,7 +147,7 @@ class TestTriplesSource extends FunSpec
             PredicatePartitionerPredicatesOption -> "2",
             ChunkSizeOption -> "3"
           ))
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -208,7 +162,7 @@ class TestTriplesSource extends FunSpec
             PredicatePartitionerPredicatesOption -> "2",
             ChunkSizeOption -> "3"
           ))
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
       )
     }
 
@@ -217,7 +171,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeStringOption)
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .as[StringTriple]
           .collectAsList()
       assert(rows.size() == 47)
@@ -228,7 +182,7 @@ class TestTriplesSource extends FunSpec
         spark
           .read
           .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .as[TypedTriple]
           .collectAsList()
       assert(rows.size() == 47)
@@ -254,13 +208,13 @@ class TestTriplesSource extends FunSpec
     }
 
     it("should load as a single partition") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val targets = Seq(Target(target))
       val partitions =
         spark
           .read
           .option(PartitionerOption, SingletonPartitionerOption)
-          .dgraphTriples(target)
+          .dgraph.triples(target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -275,7 +229,7 @@ class TestTriplesSource extends FunSpec
           .read
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -283,11 +237,11 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("name"), Set("director")).getAll)
       )
 
       assert(partitions.toSet === expected)
@@ -300,9 +254,9 @@ class TestTriplesSource extends FunSpec
           .options(Map(
             PartitionerOption -> s"$UidRangePartitionerOption",
             UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -310,8 +264,8 @@ class TestTriplesSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(1), Uid(8))))),
-        Some(Partition(Seq(Target(cluster.grpc)), Set(Has(predicates), UidRange(Uid(8), Uid(15))))),
+        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), UidRange(Uid(1), Uid(8))))),
+        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), UidRange(Uid(8), Uid(15))))),
       )
 
       assert(partitions.toSet === expected)
@@ -325,9 +279,9 @@ class TestTriplesSource extends FunSpec
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -337,11 +291,11 @@ class TestTriplesSource extends FunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(cluster.grpc))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll,
-        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll,
-        Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll,
-        Partition(Seq(Target(cluster.grpc))).has(Set("name"), Set("director")).getAll
+        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("name"), Set("director")).getAll
       ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
 
       assert(partitions.toSet === expected)
@@ -354,15 +308,15 @@ class TestTriplesSource extends FunSpec
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphTriples(cluster.grpc)
+          .dgraph.triples(dgraph.target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
       // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
-      val allUidInts = allUids.map(_.toInt).toSet
-      val expected = (1 to highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
+      val allUidInts = dgraph.allUids.map(_.toInt).toSet
+      val expected = (1 to dgraph.highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
       assert(partitions === expected)
     }
 
@@ -372,7 +326,7 @@ class TestTriplesSource extends FunSpec
         .option(TriplesModeOption, TriplesModeTypedOption)
         .option(PartitionerOption, PredicatePartitionerOption)
         .option(PredicatePartitionerPredicatesOption, "2")
-        .dgraphTriples(cluster.grpc)
+        .dgraph.triples(dgraph.target)
         .as[TypedTriple]
 
     lazy val stringTriples =
@@ -381,29 +335,29 @@ class TestTriplesSource extends FunSpec
         .option(TriplesModeOption, TriplesModeStringOption)
         .option(PartitionerOption, PredicatePartitionerOption)
         .option(PredicatePartitionerPredicatesOption, "2")
-        .dgraphTriples(cluster.grpc)
+        .dgraph.triples(dgraph.target)
         .as[StringTriple]
 
     it("should push subject filters") {
       doTestFilterPushDown(
-        $"subject" === leia,
-        Set(SubjectIsIn(Uid(leia))), Seq.empty,
-        (t: TypedTriple) => t.subject.equals(leia),
-        (t: StringTriple) => t.subject.equals(leia)
+        $"subject" === dgraph.leia,
+        Set(SubjectIsIn(Uid(dgraph.leia))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(dgraph.leia),
+        (t: StringTriple) => t.subject.equals(dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"subject".isin(leia),
-        Set(SubjectIsIn(Uid(leia))), Seq.empty,
-        (t: TypedTriple) => t.subject.equals(leia),
-        (t: StringTriple) => t.subject.equals(leia)
+        $"subject".isin(dgraph.leia),
+        Set(SubjectIsIn(Uid(dgraph.leia))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(dgraph.leia),
+        (t: StringTriple) => t.subject.equals(dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"subject".isin(leia, luke),
-        Set(SubjectIsIn(Uid(leia), Uid(luke))), Seq.empty,
-        (t: TypedTriple) => t.subject.equals(leia) || t.subject.equals(luke),
-        (t: StringTriple) => t.subject.equals(leia) || t.subject.equals(luke)
+        $"subject".isin(dgraph.leia, dgraph.luke),
+        Set(SubjectIsIn(Uid(dgraph.leia), Uid(dgraph.luke))), Seq.empty,
+        (t: TypedTriple) => t.subject.equals(dgraph.leia) || t.subject.equals(dgraph.luke),
+        (t: StringTriple) => t.subject.equals(dgraph.leia) || t.subject.equals(dgraph.luke)
       )
     }
 
@@ -577,9 +531,15 @@ class TestTriplesSource extends FunSpec
 
 }
 
-object TestTriplesSource {
+case class TriplesSourceExpecteds(cluster: DgraphCluster) {
 
-  def getExpectedTypedTriples(cluster: DgraphTestCluster): Set[TypedTriple] =
+  def getDataFrame[T <: Product : TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
+    spark.createDataset(rows.toSeq)(Encoders.product[T]).toDF()
+
+  def getExpectedTypedTripleDf(spark: SparkSession): DataFrame =
+    getDataFrame(getExpectedTypedTriples, spark)(typeTag[TypedTriple])
+
+  def getExpectedTypedTriples: Set[TypedTriple] =
     Set(
       TypedTriple(cluster.graphQlSchema, "dgraph.type", None, Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.graphQlSchema, "dgraph.graphql.xid", None, Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
@@ -628,6 +588,60 @@ object TestTriplesSource {
       TypedTriple(cluster.sw3, "starring", Some(cluster.leia), None, None, None, None, None, None, None, "uid"),
       TypedTriple(cluster.sw3, "starring", Some(cluster.luke), None, None, None, None, None, None, None, "uid"),
       TypedTriple(cluster.sw3, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
+    )
+
+  def getExpectedStringTripleDf(spark: SparkSession): DataFrame =
+    getDataFrame(getExpectedStringTriples, spark)(typeTag[StringTriple])
+
+  def getExpectedStringTriples: Set[StringTriple] =
+    Set(
+      StringTriple(cluster.graphQlSchema, "dgraph.type", "dgraph.graphql", "string"),
+      StringTriple(cluster.graphQlSchema, "dgraph.graphql.xid", "dgraph.graphql.schema", "string"),
+      StringTriple(cluster.graphQlSchema, "dgraph.graphql.schema", "", "string"),
+      StringTriple(cluster.st1, "dgraph.type", "Film", "string"),
+      StringTriple(cluster.st1, "name", "Star Trek: The Motion Picture", "string"),
+      StringTriple(cluster.st1, "release_date", "1979-12-07 00:00:00.0", "timestamp"),
+      StringTriple(cluster.st1, "revenue", "1.39E8", "double"),
+      StringTriple(cluster.st1, "running_time", "132", "long"),
+      StringTriple(cluster.leia, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.leia, "name", "Princess Leia", "string"),
+      StringTriple(cluster.lucas, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.lucas, "name", "George Lucas", "string"),
+      StringTriple(cluster.irvin, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.irvin, "name", "Irvin Kernshner", "string"),
+      StringTriple(cluster.sw1, "dgraph.type", "Film", "string"),
+      StringTriple(cluster.sw1, "director", cluster.lucas.toString, "uid"),
+      StringTriple(cluster.sw1, "name", "Star Wars: Episode IV - A New Hope", "string"),
+      StringTriple(cluster.sw1, "release_date", "1977-05-25 00:00:00.0", "timestamp"),
+      StringTriple(cluster.sw1, "revenue", "7.75E8", "double"),
+      StringTriple(cluster.sw1, "running_time", "121", "long"),
+      StringTriple(cluster.sw1, "starring", cluster.leia.toString, "uid"),
+      StringTriple(cluster.sw1, "starring", cluster.luke.toString, "uid"),
+      StringTriple(cluster.sw1, "starring", cluster.han.toString, "uid"),
+      StringTriple(cluster.sw2, "dgraph.type", "Film", "string"),
+      StringTriple(cluster.sw2, "director", cluster.irvin.toString, "uid"),
+      StringTriple(cluster.sw2, "name", "Star Wars: Episode V - The Empire Strikes Back", "string"),
+      StringTriple(cluster.sw2, "release_date", "1980-05-21 00:00:00.0", "timestamp"),
+      StringTriple(cluster.sw2, "revenue", "5.34E8", "double"),
+      StringTriple(cluster.sw2, "running_time", "124", "long"),
+      StringTriple(cluster.sw2, "starring", cluster.leia.toString, "uid"),
+      StringTriple(cluster.sw2, "starring", cluster.luke.toString, "uid"),
+      StringTriple(cluster.sw2, "starring", cluster.han.toString, "uid"),
+      StringTriple(cluster.luke, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.luke, "name", "Luke Skywalker", "string"),
+      StringTriple(cluster.han, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.han, "name", "Han Solo", "string"),
+      StringTriple(cluster.richard, "dgraph.type", "Person", "string"),
+      StringTriple(cluster.richard, "name", "Richard Marquand", "string"),
+      StringTriple(cluster.sw3, "dgraph.type", "Film", "string"),
+      StringTriple(cluster.sw3, "director", cluster.richard.toString, "uid"),
+      StringTriple(cluster.sw3, "name", "Star Wars: Episode VI - Return of the Jedi", "string"),
+      StringTriple(cluster.sw3, "release_date", "1983-05-25 00:00:00.0", "timestamp"),
+      StringTriple(cluster.sw3, "revenue", "5.72E8", "double"),
+      StringTriple(cluster.sw3, "running_time", "131", "long"),
+      StringTriple(cluster.sw3, "starring", cluster.leia.toString, "uid"),
+      StringTriple(cluster.sw3, "starring", cluster.luke.toString, "uid"),
+      StringTriple(cluster.sw3, "starring", cluster.han.toString, "uid"),
     )
 
 }

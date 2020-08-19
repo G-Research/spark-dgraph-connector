@@ -29,7 +29,7 @@ class TestConnector extends FunSpec {
     ).foreach {
       case (pkg, source) =>
         it(s"should provide $source source package name") {
-          assert(pkg === s"uk.co.gresearch.spark.dgraph.connector.$source")
+          assert(pkg === s"uk.co.gresearch.spark.dgraph.$source")
         }
     }
 
