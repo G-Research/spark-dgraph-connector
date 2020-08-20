@@ -40,18 +40,26 @@ def spark_session():
 class SparkTest(unittest.TestCase):
 
     @staticmethod
-    def get_dependencies_from_mvn() -> str:
+    def get_pom_path() -> str:
+        paths = ['.', '..', os.path.join('..', '..')]
+        for path in paths:
+            if os.path.exists(os.path.join(path, 'pom.xml')):
+                return path
+        raise RuntimeError('Could not find path to pom.xml, looked here: {}'.format(', '.join(paths)))
+
+    @staticmethod
+    def get_dependencies_from_mvn(path) -> str:
         logging.info('running mvn to get JVM dependencies')
         dependencies_process = subprocess.run(
             ['/bin/bash', '-c', 'mvn dependency:build-classpath 2>/dev/null | grep -A 1 "Dependencies classpath:$" | tail -n 1'],
-            cwd='../..', stdout=subprocess.PIPE
+            cwd=path, stdout=subprocess.PIPE
         )
         if dependencies_process.returncode != 0:
             raise RuntimeError("failed to run mvn to get classpath for JVM")
         return str(dependencies_process.stdout.strip())
 
     @staticmethod
-    def get_spark_config(dependencies) -> SparkConf:
+    def get_spark_config(path, dependencies) -> SparkConf:
         master = 'local[2]'
         conf = SparkConf().setAppName('unit test').setMaster(master)
         return conf.setAll([
@@ -59,15 +67,16 @@ class SparkTest(unittest.TestCase):
             ('spark.test.home', os.environ.get('SPARK_HOME')),
             ('spark.locality.wait', '0'),
             ('spark.driver.extraClassPath', '{}'.format(':'.join([
-                os.path.join(os.getcwd(), '../../target/classes'),
-                os.path.join(os.getcwd(), '../../target/test-classes'),
+                os.path.join(os.getcwd(), path, 'target', 'classes'),
+                os.path.join(os.getcwd(), path, 'target', 'test-classes'),
                 dependencies
             ]))),
         ])
 
-    dependencies = get_dependencies_from_mvn.__func__()
+    path = get_pom_path.__func__()
+    dependencies = get_dependencies_from_mvn.__func__(path)
     logging.info('found {} JVM dependencies'.format(len(dependencies.split(':'))))
-    conf = get_spark_config.__func__(dependencies)
+    conf = get_spark_config.__func__(path, dependencies)
     spark: SparkSession = None
 
     @classmethod

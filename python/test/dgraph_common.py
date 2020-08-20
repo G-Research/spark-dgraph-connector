@@ -13,6 +13,8 @@
 #  limitations under the License.
 
 import logging
+import os
+
 from spark_common import SparkTest
 
 
@@ -24,13 +26,21 @@ class DgraphClusterTest(SparkTest):
     _jdgraph = None
     dgraph = None
 
+    @staticmethod
+    def get_pom_path() -> str:
+        paths = ['.', '..', os.path.join('..', '..')]
+        for path in paths:
+            if os.path.exists(os.path.join(path, 'pom.xml')):
+                return path
+        raise RuntimeError('Could not find path to pom.xml, looked here: {}'.format(', '.join(paths)))
+
     @classmethod
     def setUpClass(cls):
         super(DgraphClusterTest, cls).setUpClass()
         logging.info('launching Dgraph')
 
         jvm = cls.spark._jvm
-        cls._jdgraph = jvm.uk.co.gresearch.spark.dgraph.DgraphCluster('../../', False)
+        cls._jdgraph = jvm.uk.co.gresearch.spark.dgraph.DgraphCluster(DgraphClusterTest.get_pom_path(), False)
         cls._jdgraph.start()
 
         cls.dgraph = Object()

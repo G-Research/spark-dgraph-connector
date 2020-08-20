@@ -15,8 +15,9 @@ jobs:
     strategy:
       matrix:
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
+        python-version: [3.6]
 
-    name: Build and Test (Dgraph ${{ matrix.dgraph-version }})
+    name: Build and Test (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
 
     steps:
@@ -28,17 +29,38 @@ jobs:
       with:
         java-version: 1.8
 
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r python/requirements.txt
+        pip install pytest
+
     - name: Build and Test
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: mvn --batch-mode test
 
+    - name: PyTest
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+        PYTHONPATH: python:python/test
+      run: |
+        mkdir -p target/surefire-reports
+        python -m pytest python/test --junit-xml target/surefire-reports/pytest.xml
+
     - name: Upload Test Results
       if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
-        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }})
-        path: target/surefire-reports/TEST-uk.co.gresearch.spark.dgraph.*.xml
+        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
+        path: |
+          target/surefire-reports/*.xml
+          !target/surefire-reports/TEST-org.scalatest*.xml
 
     - name: Test Report
       if: ${{ failure() }}
@@ -48,12 +70,12 @@ jobs:
       if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
-        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }})
+        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
         path: target/site/surefire-report.html
 
     - name: Unit Test Report
       if: ${{ always() }}
       uses: scacap/action-surefire-report@v1.0.3
       with:
-        check_name: Unit Test Report (Dgraph ${{ matrix.dgraph-version }})
+        check_name: Unit Test Report (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
         github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -12,11 +12,16 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pyspark.sql import DataFrame
-from dgraph_common import DgraphClusterTest
+import logging
+
+logger = logging.getLogger()
+logger.level = logging.INFO
 
 import unittest
 
+from pyspark.sql import DataFrame
+
+from dgraph_common import DgraphClusterTest
 from gresearch.spark.dgraph import connector
 
 
