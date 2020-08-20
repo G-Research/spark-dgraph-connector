@@ -17,15 +17,13 @@
 package uk.co.gresearch.spark.dgraph
 
 import java.sql.Timestamp
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
-import org.apache.spark.sql.{DataFrame, DataFrameReader, Encoder, Encoders}
+import org.apache.spark.sql.DataFrameReader
 
 package object connector {
 
@@ -204,50 +202,10 @@ package object connector {
   case class Transaction(context: TxnContext)
 
   implicit class DgraphDataFrameReader(reader: DataFrameReader) {
-
-    val tripleEncoder: Encoder[TypedTriple] = Encoders.product[TypedTriple]
-    val edgeEncoder: Encoder[Edge] = Encoders.product[Edge]
-    val nodeEncoder: Encoder[TypedNode] = Encoders.product[TypedNode]
-
     /**
-     * Loads all triples of a Dgraph database into a DataFrame. Requires at least one target.
-     * Use dgraphTriples(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     *
-     * @param target  a target
-     * @param targets more targets
-     * @return triples DataFrame
+     * Helper to load data of a Dgraph database into a DataFrame.
      */
-    def dgraphTriples(target: String, targets: String*): DataFrame =
-      reader
-        .format(TriplesSource)
-        .load(Seq(target) ++ targets: _*)
-
-    /**
-     * Loads all edges of a Dgraph database into a DataFrame. Requires at least one target.
-     * Use dgraphEdges(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     *
-     * @param target  a target
-     * @param targets more targets
-     * @return edges DataFrame
-     */
-    def dgraphEdges(target: String, targets: String*): DataFrame =
-      reader
-        .format(EdgesSource)
-        .load(Seq(target) ++ targets: _*)
-
-    /**
-     * Loads all ndoes of a Dgraph database into a DataFrame. Requires at least one target.
-     * Use dgraphNodes(targets.head, targets.tail: _*) if need to provide a Seq[String].
-     *
-     * @param target  a target
-     * @param targets more targets
-     * @return nodes DataFrame
-     */
-    def dgraphNodes(target: String, targets: String*): DataFrame =
-      reader
-        .format(NodesSource)
-        .load(Seq(target) ++ targets: _*)
-
+    def dgraph: DgraphReader = DgraphReader(reader)
   }
 
   implicit class AnyValue(value: Any) {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.co.gresearch.spark.dgraph.connector.nodes
+package uk.co.gresearch.spark.dgraph.nodes
 
 import uk.co.gresearch.spark.dgraph.connector.sources.NodeSource
 

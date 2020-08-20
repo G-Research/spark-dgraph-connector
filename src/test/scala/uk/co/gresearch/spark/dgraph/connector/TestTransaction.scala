@@ -23,7 +23,7 @@ import io.grpc.ManagedChannel
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
-import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource
+import uk.co.gresearch.spark.dgraph.connector.sources.{TestTriplesSource, TriplesSourceExpecteds}
 
 class TestTransaction extends FunSpec with SparkTestSession with DgraphTestCluster {
 
@@ -35,7 +35,7 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
   describe("Connector") {
 
     def mutate(): Unit = {
-      val channels: Seq[ManagedChannel] = Seq(toChannel(Target(cluster.grpc)))
+      val channels: Seq[ManagedChannel] = Seq(toChannel(Target(dgraph.target)))
       try {
         val client: DgraphClient = getClientFromChannel(channels)
 
@@ -44,20 +44,20 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
             s"""
                |_:1 <dgraph.type> "Person" .
                |_:1 <name> "Obi-Wan 'Ben' Kenobi" .
-               |<0x${sw1.toHexString}> <starring> _:1 .
+               |<0x${dgraph.sw1.toHexString}> <starring> _:1 .
                |""".stripMargin
           ))
           .setCommitNow(true).build()
 
         val mutationUpdate = Mutation.newBuilder()
           .setSetNquads(ByteString.copyFromUtf8(
-            s"""<0x${leia.toHexString}> <name> "Princess Leia Organa" .""".stripMargin
+            s"""<0x${dgraph.leia.toHexString}> <name> "Princess Leia Organa" .""".stripMargin
           ))
           .setCommitNow(true).build()
 
         val mutationDelete = Mutation.newBuilder()
           .setDelNquads(ByteString.copyFromUtf8(
-            s"""<0x${sw1.toHexString}> <starring> <0x${leia.toHexString}> .""".stripMargin
+            s"""<0x${dgraph.sw1.toHexString}> <starring> <0x${dgraph.leia.toHexString}> .""".stripMargin
           ))
           .setCommitNow(true).build()
 
@@ -78,34 +78,34 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
     }
 
     it("should read in transaction") {
-      val before = spark.read.dgraphTriples(cluster.grpc)
+      val before = spark.read.dgraph.triples(dgraph.target)
       val beforeTriples = before.as[TypedTriple].collect().toSet
-      assert(beforeTriples === TestTriplesSource.getExpectedTypedTriples(this))
+      assert(beforeTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
 
       mutate()
       val afterBeforeTriples = before.as[TypedTriple].collect().toSet
       assert(beforeTriples === afterBeforeTriples)
 
-      val after = spark.read.dgraphTriples(cluster.grpc)
+      val after = spark.read.dgraph.triples(dgraph.target)
       val afterTriples = after.as[TypedTriple].collect().toSet
 
       val expectedAfterTriples =
         beforeTriples
           // minus updated
-          .filterNot(t => t.subject == leia && t.predicate == "name")
+          .filterNot(t => t.subject == dgraph.leia && t.predicate == "name")
           // minus deleted
-          .filterNot(t => t.subject == sw1 && t.predicate == "starring" && t.objectUid.contains(leia)) ++
+          .filterNot(t => t.subject == dgraph.sw1 && t.predicate == "starring" && t.objectUid.contains(dgraph.leia)) ++
           // plus
           Seq(
             // plus updated
             beforeTriples
-              .find(t => t.subject == leia && t.predicate == "name")
+              .find(t => t.subject == dgraph.leia && t.predicate == "name")
               .map(_.copy(objectString = Some("Princess Leia Organa")))
               .get,
             // plus insterted
-            TypedTriple(highestUid + 1, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-            TypedTriple(highestUid + 1, "name", None, Some("Obi-Wan 'Ben' Kenobi"), None, None, None, None, None, None, "string"),
-            TypedTriple(sw1, "starring", Some(highestUid + 1), None, None, None, None, None, None, None, "uid")
+            TypedTriple(dgraph.highestUid + 1, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
+            TypedTriple(dgraph.highestUid + 1, "name", None, Some("Obi-Wan 'Ben' Kenobi"), None, None, None, None, None, None, "string"),
+            TypedTriple(dgraph.sw1, "starring", Some(dgraph.highestUid + 1), None, None, None, None, None, None, None, "uid")
           ).toSet
 
       assert(afterTriples !== beforeTriples)
