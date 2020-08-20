@@ -32,13 +32,15 @@ val edges: DataFrame = spark.read.dgraph.edges(target)
 val nodes: DataFrame = spark.read.dgraph.nodes(target)
 ```
 
-With PySpark (pyspark 2.4.2 and ≥3.0) you can use the `spark.read.format(…).load(…)` approach
-(see [PySpark Shell and Python script](#pyspark-shell-and-python-script)):
+Example Python code (pyspark 2.4.2 and ≥3.0, see [PySpark Shell and Python script](#pyspark-shell-and-python-script)):
 
 ```python
-spark.read.format("uk.co.gresearch.spark.dgraph.triples").load("localhost:9080")
-spark.read.format("uk.co.gresearch.spark.dgraph.nodes").load("localhost:9080")
-spark.read.format("uk.co.gresearch.spark.dgraph.edges").load("localhost:9080")
+from pyspark.sql import DataFrame
+from gresearch.spark.dgraph import connector
+
+triples: DataFrame = spark.read.dgraph.triples("localhost:9080")
+edges: DataFrame = spark.read.dgraph.edges("localhost:9080")
+nodes: DataFrame = spark.read.dgraph.nodes("localhost:9080")
 ```
 
 ## Limitations
@@ -697,3 +699,9 @@ the cluster setup yourself.
 You can set the Dgraph version that is started automatically
 by setting environment variable `DGRAPH_TEST_CLUSTER_VERSION`.
 The default version is defined in `uk.co.gresearch.spark.dgraph.DgraphTestCluster.DgraphDefaultVersion`.
+
+The Python code can be tested with `pytest`:
+
+```shell script
+PYTHONPATH="python:python/test" python -m pytest python/test
+```
