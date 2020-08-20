@@ -17,12 +17,13 @@
 package uk.co.gresearch.spark.dgraph
 
 import java.util.UUID
+import java.nio.file.Paths
 
 import com.google.gson.{Gson, JsonArray, JsonObject}
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.scalatest.{Assertions, BeforeAndAfterAll, Suite}
+import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.{RequestBlob, Response}
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
@@ -34,62 +35,83 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.sys.process.{Process, ProcessLogger}
 
-trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
+trait DgraphTestCluster extends BeforeAndAfterAll {
+  this: Suite =>
+
+  val clusterAlwaysStartUp: Boolean = false
+
+  lazy val dgraph = new DgraphCluster(alwaysStartUp = clusterAlwaysStartUp)
+
+  override protected def beforeAll(): Unit = dgraph.start()
+
+  override protected def afterAll(): Unit = dgraph.stop()
+}
+
+/**
+ * A Dgraph cluster that uses a running external cluster, if available, or launches its own cluster otherwise.
+ *
+ * @param alwaysStartUp ignores running cluster and starts a new if true
+ */
+class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = false) extends Logging {
 
   // Set this environment variable to a dgraph version to run all unit tests against that cluster version
   // keep env var name and value in-sync with dgraph-instance.start.sh
   val DgraphVersionEnvVar = "DGRAPH_TEST_CLUSTER_VERSION"
   val DgraphDefaultVersion = "20.07.0"
   val clusterVersion: String = sys.env.getOrElse(DgraphVersionEnvVar, DgraphDefaultVersion)
-  val clusterAlwaysStartUp = false  // ignores running cluster and starts a new if true
-  val cluster: DgraphCluster = DgraphCluster(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
-  def clusterTarget: String = cluster.grpc
+
+  private val instance: DgraphDockerContainer = DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
+  def target: String = instance.grpc
+  def targetLocalIp: String = instance.grpcLocalIp
 
   val testClusterRunning: Boolean = isDgraphClusterRunning && (!DgraphTestCluster.isDockerInstalled || runningDockerDgraphCluster.isEmpty)
-  if (clusterAlwaysStartUp || !testClusterRunning)
-    assert(DgraphTestCluster.isDockerInstalled, "docker must be installed")
+  if (alwaysStartUp || !testClusterRunning)
+    if (!DgraphTestCluster.isDockerInstalled)
+      throw new IllegalStateException("docker must be installed")
 
-  lazy val graphQlSchema: Long = cluster.uids("dgraph.graphql.schema")
-  lazy val han: Long = cluster.uids("han")
-  lazy val irvin: Long = cluster.uids("irvin")
-  lazy val leia: Long = cluster.uids("leia")
-  lazy val lucas: Long = cluster.uids("lucas")
-  lazy val luke: Long = cluster.uids("luke")
-  lazy val richard: Long = cluster.uids("richard")
-  lazy val st1: Long = cluster.uids("st1")
-  lazy val sw1: Long = cluster.uids("sw1")
-  lazy val sw2: Long = cluster.uids("sw2")
-  lazy val sw3: Long = cluster.uids("sw3")
+  lazy val graphQlSchema: Long = instance.uids("dgraph.graphql.schema")
+  lazy val han: Long = instance.uids("han")
+  lazy val irvin: Long = instance.uids("irvin")
+  lazy val leia: Long = instance.uids("leia")
+  lazy val lucas: Long = instance.uids("lucas")
+  lazy val luke: Long = instance.uids("luke")
+  lazy val richard: Long = instance.uids("richard")
+  lazy val st1: Long = instance.uids("st1")
+  lazy val sw1: Long = instance.uids("sw1")
+  lazy val sw2: Long = instance.uids("sw2")
+  lazy val sw3: Long = instance.uids("sw3")
   lazy val allUids: Seq[Long] = Seq(graphQlSchema, han, irvin, leia, lucas, luke, richard, st1, sw1, sw2, sw3).sorted
-  lazy val highestUid: Long = cluster.uids.values.max
+  lazy val highestUid: Long = instance.uids.values.max
 
   def runningDockerDgraphCluster: List[String] =
     Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList)
       .filter(_.nonEmpty).getOrElse(List.empty)
 
-  override protected def beforeAll(): Unit = {
-    if (testClusterRunning && !clusterAlwaysStartUp) {
+  def start(): Unit = {
+    if (testClusterRunning && !alwaysStartUp) {
       // this file is created when dgraph-instance.insert.sh is run, see README.md, section Examples
-      val source = scala.io.Source.fromFile("dgraph-instance.inserted.json")
+      val path = Paths.get(pathToInsertedJson, "dgraph-instance.inserted.json").toString
+      val source = scala.io.Source.fromFile(path)
       val json = try source.mkString finally source.close()
-      cluster.uids = cluster.getUids(json)
+      instance.uids = instance.getUids(json)
     } else {
       if(runningDockerDgraphCluster.nonEmpty) {
         log.warn(s"killing unit test docker dgraph cluster running from an earlier test run: ${runningDockerDgraphCluster.mkString(", ")}")
         val result = DgraphTestCluster.run(Seq("docker", "container", "kill") ++ runningDockerDgraphCluster : _*)
-        assert(result === 0, s"could not kill running docker container ${runningDockerDgraphCluster.mkString(", ")}")
+        if (result != 0)
+          throw new RuntimeException(s"could not kill running docker container ${runningDockerDgraphCluster.mkString(", ")}")
       }
 
-      cluster.start()
+      instance.start()
     }
-    cluster.uids = cluster.uids ++ lookupGraphQlSchema()
+    instance.uids = instance.uids ++ lookupGraphQlSchema()
 
-    log.debug(s"cluster uids: ${cluster.uids.map { case (key, value) => s"$key=$value"}.mkString(", ")}")
+    log.debug(s"cluster uids: ${instance.uids.map { case (key, value) => s"$key=$value"}.mkString(", ")}")
   }
 
-  override protected def afterAll(): Unit = {
-    if (clusterAlwaysStartUp || !testClusterRunning)
-      cluster.stop()
+  def stop(): Unit = {
+    if (alwaysStartUp || !testClusterRunning)
+      instance.stop()
   }
 
   def lookupGraphQlSchema(): Map[String, Long] = {
@@ -105,17 +127,17 @@ trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
     @tailrec
     def attempt(no: Int, limit: Int): Uid = {
       val transaction = Transaction(TxnContext.newBuilder().build())
-      val json = DgraphExecutor(transaction, Seq(Target(cluster.grpc))).query(query)
+      val json = DgraphExecutor(transaction, Seq(Target(target))).query(query)
       log.debug(s"retrieved dgraph.graphql.schema node: ${json.string}")
 
       val encoder = TestEncoder()
       val nodes = encoder.getNodes(encoder.getResult(json, "result")).toSeq
-      if (nodes.size === 0) {
+      if (nodes.isEmpty) {
         if (no < limit) {
           Thread.sleep(1000)
           attempt(no + 1, limit)
         } else {
-          throw new IllegalStateException("Failed read graphql schema")
+          throw new RuntimeException("Failed read graphql schema")
         }
       } else {
         val node = nodes.head
@@ -155,7 +177,12 @@ trait DgraphTestCluster extends BeforeAndAfterAll with Logging { this: Suite =>
 
 }
 
-case class DgraphCluster(name: String, version: String) extends Assertions with Logging {
+/**
+ * A Dgraph cluster instance running in a docker container.
+ * @param name docker container name
+ * @param version dgraph version (numerical, without prefix 'v')
+ */
+case class DgraphDockerContainer(name: String, version: String) extends Logging {
 
   var process: Option[Process] = None
   var sync: Object = new Object
@@ -185,7 +212,7 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
       process = launchCluster(portOffset.get)
       process
     }.next()
-    assert(process.isDefined === true)
+    if(process.isEmpty) throw new RuntimeException("could not start dgraph docker container")
 
     // https://discuss.dgraph.io/t/shuri-20-07-0-does-not-auto-populate-dgraph-graphql-instance/9369
     // for 20.07.0 and later we need to DROP_ALL to get an empty dgraph.graphql node with dgraph.graphql.schema = ""
@@ -197,7 +224,8 @@ case class DgraphCluster(name: String, version: String) extends Assertions with 
   }
 
   def stop(): Unit = {
-    assert(process.isDefined === true)
+    if(process.isEmpty)
+      throw new IllegalStateException("dgraph docker container has not been started")
     log.info("stopping dgraph cluster")
     assert(DgraphTestCluster.run("docker", "container", "kill", name) == 0)
     process.foreach(_.exitValue())

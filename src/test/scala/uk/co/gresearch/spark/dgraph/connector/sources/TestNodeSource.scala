@@ -18,15 +18,18 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, Row, SparkSession}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.DgraphTestCluster
+import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
 import uk.co.gresearch.spark.dgraph.connector._
+
+import scala.reflect.runtime.universe._
 
 class TestNodeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
@@ -37,73 +40,15 @@ class TestNodeSource extends FunSpec
 
   describe("NodeDataSource") {
 
-    lazy val expectedTypedNodes = Set(
-      TypedNode(graphQlSchema, "dgraph.type", Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
-      TypedNode(graphQlSchema, "dgraph.graphql.xid", Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
-      TypedNode(graphQlSchema, "dgraph.graphql.schema", Some(""), None, None, None, None, None, None, "string"),
-      TypedNode(st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(st1, "name", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
-      TypedNode(st1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
-      TypedNode(st1, "revenue", None, None, Some(1.39E8), None, None, None, None, "double"),
-      TypedNode(st1, "running_time", None, Some(132), None, None, None, None, None, "long"),
-      TypedNode(leia, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(leia, "name", Some("Princess Leia"), None, None, None, None, None, None, "string"),
-      TypedNode(lucas, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(lucas, "name", Some("George Lucas"), None, None, None, None, None, None, "string"),
-      TypedNode(irvin, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(irvin, "name", Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
-      TypedNode(sw1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(sw1, "name", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
-      TypedNode(sw1, "release_date", None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
-      TypedNode(sw1, "revenue", None, None, Some(7.75E8), None, None, None, None, "double"),
-      TypedNode(sw1, "running_time", None, Some(121), None, None, None, None, None, "long"),
-      TypedNode(sw2, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(sw2, "name", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
-      TypedNode(sw2, "release_date", None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
-      TypedNode(sw2, "revenue", None, None, Some(5.34E8), None, None, None, None, "double"),
-      TypedNode(sw2, "running_time", None, Some(124), None, None, None, None, None, "long"),
-      TypedNode(luke, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(luke, "name", Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
-      TypedNode(han, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(han, "name", Some("Han Solo"), None, None, None, None, None, None, "string"),
-      TypedNode(richard, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
-      TypedNode(richard, "name", Some("Richard Marquand"), None, None, None, None, None, None, "string"),
-      TypedNode(sw3, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(sw3, "name", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
-      TypedNode(sw3, "release_date", None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
-      TypedNode(sw3, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
-      TypedNode(sw3, "running_time", None, Some(131), None, None, None, None, None, "long"),
-    )
+    lazy val expecteds = NodesSourceExpecteds(dgraph)
+    lazy val expectedTypedNodes = expecteds.getExpectedTypedNodes
+    lazy val expectedWideNodes = expecteds.getExpectedWideNodes
+    lazy val expectedWideSchema: StructType = expecteds.getExpectedWideNodeSchema
 
     def doTestLoadTypedNodes(load: () => DataFrame): Unit = {
       val nodes = load().as[TypedNode].collect().toSet
       assert(nodes === expectedTypedNodes)
     }
-
-    lazy val expectedWideNodes = Set(
-      Row(graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null),
-      Row(st1, null, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132),
-      Row(leia, null, null, "Person", "Princess Leia", null, null, null),
-      Row(lucas, null, null, "Person", "George Lucas", null, null, null),
-      Row(irvin, null, null, "Person", "Irvin Kernshner", null, null, null),
-      Row(sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121),
-      Row(sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124),
-      Row(luke, null, null, "Person", "Luke Skywalker", null, null, null),
-      Row(han, null, null, "Person", "Han Solo", null, null, null),
-      Row(richard, null, null, "Person", "Richard Marquand", null, null, null),
-      Row(sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131)
-    )
-
-    val expectedWideSchema: StructType = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("dgraph.graphql.schema", StringType, nullable = true),
-      StructField("dgraph.graphql.xid", StringType, nullable = true),
-        StructField("dgraph.type", StringType, nullable = true),
-        StructField("name", StringType, nullable = true),
-        StructField("release_date", TimestampType, nullable = true),
-        StructField("revenue", DoubleType, nullable = true),
-        StructField("running_time", LongType, nullable = true)
-    ))
 
     def doTestLoadWideNodes(load: () => DataFrame): Unit = {
       val df = load()
@@ -117,7 +62,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load(cluster.grpc)
+          .load(dgraph.target)
       )
     }
 
@@ -126,7 +71,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load(cluster.grpc, cluster.grpcLocalIp)
+          .load(dgraph.target, dgraph.targetLocalIp)
       )
     }
 
@@ -135,7 +80,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .option(TargetOption, cluster.grpc)
+          .option(TargetOption, dgraph.target)
           .load()
       )
     }
@@ -145,7 +90,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
+          .option(TargetsOption, s"""["${dgraph.target}","${dgraph.targetLocalIp}"]""")
           .load()
       )
     }
@@ -154,7 +99,7 @@ class TestNodeSource extends FunSpec
       doTestLoadTypedNodes(() =>
         spark
           .read
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -162,7 +107,7 @@ class TestNodeSource extends FunSpec
       doTestLoadTypedNodes(() =>
         spark
           .read
-          .dgraphNodes(cluster.grpc, cluster.grpcLocalIp)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -171,7 +116,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .option(NodesModeOption, NodesModeTypedOption)
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -180,7 +125,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .option(NodesModeOption, NodesModeWideOption)
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -193,7 +138,7 @@ class TestNodeSource extends FunSpec
             PartitionerOption -> PredicatePartitionerOption,
             PredicatePartitionerPredicatesOption -> "1"
           ))
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -206,9 +151,9 @@ class TestNodeSource extends FunSpec
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "1",
             UidRangePartitionerUidsPerPartOption -> "1",
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -223,7 +168,7 @@ class TestNodeSource extends FunSpec
             PredicatePartitionerPredicatesOption -> "2",
             ChunkSizeOption -> "3"
           ))
-          .dgraphNodes(cluster.grpc)
+          .dgraph.nodes(dgraph.target)
       )
     }
 
@@ -232,7 +177,7 @@ class TestNodeSource extends FunSpec
         spark
           .read
           .format(NodesSource)
-          .load(cluster.grpc)
+          .load(dgraph.target)
           .as[TypedNode]
           .collectAsList()
       assert(rows.size() === 35)
@@ -258,13 +203,13 @@ class TestNodeSource extends FunSpec
     }
 
     it("should load as a single partition") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val targets = Seq(Target(target))
       val partitions =
         spark
           .read
           .option(PartitionerOption, SingletonPartitionerOption)
-          .dgraphNodes(target)
+          .dgraph.nodes(target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -283,13 +228,13 @@ class TestNodeSource extends FunSpec
     }
 
     it("should load as a predicate partitions") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val partitions =
         spark
           .read
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
-          .dgraphNodes(target)
+          .dgraph.nodes(target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -297,33 +242,33 @@ class TestNodeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.type"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("revenue"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("running_time"), Set.empty).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set("release_date", "name"), Set.empty).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date", "name"), Set.empty).getAll)
       )
 
       assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val partitions =
         spark
           .read
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphNodes(target)
+          .dgraph.nodes(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
       // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
-      val allUidInts = allUids.map(_.toInt).toSet
-      val expected = (1 to highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
+      val allUidInts = dgraph.allUids.map(_.toInt).toSet
+      val expected = (1 to dgraph.highestUid.toInt).grouped(7).map(_.toSet intersect allUidInts).toSeq
       assert(partitions === expected)
     }
 
@@ -335,7 +280,7 @@ class TestNodeSource extends FunSpec
           PartitionerOption -> PredicatePartitionerOption,
           PredicatePartitionerPredicatesOption -> "2"
         ))
-        .dgraphNodes(cluster.grpc)
+        .dgraph.nodes(dgraph.target)
         .as[TypedNode]
 
     lazy val wideNodes =
@@ -345,7 +290,7 @@ class TestNodeSource extends FunSpec
           NodesModeOption -> NodesModeWideOption,
           PartitionerOption -> PredicatePartitionerOption
         ))
-        .dgraphNodes(cluster.grpc)
+        .dgraph.nodes(dgraph.target)
 
 
     def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
@@ -363,27 +308,27 @@ class TestNodeSource extends FunSpec
 
     it("should push subject filters") {
       doTestsFilterPushDown(
-        $"subject" === leia,
-        Set(SubjectIsIn(Uid(leia))),
+        $"subject" === dgraph.leia,
+        Set(SubjectIsIn(Uid(dgraph.leia))),
         Seq.empty,
-        (n: TypedNode) => n.subject == leia,
-        (r: Row) => r.getLong(0) == leia
+        (n: TypedNode) => n.subject == dgraph.leia,
+        (r: Row) => r.getLong(0) == dgraph.leia
       )
 
       doTestsFilterPushDown(
-        $"subject".isin(leia),
-        Set(SubjectIsIn(Uid(leia))),
+        $"subject".isin(dgraph.leia),
+        Set(SubjectIsIn(Uid(dgraph.leia))),
         Seq.empty,
-        (n: TypedNode) => n.subject == leia,
-        (r: Row) => r.getLong(0) == leia
+        (n: TypedNode) => n.subject == dgraph.leia,
+        (r: Row) => r.getLong(0) == dgraph.leia
       )
 
       doTestsFilterPushDown(
-        $"subject".isin(leia, luke),
-        Set(SubjectIsIn(Uid(leia), Uid(luke))),
+        $"subject".isin(dgraph.leia, dgraph.luke),
+        Set(SubjectIsIn(Uid(dgraph.leia), Uid(dgraph.luke))),
         Seq.empty,
-        (n: TypedNode) => Set(leia, luke).contains(n.subject),
-        (r: Row) => Set(leia, luke).contains(r.getLong(0))
+        (n: TypedNode) => Set(dgraph.leia, dgraph.luke).contains(n.subject),
+        (r: Row) => Set(dgraph.leia, dgraph.luke).contains(r.getLong(0))
       )
     }
 
@@ -510,10 +455,10 @@ class TestNodeSource extends FunSpec
         doTestFilterPushDown(wideNodes,
           $"name" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
           Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getInt(columns.indexOf("running_time"))).exists(_.equals(121)))
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L)))
         )
 
-        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getInt(columns.indexOf("running_time")))).exists(_.equals(121)))
+        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getLong(columns.indexOf("running_time")))).exists(_.equals(121)))
         assert(expected.isEmpty, "expect empty result for this query, check query")
         doTestFilterPushDown(wideNodes,
           $"name" === "Luke Skywalker" && $"running_time" === 121,
@@ -630,6 +575,88 @@ class TestNodeSource extends FunSpec
 
     }
 
+    it("should provide expected wide nodes") {
+      expecteds.getExpectedTypedNodeDf(spark).show(false)
+    }
+
   }
+
+}
+
+case class NodesSourceExpecteds(cluster: DgraphCluster) {
+
+  def getDataFrame[T <: Product : TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
+    spark.createDataset(rows.toSeq)(Encoders.product[T]).toDF()
+
+  def getExpectedTypedNodeDf(spark: SparkSession): DataFrame =
+    getDataFrame(getExpectedTypedNodes, spark)(typeTag[TypedNode])
+
+  def getExpectedTypedNodes: Set[TypedNode] =
+    Set(
+      TypedNode(cluster.graphQlSchema, "dgraph.type", Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.graphQlSchema, "dgraph.graphql.xid", Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.graphQlSchema, "dgraph.graphql.schema", Some(""), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.st1, "name", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.st1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
+      TypedNode(cluster.st1, "revenue", None, None, Some(1.39E8), None, None, None, None, "double"),
+      TypedNode(cluster.st1, "running_time", None, Some(132L), None, None, None, None, None, "long"),
+      TypedNode(cluster.leia, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.leia, "name", Some("Princess Leia"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.lucas, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.lucas, "name", Some("George Lucas"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.irvin, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.irvin, "name", Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "name", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "release_date", None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedNode(cluster.sw1, "revenue", None, None, Some(7.75E8), None, None, None, None, "double"),
+      TypedNode(cluster.sw1, "running_time", None, Some(121L), None, None, None, None, None, "long"),
+      TypedNode(cluster.sw2, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "name", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "release_date", None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
+      TypedNode(cluster.sw2, "revenue", None, None, Some(5.34E8), None, None, None, None, "double"),
+      TypedNode(cluster.sw2, "running_time", None, Some(124L), None, None, None, None, None, "long"),
+      TypedNode(cluster.luke, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.luke, "name", Some("Luke Skywalker"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.han, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.han, "name", Some("Han Solo"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.richard, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.richard, "name", Some("Richard Marquand"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "name", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "release_date", None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
+      TypedNode(cluster.sw3, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
+      TypedNode(cluster.sw3, "running_time", None, Some(131L), None, None, None, None, None, "long"),
+    )
+
+  def getExpectedWideNodeSchema: StructType = StructType(Seq(
+    StructField("subject", LongType, nullable = false),
+    StructField("dgraph.graphql.schema", StringType, nullable = true),
+    StructField("dgraph.graphql.xid", StringType, nullable = true),
+    StructField("dgraph.type", StringType, nullable = true),
+    StructField("name", StringType, nullable = true),
+    StructField("release_date", TimestampType, nullable = true),
+    StructField("revenue", DoubleType, nullable = true),
+    StructField("running_time", LongType, nullable = true)
+  ))
+
+  def getExpectedWideNodeDf(spark: SparkSession): DataFrame =
+    spark.createDataset(getExpectedWideNodes.toSeq)(RowEncoder(getExpectedWideNodeSchema)).toDF()
+
+  def getExpectedWideNodes: Set[Row] =
+    Set(
+      Row(cluster.graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null),
+      Row(cluster.st1, null, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132L),
+      Row(cluster.leia, null, null, "Person", "Princess Leia", null, null, null),
+      Row(cluster.lucas, null, null, "Person", "George Lucas", null, null, null),
+      Row(cluster.irvin, null, null, "Person", "Irvin Kernshner", null, null, null),
+      Row(cluster.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121L),
+      Row(cluster.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124L),
+      Row(cluster.luke, null, null, "Person", "Luke Skywalker", null, null, null),
+      Row(cluster.han, null, null, "Person", "Han Solo", null, null, null),
+      Row(cluster.richard, null, null, "Person", "Richard Marquand", null, null, null),
+      Row(cluster.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131L)
+    )
 
 }

@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
-package uk.co.gresearch.spark.dgraph.connector.edges
+package uk.co.gresearch.spark.dgraph.graphframes
 
-import uk.co.gresearch.spark.dgraph.connector.sources.EdgeSource
+import org.apache.spark.sql.{DataFrame, DataFrameReader}
+import org.graphframes.GraphFrame
+import uk.co.gresearch.spark.dgraph
 
-class DefaultSource() extends EdgeSource
+case class GraphFramesReader(reader: DataFrameReader) {
+  def graphframes(targets: String*): GraphFrame =
+    dgraph.graphframes.loadGraph(reader, targets: _*)
+
+  def vertices(targets: String*): DataFrame =
+    dgraph.graphframes.loadVertices(reader, targets: _*)
+
+  def edges(targets: String*): DataFrame =
+    dgraph.graphframes.loadEdges(reader, targets: _*)
+}

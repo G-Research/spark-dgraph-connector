@@ -25,10 +25,10 @@ class TestClusterStateProvider extends FunSpec with DgraphTestCluster {
 
     it("should retrieve cluster state") {
       val provider = new ClusterStateProvider {}
-      val state = provider.getClusterState(Target(cluster.grpc))
+      val state = provider.getClusterState(Target(dgraph.target))
       assert(state.isDefined === true)
       assert(state.get === ClusterState(
-        Map("1" -> Set(Target(cluster.grpc))),
+        Map("1" -> Set(Target(dgraph.target))),
         Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
         state.get.cid
@@ -37,9 +37,9 @@ class TestClusterStateProvider extends FunSpec with DgraphTestCluster {
 
     it("should retrieve cluster states") {
       val provider = new ClusterStateProvider {}
-      val state = provider.getClusterState(Seq(Target(cluster.grpc), Target(cluster.grpcLocalIp)))
+      val state = provider.getClusterState(Seq(Target(dgraph.target), Target(dgraph.targetLocalIp)))
       assert(state === ClusterState(
-        Map("1" -> Set(Target(cluster.grpc))),
+        Map("1" -> Set(Target(dgraph.target))),
         Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
         state.cid

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-package uk.co.gresearch.spark.dgraph.connector.triples
+package uk.co.gresearch.spark.dgraph.edges
 
-import uk.co.gresearch.spark.dgraph.connector.sources.TripleSource
+import uk.co.gresearch.spark.dgraph.connector.sources.EdgeSource
 
-class DefaultSource() extends TripleSource
+class DefaultSource() extends EdgeSource

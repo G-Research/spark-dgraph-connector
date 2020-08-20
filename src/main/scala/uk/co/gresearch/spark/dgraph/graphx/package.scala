@@ -87,16 +87,7 @@ package object graphx extends TargetsConfigParser {
   }
 
   implicit class GraphxDataFrameReader(reader: DataFrameReader) {
-
-    def dgraph(targets: String*): Graph[VertexProperty, EdgeProperty] =
-      graphx.loadGraph(reader, targets.map(Target): _*)
-
-    def dgraphVertices(targets: String*): RDD[(VertexId, VertexProperty)] =
-      graphx.loadVertices(reader, targets.map(Target): _*)
-
-    def dgraphEdges(targets: String*): RDD[GraphxEdge[EdgeProperty]] =
-      graphx.loadEdges(reader, targets.map(Target): _*)
-
+    def dgraph: GraphxReader = GraphxReader(reader)
   }
 
 }

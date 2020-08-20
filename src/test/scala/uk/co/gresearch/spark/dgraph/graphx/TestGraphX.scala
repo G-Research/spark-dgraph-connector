@@ -35,17 +35,17 @@ class TestGraphX extends FunSpec
       val pageRank = graph.pageRank(0.0001)
       val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).toSet
       val expected = Set(
-        (graphQlSchema,0.8118081180811808),
-        (st1,0.8118081180811808),
-        (leia,1.3293357933579335),
-        (lucas,0.9843173431734319),
-        (irvin,0.9843173431734319),
-        (sw1,0.8118081180811808),
-        (sw2,0.8118081180811808),
-        (luke,1.3293357933579335),
-        (han,1.3293357933579335),
-        (richard,0.9843173431734319),
-        (sw3,0.8118081180811808),
+        (dgraph.graphQlSchema,0.8118081180811808),
+        (dgraph.st1,0.8118081180811808),
+        (dgraph.leia,1.3293357933579335),
+        (dgraph.lucas,0.9843173431734319),
+        (dgraph.irvin,0.9843173431734319),
+        (dgraph.sw1,0.8118081180811808),
+        (dgraph.sw2,0.8118081180811808),
+        (dgraph.luke,1.3293357933579335),
+        (dgraph.han,1.3293357933579335),
+        (dgraph.richard,0.9843173431734319),
+        (dgraph.sw3,0.8118081180811808),
       ).map(t => (t._1, t._2.toFloat))
       assert(vertices === expected)
     }
@@ -53,41 +53,41 @@ class TestGraphX extends FunSpec
     def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
       val vertices = load().collect().toSet
       val expected = Set(
-        (graphQlSchema,StringVertexProperty("dgraph.type", "dgraph.graphql")),
-        (graphQlSchema,StringVertexProperty("dgraph.graphql.xid", "dgraph.graphql.schema")),
-        (graphQlSchema,StringVertexProperty("dgraph.graphql.schema", "")),
-        (st1, StringVertexProperty("dgraph.type", "Film")),
-        (st1, StringVertexProperty("name", "Star Trek: The Motion Picture")),
-        (st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
-        (st1, DoubleVertexProperty("revenue", 1.39E8)),
-        (st1, LongVertexProperty("running_time", 132)),
-        (leia, StringVertexProperty("dgraph.type", "Person")),
-        (leia, StringVertexProperty("name", "Princess Leia")),
-        (lucas, StringVertexProperty("dgraph.type", "Person")),
-        (lucas, StringVertexProperty("name", "George Lucas")),
-        (irvin, StringVertexProperty("dgraph.type", "Person")),
-        (irvin, StringVertexProperty("name", "Irvin Kernshner")),
-        (sw1, StringVertexProperty("dgraph.type", "Film")),
-        (sw1, StringVertexProperty("name", "Star Wars: Episode IV - A New Hope")),
-        (sw1, TimestampVertexProperty("release_date", Timestamp.valueOf("1977-05-25 00:00:00.0"))),
-        (sw1, DoubleVertexProperty("revenue", 7.75E8)),
-        (sw1, LongVertexProperty("running_time", 121)),
-        (sw2, StringVertexProperty("dgraph.type", "Film")),
-        (sw2, StringVertexProperty("name", "Star Wars: Episode V - The Empire Strikes Back")),
-        (sw2, TimestampVertexProperty("release_date", Timestamp.valueOf("1980-05-21 00:00:00.0"))),
-        (sw2, DoubleVertexProperty("revenue", 5.34E8)),
-        (sw2, LongVertexProperty("running_time", 124)),
-        (luke, StringVertexProperty("dgraph.type", "Person")),
-        (luke, StringVertexProperty("name", "Luke Skywalker")),
-        (han, StringVertexProperty("dgraph.type", "Person")),
-        (han, StringVertexProperty("name", "Han Solo")),
-        (richard, StringVertexProperty("dgraph.type", "Person")),
-        (richard, StringVertexProperty("name", "Richard Marquand")),
-        (sw3, StringVertexProperty("dgraph.type", "Film")),
-        (sw3, StringVertexProperty("name", "Star Wars: Episode VI - Return of the Jedi")),
-        (sw3, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
-        (sw3, DoubleVertexProperty("revenue", 5.72E8)),
-        (sw3, LongVertexProperty("running_time", 131)),
+        (dgraph.graphQlSchema,StringVertexProperty("dgraph.type", "dgraph.graphql")),
+        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.xid", "dgraph.graphql.schema")),
+        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.schema", "")),
+        (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
+        (dgraph.st1, StringVertexProperty("name", "Star Trek: The Motion Picture")),
+        (dgraph.st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
+        (dgraph.st1, DoubleVertexProperty("revenue", 1.39E8)),
+        (dgraph.st1, LongVertexProperty("running_time", 132)),
+        (dgraph.leia, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.leia, StringVertexProperty("name", "Princess Leia")),
+        (dgraph.lucas, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.lucas, StringVertexProperty("name", "George Lucas")),
+        (dgraph.irvin, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.irvin, StringVertexProperty("name", "Irvin Kernshner")),
+        (dgraph.sw1, StringVertexProperty("dgraph.type", "Film")),
+        (dgraph.sw1, StringVertexProperty("name", "Star Wars: Episode IV - A New Hope")),
+        (dgraph.sw1, TimestampVertexProperty("release_date", Timestamp.valueOf("1977-05-25 00:00:00.0"))),
+        (dgraph.sw1, DoubleVertexProperty("revenue", 7.75E8)),
+        (dgraph.sw1, LongVertexProperty("running_time", 121)),
+        (dgraph.sw2, StringVertexProperty("dgraph.type", "Film")),
+        (dgraph.sw2, StringVertexProperty("name", "Star Wars: Episode V - The Empire Strikes Back")),
+        (dgraph.sw2, TimestampVertexProperty("release_date", Timestamp.valueOf("1980-05-21 00:00:00.0"))),
+        (dgraph.sw2, DoubleVertexProperty("revenue", 5.34E8)),
+        (dgraph.sw2, LongVertexProperty("running_time", 124)),
+        (dgraph.luke, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.luke, StringVertexProperty("name", "Luke Skywalker")),
+        (dgraph.han, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.han, StringVertexProperty("name", "Han Solo")),
+        (dgraph.richard, StringVertexProperty("dgraph.type", "Person")),
+        (dgraph.richard, StringVertexProperty("name", "Richard Marquand")),
+        (dgraph.sw3, StringVertexProperty("dgraph.type", "Film")),
+        (dgraph.sw3, StringVertexProperty("name", "Star Wars: Episode VI - Return of the Jedi")),
+        (dgraph.sw3, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
+        (dgraph.sw3, DoubleVertexProperty("revenue", 5.72E8)),
+        (dgraph.sw3, LongVertexProperty("running_time", 131)),
       )
       assert(vertices === expected)
     }
@@ -95,25 +95,25 @@ class TestGraphX extends FunSpec
     def doEdgeTest(load: () => RDD[Edge[EdgeProperty]]): Unit = {
       val edges = load().collect().toSet
       val expected = Set(
-        Edge(sw1, leia, EdgeProperty("starring")),
-        Edge(sw1, lucas, EdgeProperty("director")),
-        Edge(sw1, luke, EdgeProperty("starring")),
-        Edge(sw1, han, EdgeProperty("starring")),
-        Edge(sw2, leia, EdgeProperty("starring")),
-        Edge(sw2, irvin, EdgeProperty("director")),
-        Edge(sw2, luke, EdgeProperty("starring")),
-        Edge(sw2, han, EdgeProperty("starring")),
-        Edge(sw3, leia, EdgeProperty("starring")),
-        Edge(sw3, luke, EdgeProperty("starring")),
-        Edge(sw3, han, EdgeProperty("starring")),
-        Edge(sw3, richard, EdgeProperty("director")),
+        Edge(dgraph.sw1, dgraph.leia, EdgeProperty("starring")),
+        Edge(dgraph.sw1, dgraph.lucas, EdgeProperty("director")),
+        Edge(dgraph.sw1, dgraph.luke, EdgeProperty("starring")),
+        Edge(dgraph.sw1, dgraph.han, EdgeProperty("starring")),
+        Edge(dgraph.sw2, dgraph.leia, EdgeProperty("starring")),
+        Edge(dgraph.sw2, dgraph.irvin, EdgeProperty("director")),
+        Edge(dgraph.sw2, dgraph.luke, EdgeProperty("starring")),
+        Edge(dgraph.sw2, dgraph.han, EdgeProperty("starring")),
+        Edge(dgraph.sw3, dgraph.leia, EdgeProperty("starring")),
+        Edge(dgraph.sw3, dgraph.luke, EdgeProperty("starring")),
+        Edge(dgraph.sw3, dgraph.han, EdgeProperty("starring")),
+        Edge(dgraph.sw3, dgraph.richard, EdgeProperty("director")),
       )
       assert(edges === expected)
     }
 
     Seq(
-      ("target", () => Seq(cluster.grpc)),
-      ("targets", () => Seq(cluster.grpc, cluster.grpcLocalIp))
+      ("target", () => Seq(dgraph.target)),
+      ("targets", () => Seq(dgraph.target, dgraph.targetLocalIp))
     ).foreach{case (test, targets) =>
 
       it(s"should load dgraph from $test via implicit session") {
@@ -121,7 +121,7 @@ class TestGraphX extends FunSpec
       }
 
       it(s"should load dgraph from $test via reader") {
-        doGraphTest(() => spark.read.dgraph(targets(): _*))
+        doGraphTest(() => spark.read.dgraph.graphx(targets(): _*))
       }
 
       it(s"should load vertices from $test via implicit session") {
@@ -129,7 +129,7 @@ class TestGraphX extends FunSpec
       }
 
       it(s"should load vertices from $test via reader") {
-        doVertexTest(() => spark.read.dgraphVertices(targets(): _*))
+        doVertexTest(() => spark.read.dgraph.vertices(targets(): _*))
       }
 
       it(s"should load edges from $test via implicit session") {
@@ -137,7 +137,7 @@ class TestGraphX extends FunSpec
       }
 
       it(s"should load edges from $test via reader") {
-        doEdgeTest(() => spark.read.dgraphEdges(targets(): _*))
+        doEdgeTest(() => spark.read.dgraph.edges(targets(): _*))
       }
 
     }

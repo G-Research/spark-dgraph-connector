@@ -18,11 +18,13 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.{Column, DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Encoders, Row, SparkSession}
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
+
+import scala.reflect.runtime.universe._
 
 class TestEdgeSource extends FunSpec
   with SparkTestSession with DgraphTestCluster
@@ -33,20 +35,8 @@ class TestEdgeSource extends FunSpec
 
   describe("EdgeDataSource") {
 
-    lazy val expectedEdges = Set(
-      Row(sw1, "director", lucas),
-      Row(sw1, "starring", leia),
-      Row(sw1, "starring", luke),
-      Row(sw1, "starring", han),
-      Row(sw2, "director", irvin),
-      Row(sw2, "starring", leia),
-      Row(sw2, "starring", luke),
-      Row(sw2, "starring", han),
-      Row(sw3, "director", richard),
-      Row(sw3, "starring", leia),
-      Row(sw3, "starring", luke),
-      Row(sw3, "starring", han),
-    )
+    lazy val expecteds = EdgesSourceExpecteds(dgraph)
+    lazy val expectedEdges = expecteds.getExpectedEdgeDf(spark).collect().toSet
 
     def doTestLoadEdges(load: () => DataFrame): Unit = {
       val edges = load().collect().toSet
@@ -58,7 +48,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load(cluster.grpc)
+          .load(dgraph.target)
       )
     }
 
@@ -67,7 +57,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load(cluster.grpc, cluster.grpcLocalIp)
+          .load(dgraph.target, dgraph.targetLocalIp)
       )
     }
 
@@ -76,7 +66,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .option(TargetOption, cluster.grpc)
+          .option(TargetOption, dgraph.target)
           .load()
       )
     }
@@ -86,7 +76,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .option(TargetsOption, s"""["${cluster.grpc}","${cluster.grpcLocalIp}"]""")
+          .option(TargetsOption, s"""["${dgraph.target}","${dgraph.targetLocalIp}"]""")
           .load()
       )
     }
@@ -95,7 +85,7 @@ class TestEdgeSource extends FunSpec
       doTestLoadEdges(() =>
         spark
           .read
-          .dgraphEdges(cluster.grpc)
+          .dgraph.edges(dgraph.target)
       )
     }
 
@@ -103,7 +93,7 @@ class TestEdgeSource extends FunSpec
       doTestLoadEdges(() =>
         spark
           .read
-          .dgraphEdges(cluster.grpc, cluster.grpcLocalIp)
+          .dgraph.edges(dgraph.target)
       )
     }
 
@@ -116,7 +106,7 @@ class TestEdgeSource extends FunSpec
             PredicatePartitionerPredicatesOption -> "2",
             ChunkSizeOption -> "3"
           ))
-          .dgraphEdges(cluster.grpc, cluster.grpcLocalIp)
+          .dgraph.edges(dgraph.target)
       )
     }
 
@@ -125,7 +115,7 @@ class TestEdgeSource extends FunSpec
         spark
           .read
           .format(EdgesSource)
-          .load(cluster.grpc)
+          .load(dgraph.target)
           .as[Edge]
           .collectAsList()
       assert(rows.size() === 12)
@@ -141,13 +131,13 @@ class TestEdgeSource extends FunSpec
     }
 
     it("should load as a single partition") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val targets = Seq(Target(target))
       val partitions =
         spark
           .read
           .option(PartitionerOption, SingletonPartitionerOption)
-          .dgraphEdges(target)
+          .dgraph.edges(target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -157,13 +147,13 @@ class TestEdgeSource extends FunSpec
     }
 
     it("should load as a predicate partitions") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val partitions =
         spark
           .read
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
-          .dgraphEdges(target)
+          .dgraph.edges(target)
           .rdd
           .partitions.map {
           case p: DataSourceRDDPartition => Some(p.inputPartition)
@@ -171,15 +161,15 @@ class TestEdgeSource extends FunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("director")).getAll),
-        Some(Partition(Seq(Target(cluster.grpc))).has(Set.empty, Set("starring")).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director")).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("starring")).getAll)
       )
 
       assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
-      val target = cluster.grpc
+      val target = dgraph.target
       val partitions =
         spark
           .read
@@ -187,15 +177,15 @@ class TestEdgeSource extends FunSpec
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
             UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
-            MaxLeaseIdEstimatorIdOption -> highestUid.toString
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
-          .dgraphEdges(target)
+          .dgraph.edges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
       // we retrieve partitions in chunks of 2 uids, if there are uids allocated but unused then we get partitions with less than 2 uids
-      val uids = Set(sw1, sw2, sw3).map(_.toInt)
-      val expected = (1 to highestUid.toInt).grouped(2).map(_.toSet intersect uids).toSeq
+      val uids = Set(dgraph.sw1, dgraph.sw2, dgraph.sw3).map(_.toInt)
+      val expected = (1 to dgraph.highestUid.toInt).grouped(2).map(_.toSet intersect uids).toSeq
       assert(partitions === expected)
     }
 
@@ -206,25 +196,25 @@ class TestEdgeSource extends FunSpec
           PartitionerOption -> PredicatePartitionerOption,
           PredicatePartitionerPredicatesOption -> "2"
         ))
-        .dgraphEdges(cluster.grpc)
+        .dgraph.edges(dgraph.target)
 
     it("should push subject filters") {
       doTestFilterPushDown(
-        $"subject" === leia,
-        Set(SubjectIsIn(Uid(leia))),
-        expectedDf = expectedEdges.filter(_.getLong(0) == leia)
+        $"subject" === dgraph.leia,
+        Set(SubjectIsIn(Uid(dgraph.leia))),
+        expectedDf = expectedEdges.filter(_.getLong(0) == dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"subject".isin(leia),
-        Set(SubjectIsIn(Uid(leia))),
-        expectedDf = expectedEdges.filter(_.getLong(0) == leia)
+        $"subject".isin(dgraph.leia),
+        Set(SubjectIsIn(Uid(dgraph.leia))),
+        expectedDf = expectedEdges.filter(_.getLong(0) == dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"subject".isin(leia, luke),
-        Set(SubjectIsIn(Uid(leia), Uid(luke))),
-        expectedDf = expectedEdges.filter(r => Set(leia, luke).contains(r.getLong(0)))
+        $"subject".isin(dgraph.leia, dgraph.luke),
+        Set(SubjectIsIn(Uid(dgraph.leia), Uid(dgraph.luke))),
+        expectedDf = expectedEdges.filter(r => Set(dgraph.leia, dgraph.luke).contains(r.getLong(0)))
       )
     }
 
@@ -250,21 +240,21 @@ class TestEdgeSource extends FunSpec
 
     it("should push object value filters") {
       doTestFilterPushDown(
-        $"objectUid" === leia,
-        Set(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(_.getLong(2) == leia)
+        $"objectUid" === dgraph.leia,
+        Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(_.getLong(2) == dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"objectUid".isin(leia),
-        Set(ObjectValueIsIn(leia), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(_.getLong(2) == leia)
+        $"objectUid".isin(dgraph.leia),
+        Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(_.getLong(2) == dgraph.leia)
       )
 
       doTestFilterPushDown(
-        $"objectUid".isin(leia, lucas),
-        Set(ObjectValueIsIn(leia, lucas), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(r => Set(leia, lucas).contains(r.getLong(2)))
+        $"objectUid".isin(dgraph.leia, dgraph.lucas),
+        Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
+        expectedDf = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
       )
     }
 
@@ -296,5 +286,31 @@ class TestEdgeSource extends FunSpec
     }
 
   }
+
+}
+
+case class EdgesSourceExpecteds(cluster: DgraphCluster) {
+
+  def getDataFrame[T <: Product : TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
+    spark.createDataset(rows.toSeq)(Encoders.product[T]).toDF()
+
+  def getExpectedEdgeDf(spark: SparkSession): DataFrame =
+    getDataFrame(getExpectedEdges, spark)(typeTag[Edge])
+
+  def getExpectedEdges: Set[Edge] =
+    Set(
+      Edge(cluster.sw1, "director", cluster.lucas),
+      Edge(cluster.sw1, "starring", cluster.leia),
+      Edge(cluster.sw1, "starring", cluster.luke),
+      Edge(cluster.sw1, "starring", cluster.han),
+      Edge(cluster.sw2, "director", cluster.irvin),
+      Edge(cluster.sw2, "starring", cluster.leia),
+      Edge(cluster.sw2, "starring", cluster.luke),
+      Edge(cluster.sw2, "starring", cluster.han),
+      Edge(cluster.sw3, "director", cluster.richard),
+      Edge(cluster.sw3, "starring", cluster.leia),
+      Edge(cluster.sw3, "starring", cluster.luke),
+      Edge(cluster.sw3, "starring", cluster.han),
+    )
 
 }

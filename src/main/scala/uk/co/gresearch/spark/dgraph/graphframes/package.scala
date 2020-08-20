@@ -34,8 +34,10 @@ package object graphframes {
 
   def loadVertices(reader: DataFrameReader, targets: String*): DataFrame = {
     val vertices =
-      DgraphDataFrameReader(reader.option(NodesModeOption, NodesModeWideOption).option(PredicatePartitionerPredicatesOption, "1"))
-        .dgraphNodes(targets.head, targets.tail: _*)
+      DgraphDataFrameReader(
+        reader.option(NodesModeOption, NodesModeWideOption)
+      )
+        .dgraph.nodes(targets.head, targets.tail: _*)
         .withColumnRenamed("subject", "id")
     val renamedColumns =
       vertices.columns.map(f =>
@@ -49,7 +51,7 @@ package object graphframes {
 
   def loadEdges(reader: DataFrameReader, targets: String*): DataFrame =
     DgraphDataFrameReader(reader)
-      .dgraphEdges(targets.head, targets.tail: _*)
+      .dgraph.edges(targets.head, targets.tail: _*)
       .select(
         col("subject").as("src"),
         col("objectUid").as("dst"),
@@ -57,16 +59,7 @@ package object graphframes {
       )
 
   implicit class GraphFrameDataFrameReader(reader: DataFrameReader) {
-
-    def dgraph(targets: String*): GraphFrame =
-      graphframes.loadGraph(reader, targets: _*)
-
-    def dgraphVertices(targets: String*): DataFrame =
-      graphframes.loadVertices(reader, targets: _*)
-
-    def dgraphEdges(targets: String*): DataFrame =
-      graphframes.loadEdges(reader, targets: _*)
-
+    def dgraph: GraphFramesReader = GraphFramesReader(reader)
   }
 
 }
