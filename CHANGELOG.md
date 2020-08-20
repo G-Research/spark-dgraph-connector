@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Load data from Dgraph cluster as [GraphFrames](https://graphframes.github.io/graphframes/docs/_site/index.html) `GraphFrame`.
 - Reads all partitions within the same transaction. This guarantees a consistent snapshot of the graph ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
   However, concurrent mutations can reduce the lifetime of a transaction.
-- Add example how to load Dgraph data in PySpark. Fixed dependency conflicts between connector dependencies and Spark.
+- Add Python API that mirrors the Scala API. The README.md fully documents how to load Dgraph data in PySpark.
+  Fixed dependency conflicts between connector dependencies and Spark.
 
 ### Changed
 - Refactored connector API, renamed `spark.read.dgraph*` methods to `spark.read.dgraph.*`.
