@@ -36,7 +36,7 @@ Example Python code (pyspark 2.4.2 and ≥3.0, see [PySpark Shell and Python scr
 
 ```python
 from pyspark.sql import DataFrame
-from gresearch.spark.dgraph import connector
+from gresearch.spark.dgraph.connector import *
 
 triples: DataFrame = spark.read.dgraph.triples("localhost:9080")
 edges: DataFrame = spark.read.dgraph.edges("localhost:9080")
