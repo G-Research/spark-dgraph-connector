@@ -19,8 +19,6 @@ logger.level = logging.INFO
 
 import unittest
 
-from pyspark.sql import DataFrame
-
 from dgraph_common import DgraphClusterTest
 from gresearch.spark.dgraph.connector import *
 

@@ -12,9 +12,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from py4j.java_gateway import JavaObject
 from pyspark.sql import DataFrameReader
 from pyspark.sql.dataframe import DataFrame
-
 
 TriplesSource: str = 'uk.co.gresearch.spark.dgraph.triples'
 EdgesSource: str = 'uk.co.gresearch.spark.dgraph.edges'
@@ -61,7 +61,7 @@ class DgraphReader:
         self._spark = reader._spark
         self._reader = self._jvm.uk.co.gresearch.spark.dgraph.connector.DgraphReader(reader._jreader)
 
-    def _toSeq(self, list):
+    def _toSeq(self, list) -> JavaObject:
         array = self._jvm.java.util.ArrayList(list)
         return self._jvm.scala.collection.JavaConverters.asScalaIteratorConverter(array.iterator()).asScala().toSeq()
 

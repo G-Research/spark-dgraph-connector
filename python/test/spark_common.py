@@ -23,7 +23,7 @@ from pyspark.sql import SparkSession
 
 
 @contextlib.contextmanager
-def spark_session():
+def spark_session() -> SparkSession:
     from pyspark.sql import SparkSession
 
     session = SparkSession \

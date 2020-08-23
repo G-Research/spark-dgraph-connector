@@ -1,7 +1,7 @@
 # Spark Dgraph Connector
 
 This project provides an [Apache Spark](https://spark.apache.org/) connector
-for [Dgraph databases](https://dgraph.io/).
+for [Dgraph databases](https://dgraph.io/) in Scala and Python.
 It comes with a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html)
 to read graphs from a Dgraph cluster directly into
 [DataFrames](https://spark.apache.org/docs/latest/sql-programming-guide.html),
