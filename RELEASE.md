@@ -6,9 +6,12 @@ This provides instructions on how to release a version of `spark-dgraph-connecto
 
 Follow this procedure to release a new version from default branch `spark-3.0`:
 
-- Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.0] - 2020-06-09`. No need to mention the branch as `CHANGELOG.md` is branch-specific.
+- Add a new entry to `CHANGELOG.md` listing all notable changes of this release.
+  Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.0] - 2020-06-09`.
+  No need to mention the branch as `CHANGELOG.md` is branch-specific.
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.0-3.0-SNAPSHOT` → `1.1.0-3.0`.
-- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version, e.g. replace all `1.0.0-3.0` with `1.1.0-3.0` and `1.0.0-2.4` with `1.1.0-2.4`, respectively.
+- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version,
+  e.g. replace all `1.0.0-3.0` with `1.1.0-3.0` and `1.0.0-2.4` with `1.1.0-2.4`, respectively.
   All these changes should occur in the `Using Spark Dgraph Connector` section and its subsections.
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.0`. Do not push to github yet.
 - Tag that commit with a version tag like `v1.1.0_spark-3.0` and message like `Release v1.1.0`. Do not push to github yet.
@@ -96,9 +99,12 @@ Remember to also merge the bug-fix into the default branch `spark-3.0`. Also con
 This is very similar to [releasing from default branch](#releasing-from-default-branch),
 but the version increment occurs on [patch level](https://semver.org/):
 
-- Add a new entry to `CHANGELOG.md` listing all notable changes of this release. Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.1] - 2020-06-09`. No need to mention the branch as `CHANGELOG.md` is branch-specific.
+- Add a new entry to `CHANGELOG.md` listing all notable changes of this release.
+  Use the heading `## [VERSION] - YYYY-MM-dd`, e.g. `## [1.1.1] - 2020-06-09`.
+  No need to mention the branch as `CHANGELOG.md` is branch-specific.
 - Remove the `-SNAPSHOT` suffix from `<version>` in the [`pom.xml`](pom.xml) file, e.g. `1.1.1-3.0-SNAPSHOT` → `1.1.1-3.0`.
-- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version, e.g. replace all `1.1.0-3.0` with `1.1.1-3.0` and `1.1.0-2.4` with `1.1.1-2.4`, respectively.
+- Update the versions in the `README.md` file to the version of your `pom.xml` to reflect the latest version,
+  e.g. replace all `1.1.0-3.0` with `1.1.1-3.0` and `1.1.0-2.4` with `1.1.1-2.4`, respectively.
   All these changes should occur in the `Using Spark Dgraph Connector` section and its subsections.
 - Commit the change to your local git repository, use a commit message like `Releasing 1.1.1`. Do not push to github yet.
 - Tag that commit with a version tag like `v1.1.1_spark-3.0` and message like `Release v1.1.1`. Do not push to github yet.
