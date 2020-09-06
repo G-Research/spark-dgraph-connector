@@ -13,6 +13,7 @@ on:
 jobs:
   build-and-test:
     strategy:
+      fail-fast: false
       matrix:
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
