@@ -1,24 +1,17 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - spark-*
-    tags:
-      - v*
-  pull_request:
-    branches:
-      - spark-*
+on: [push]
 
 jobs:
   build-and-test:
+    name: Build and Test (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
-
-    name: Build and Test (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout
@@ -53,30 +46,36 @@ jobs:
         mkdir -p target/surefire-reports
         python -m pytest python/test --junit-xml target/surefire-reports/pytest.xml
 
-    - name: Upload Test Results
-      if: ${{ failure() }}
+    - name: Generate Unit Test Report
+      if: failure()
+      run: mvn --batch-mode surefire-report:report-only
+
+    - name: Upload Unit Test Results
+      if: failure()
       uses: actions/upload-artifact@v2
       with:
         name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
         path: |
           target/surefire-reports/*.xml
           !target/surefire-reports/TEST-org.scalatest*.xml
+          target/site/surefire-report.html
 
-    - name: Test Report
-      if: ${{ failure() }}
-      run: mvn --batch-mode surefire-report:report-only
+  publish-test-results:
+    name: "Publish Unit Tests Results"
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: always()
 
-    - name: Upload Report
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
-        path: target/site/surefire-report.html
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
 
-    - name: Unit Test Report
-      if: ${{ always() }}
-      uses: scacap/action-surefire-report@v1.0.3
-      with:
-        check_name: Unit Test Report (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        report_paths: "**/surefire-reports/*.xml"
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@master
+        with:
+          check_name: Unit Test Results
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: "artifacts/**/*.xml"
+          log_level: DEBUG
