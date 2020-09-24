@@ -560,7 +560,7 @@ The GRPC library used by the dgraph client requires Guava ≥20.0, where ≥24.1
 
 …in the `pom.xml`file. Otherwise, we would see this error:
 
-      java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
+    java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
       at io.grpc.Metadata$Key.validateName(Metadata.java:629)
       at io.grpc.Metadata$Key.<init>(Metadata.java:637)
       at io.grpc.Metadata$Key.<init>(Metadata.java:567)
@@ -584,7 +584,7 @@ Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
 
 …to get rid of these errors:
 
-      java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
+    java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
       at java.base/java.lang.ClassLoader.defineClass1(Native Method)
       at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
       at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:174)
@@ -596,7 +596,7 @@ Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
       at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
       at io.dgraph.AsyncTransaction.<init>(AsyncTransaction.java:48)
       ...
-      Cause: java.lang.ClassNotFoundException: com.google.protobuf.GeneratedMessageV3
+    Cause: java.lang.ClassNotFoundException: com.google.protobuf.GeneratedMessageV3
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:581)
       at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
       at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
@@ -609,44 +609,44 @@ Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
       at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
 
     Exception in thread "grpc-default-executor-0" java.lang.NoSuchMethodError: 'void com.google.protobuf.GeneratedMessageV3.serializeStringMapTo(com.google.protobuf.CodedOutputStream, com.google.protobuf.MapField, com.google.protobuf.MapEntry, int)'
-        at io.dgraph.DgraphProto$Request.writeTo(DgraphProto.java:477)
-        at com.google.protobuf.AbstractMessageLite.writeTo(AbstractMessageLite.java:83)
-        at io.grpc.protobuf.lite.ProtoInputStream.drainTo(ProtoInputStream.java:52)
-        at io.grpc.internal.MessageFramer.writeToOutputStream(MessageFramer.java:269)
-        at io.grpc.internal.MessageFramer.writeKnownLengthUncompressed(MessageFramer.java:230)
-        at io.grpc.internal.MessageFramer.writeUncompressed(MessageFramer.java:168)
-        at io.grpc.internal.MessageFramer.writePayload(MessageFramer.java:141)
-        at io.grpc.internal.AbstractStream.writeMessage(AbstractStream.java:53)
-        at io.grpc.internal.ForwardingClientStream.writeMessage(ForwardingClientStream.java:37)
-        at io.grpc.internal.DelayedStream$6.run(DelayedStream.java:257)
-        at io.grpc.internal.DelayedStream.drainPendingCalls(DelayedStream.java:163)
-        at io.grpc.internal.DelayedStream.setStream(DelayedStream.java:132)
-        at io.grpc.internal.DelayedClientTransport$PendingStream.createRealStream(DelayedClientTransport.java:358)
-        at io.grpc.internal.DelayedClientTransport$PendingStream.access$300(DelayedClientTransport.java:341)
-        at io.grpc.internal.DelayedClientTransport$5.run(DelayedClientTransport.java:300)
-        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
-        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
-        at java.base/java.lang.Thread.run(Thread.java:834)
+      at io.dgraph.DgraphProto$Request.writeTo(DgraphProto.java:477)
+      at com.google.protobuf.AbstractMessageLite.writeTo(AbstractMessageLite.java:83)
+      at io.grpc.protobuf.lite.ProtoInputStream.drainTo(ProtoInputStream.java:52)
+      at io.grpc.internal.MessageFramer.writeToOutputStream(MessageFramer.java:269)
+      at io.grpc.internal.MessageFramer.writeKnownLengthUncompressed(MessageFramer.java:230)
+      at io.grpc.internal.MessageFramer.writeUncompressed(MessageFramer.java:168)
+      at io.grpc.internal.MessageFramer.writePayload(MessageFramer.java:141)
+      at io.grpc.internal.AbstractStream.writeMessage(AbstractStream.java:53)
+      at io.grpc.internal.ForwardingClientStream.writeMessage(ForwardingClientStream.java:37)
+      at io.grpc.internal.DelayedStream$6.run(DelayedStream.java:257)
+      at io.grpc.internal.DelayedStream.drainPendingCalls(DelayedStream.java:163)
+      at io.grpc.internal.DelayedStream.setStream(DelayedStream.java:132)
+      at io.grpc.internal.DelayedClientTransport$PendingStream.createRealStream(DelayedClientTransport.java:358)
+      at io.grpc.internal.DelayedClientTransport$PendingStream.access$300(DelayedClientTransport.java:341)
+      at io.grpc.internal.DelayedClientTransport$5.run(DelayedClientTransport.java:300)
+      at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
+      at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
+      at java.base/java.lang.Thread.run(Thread.java:834)
 
     java.lang.NoSuchMethodError: com.google.protobuf.AbstractMessageLite$Builder.addAll(Ljava/lang/Iterable;Ljava/util/List;)V
-        at io.dgraph.DgraphProto$TxnContext$Builder.addAllKeys(DgraphProto.java:7656)
-        at io.dgraph.AsyncTransaction.mergeContext(AsyncTransaction.java:273)
-        at io.dgraph.AsyncTransaction.lambda$doRequest$0(AsyncTransaction.java:183)
-        at java.util.concurrent.CompletableFuture.uniApply(CompletableFuture.java:616)
-        at java.util.concurrent.CompletableFuture$UniApply.tryFire(CompletableFuture.java:591)
-        at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:488)
-        at java.util.concurrent.CompletableFuture.complete(CompletableFuture.java:1975)
-        at io.dgraph.StreamObserverBridge.onNext(StreamObserverBridge.java:27)
-        at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onMessage(ClientCalls.java:436)
-        at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
-        at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
-        at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInternal(ClientCallImpl.java:610)
-        at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInContext(ClientCallImpl.java:595)
-        at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
-        at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:123)
-        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
-        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
-        at java.lang.Thread.run(Thread.java:748)
+      at io.dgraph.DgraphProto$TxnContext$Builder.addAllKeys(DgraphProto.java:7656)
+      at io.dgraph.AsyncTransaction.mergeContext(AsyncTransaction.java:273)
+      at io.dgraph.AsyncTransaction.lambda$doRequest$0(AsyncTransaction.java:183)
+      at java.util.concurrent.CompletableFuture.uniApply(CompletableFuture.java:616)
+      at java.util.concurrent.CompletableFuture$UniApply.tryFire(CompletableFuture.java:591)
+      at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:488)
+      at java.util.concurrent.CompletableFuture.complete(CompletableFuture.java:1975)
+      at io.dgraph.StreamObserverBridge.onNext(StreamObserverBridge.java:27)
+      at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onMessage(ClientCalls.java:436)
+      at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
+      at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
+      at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInternal(ClientCallImpl.java:610)
+      at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInContext(ClientCallImpl.java:595)
+      at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
+      at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:123)
+      at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+      at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+      at java.lang.Thread.run(Thread.java:748)
 
 ## Logging
 

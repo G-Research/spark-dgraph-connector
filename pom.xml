@@ -133,6 +133,7 @@
     </dependency>
 
     <!-- Spark Core pulls in too old of a version -->
+    <!-- Spark won't upgrade that version any time soon: https://issues.apache.org/jira/browse/SPARK-23897 -->
     <!-- Minimum required version used here so that other dependencies can evict it with higher ones -->
     <!-- Version 20.0 is the first known to work but it has a security vulnerability fixed in 24.1.1 -->
     <!-- https://github.com/advisories/GHSA-mvr2-9pj6-7w5j -->
