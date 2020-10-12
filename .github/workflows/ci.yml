@@ -7,7 +7,14 @@ jobs:
     name: Debug action
     runs-on: ubuntu-latest
     steps:
-      - uses: hmarr/debug-action@v1.0.0
+      - name: debug action
+        uses: hmarr/debug-action@v1.0.0
+      - name: special vars
+        run: |
+          echo github:
+          echo "${{ toJSON(github) }}"
+          echo job:
+          echo "${{ toJSON(job) }}"
 
   build-and-test:
     name: Build and Test (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
