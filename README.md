@@ -14,6 +14,8 @@ and partitioning by orthogonal dimensions [predicates](#partitioning-by-predicat
 Example Scala code:
 
 ```scala
+import org.apache.spark.sql.DataFrame
+
 val target = "localhost:9080"
 
 import uk.co.gresearch.spark.dgraph.graphx._
@@ -81,26 +83,27 @@ Add this dependency to your `pom.xml` file to use the latest version:
 </dependency>
 ```
 
+### Spark Shell
+
+Launch the Scala Spark REPL (Spark ≥2.4.0) with the Spark Dgraph Connector dependency (version ≥0.5.0) as follows:
+
+```shell script
+spark-shell --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.5.0-3.0
+```
+
 ### PySpark Shell and Python script
 
-Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Connector dependency (version ≥0.4.2) as follows:
+Launch the Python Spark REPL (pyspark 2.4.2 and ≥3.0) with the Spark Dgraph Connector dependency (version ≥0.5.0) as follows:
 
 ```shell script
-pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true
+pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.5.0-3.0
 ```
 
-Run your Python scripts that use PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.4.2) via `spark-submit`:
+Run your Python scripts that use PySpark (pyspark 2.4.2 and ≥3.0) and the Spark Dgraph Connector (version ≥0.5.0) via `spark-submit`:
 
 ```shell script
-spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.4.2-3.0 --conf spark.driver.userClassPathFirst=true [script.py]
+spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.5.0-3.0 [script.py]
 ```
-
-The `--conf spark.driver.userClassPathFirst=true` is required to avoid the following exception:
-
-    java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
-
-The Dgraph Java Client dependency of this connector requires a newer version of `com.google.guava`,
-which PySpark cannot find without `spark.driver.userClassPathFirst=true`. See [Dependencies](#dependencies) for details.
 
 ## Examples
 
@@ -577,107 +580,16 @@ Due to the low memory footprint of the connector, Spark could read your entire g
 (you would have to `repartition` the read DataFrame to make Spark shuffle the data properly).
 However, this would be would slow, but it proves the connector can handle any size of graph with fixed executor memory requirement.
 
-## Dependencies
+## Shaded Dependencies
 
-The GRPC library used by the dgraph client requires Guava ≥20.0, where ≥24.1.1-jre is recommended, hence the:
+This connector comes packaged with a Java Dgraph client and all its dependencies.
+This is necessary because the Dgraph client requires Guava ≥20.0, where ≥24.1.1-jre is recommended,
+as well as Protobuf Java ≥3.4.0.
+Running this in a Spark deployment would cause these dependencies to conflict with
+older versions deployed with Spark. Therefore, these newer versions are provided with
+the connector as [shaded dependencies](http://maven.apache.org/plugins/maven-shade-plugin/) (renamed package names).
 
-```xml
-<dependency>
-  <groupId>com.google.guava</groupId>
-  <artifactId>guava</artifactId>
-  <version>[24.1.1-jre,)</version>
-</dependency>
-```
-
-…in the `pom.xml`file. Otherwise, we would see this error:
-
-    java.lang.NoSuchMethodError: 'void com.google.common.base.Preconditions.checkArgument(boolean, java.lang.String, char, java.lang.Object)'
-      at io.grpc.Metadata$Key.validateName(Metadata.java:629)
-      at io.grpc.Metadata$Key.<init>(Metadata.java:637)
-      at io.grpc.Metadata$Key.<init>(Metadata.java:567)
-      at io.grpc.Metadata$AsciiKey.<init>(Metadata.java:742)
-      at io.grpc.Metadata$AsciiKey.<init>(Metadata.java:737)
-      at io.grpc.Metadata$Key.of(Metadata.java:593)
-      at io.grpc.Metadata$Key.of(Metadata.java:589)
-      at io.grpc.internal.GrpcUtil.<clinit>(GrpcUtil.java:79)
-      at io.grpc.internal.AbstractManagedChannelImplBuilder.<clinit>(AbstractManagedChannelImplBuilder.java:84)
-      at uk.co.gresearch.spark.dgraph.connector.package$.toChannel(package.scala:113)
-
-Furthermore, we need to set `protobuf-java` ≥3.4.0 in the `pom.xml` file:
-
-```xml
-<dependency>
-  <groupId>com.google.protobuf</groupId>
-  <artifactId>protobuf-java</artifactId>
-  <version>[3.4.0,]</version>
-</dependency>
-```
-
-…to get rid of these errors:
-
-    java.lang.NoClassDefFoundError: com/google/protobuf/GeneratedMessageV3
-      at java.base/java.lang.ClassLoader.defineClass1(Native Method)
-      at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
-      at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:174)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:800)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
-      at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
-      at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
-      at io.dgraph.AsyncTransaction.<init>(AsyncTransaction.java:48)
-      ...
-    Cause: java.lang.ClassNotFoundException: com.google.protobuf.GeneratedMessageV3
-      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:581)
-      at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:178)
-      at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:522)
-      at java.base/java.lang.ClassLoader.defineClass1(Native Method)
-      at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:1017)
-      at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:174)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:800)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:698)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:621)
-      at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:579)
-
-    Exception in thread "grpc-default-executor-0" java.lang.NoSuchMethodError: 'void com.google.protobuf.GeneratedMessageV3.serializeStringMapTo(com.google.protobuf.CodedOutputStream, com.google.protobuf.MapField, com.google.protobuf.MapEntry, int)'
-      at io.dgraph.DgraphProto$Request.writeTo(DgraphProto.java:477)
-      at com.google.protobuf.AbstractMessageLite.writeTo(AbstractMessageLite.java:83)
-      at io.grpc.protobuf.lite.ProtoInputStream.drainTo(ProtoInputStream.java:52)
-      at io.grpc.internal.MessageFramer.writeToOutputStream(MessageFramer.java:269)
-      at io.grpc.internal.MessageFramer.writeKnownLengthUncompressed(MessageFramer.java:230)
-      at io.grpc.internal.MessageFramer.writeUncompressed(MessageFramer.java:168)
-      at io.grpc.internal.MessageFramer.writePayload(MessageFramer.java:141)
-      at io.grpc.internal.AbstractStream.writeMessage(AbstractStream.java:53)
-      at io.grpc.internal.ForwardingClientStream.writeMessage(ForwardingClientStream.java:37)
-      at io.grpc.internal.DelayedStream$6.run(DelayedStream.java:257)
-      at io.grpc.internal.DelayedStream.drainPendingCalls(DelayedStream.java:163)
-      at io.grpc.internal.DelayedStream.setStream(DelayedStream.java:132)
-      at io.grpc.internal.DelayedClientTransport$PendingStream.createRealStream(DelayedClientTransport.java:358)
-      at io.grpc.internal.DelayedClientTransport$PendingStream.access$300(DelayedClientTransport.java:341)
-      at io.grpc.internal.DelayedClientTransport$5.run(DelayedClientTransport.java:300)
-      at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
-      at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
-      at java.base/java.lang.Thread.run(Thread.java:834)
-
-    java.lang.NoSuchMethodError: com.google.protobuf.AbstractMessageLite$Builder.addAll(Ljava/lang/Iterable;Ljava/util/List;)V
-      at io.dgraph.DgraphProto$TxnContext$Builder.addAllKeys(DgraphProto.java:7656)
-      at io.dgraph.AsyncTransaction.mergeContext(AsyncTransaction.java:273)
-      at io.dgraph.AsyncTransaction.lambda$doRequest$0(AsyncTransaction.java:183)
-      at java.util.concurrent.CompletableFuture.uniApply(CompletableFuture.java:616)
-      at java.util.concurrent.CompletableFuture$UniApply.tryFire(CompletableFuture.java:591)
-      at java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:488)
-      at java.util.concurrent.CompletableFuture.complete(CompletableFuture.java:1975)
-      at io.dgraph.StreamObserverBridge.onNext(StreamObserverBridge.java:27)
-      at io.grpc.stub.ClientCalls$StreamObserverToCallListenerAdapter.onMessage(ClientCalls.java:436)
-      at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
-      at io.grpc.ForwardingClientCallListener.onMessage(ForwardingClientCallListener.java:33)
-      at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInternal(ClientCallImpl.java:610)
-      at io.grpc.internal.ClientCallImpl$ClientStreamListenerImpl$1MessagesAvailable.runInContext(ClientCallImpl.java:595)
-      at io.grpc.internal.ContextRunnable.run(ContextRunnable.java:37)
-      at io.grpc.internal.SerializingExecutor.run(SerializingExecutor.java:123)
-      at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
-      at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
-      at java.lang.Thread.run(Thread.java:748)
+Please refer to the [NOTICE](NOTICE) file for licences of that third-party software.
 
 ## Logging
 
