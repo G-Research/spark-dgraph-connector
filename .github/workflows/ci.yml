@@ -102,8 +102,8 @@ jobs:
       run: |
         if [[ ! -e "~/spark" ]]
         then
-          wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC /tmp
-          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v /tmp/\${archive/%.tgz/} ~/spark"
+          wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
+          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
         fi
         ls -lah ~/spark
         ls -lah ~/spark/bin
@@ -118,10 +118,11 @@ jobs:
 
     - name: Integration Tests
       env:
-        SPARK_HOME: ~/spark
+        SPARK_HOME: /home/runner/spark
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
+        ls -lahR "${{ runner.workspace }}"
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
