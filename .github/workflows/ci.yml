@@ -79,6 +79,48 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
+    - name: Parametrize Integration Tests
+      id: integration-test-params
+      run: |
+        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=spark-compat::$(git rev-parse --abbrev-ref HEAD | sed -e "s/^spark-//" -e "s/_.*//")"
+      shell: bash
+
+    - name: Cache Spark Binaries
+      uses: actions/cache@v2
+      env:
+        spark-path: /spark
+        cache-name: spark-binaries
+        spark-version: ${{ steps.integration-test-params.outputs.spark-compat }}.0
+      with:
+        path: ${{ env.spark-path }}
+        key: ${{ env.cache-name }}-${{ env.spark-version }}
+
+    - name: Setup Spark Binaries
+      id: spark-bin
+      env:
+        SPARK_PACKAGE: spark-${{ steps.integration-test-params.outputs.spark-compat }}.0/spark-${{ steps.integration-test-params.outputs.spark-compat }}.0-bin-hadoop2.7.tgz
+      run: |
+        if [[ ! -e "/spark" ]]
+        then
+          wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC /tmp
+          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v /tmp/\${archive/%.tgz/} /spark"
+        fi
+        echo "::set-output name=spark-home::/spark"
+      shell: bash
+
+    - name: Integration Tests
+      env:
+        SPARK_HOME: ${{ steps.spark-bin.outputs.spark-home }}
+        ARTIFACT_ID: ${{ steps.integration-test-params.outputs.artifact-id }}
+        VERSION: ${{ steps.integration-test-params.outputs.version }}
+      run: |
+        mvn install -DskipTests
+        cd examples/scala
+        mvn package
+        ${SPARK_HOME)/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ steps.integration-test-params.outputs.spark-compat }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+
   publish-test-results:
     name: "Publish Unit Tests Results"
     needs: build-and-test
