@@ -28,9 +28,7 @@ jobs:
           java-version: 1.8
 
       - name: Build
-        env:
-          DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-        run: mvn --batch-mode package
+        run: mvn --batch-mode compile test-compile package -DskipTests
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v2
