@@ -13,12 +13,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        spark-version: [3.0.0]
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
+        include:
+          - spark-version: '3.0.0'
+            spark-compat-version: '3.0'
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Parametrize
+      id: params
+      run: |
+        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+      shell: bash
 
     - name: Cache Pip packages
       uses: actions/cache@v2
@@ -35,6 +46,12 @@ jobs:
         key: ${{ runner.os }}-mvn-packages-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-packages-
+
+    - name: Cache Spark Binaries
+      uses: actions/cache@v2
+      with:
+        path: ~/spark
+        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
 
     - name: Setup JDK 1.8
       uses: actions/setup-java@v1
@@ -79,47 +96,27 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
-    - name: Parametrize Integration Tests
-      id: integration-test-params
-      run: |
-        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=spark-compat::$(git rev-parse --abbrev-ref HEAD | sed -e "s/^spark-//" -e "s/_.*//")"
-      shell: bash
-
-    - name: Cache Spark Binaries
-      uses: actions/cache@v2
-      env:
-        spark-path: /spark
-        cache-name: spark-binaries
-        spark-version: ${{ steps.integration-test-params.outputs.spark-compat }}.0
-      with:
-        path: ${{ env.spark-path }}
-        key: ${{ env.cache-name }}-${{ env.spark-version }}
-
     - name: Setup Spark Binaries
-      id: spark-bin
       env:
-        SPARK_PACKAGE: spark-${{ steps.integration-test-params.outputs.spark-compat }}.0/spark-${{ steps.integration-test-params.outputs.spark-compat }}.0-bin-hadoop2.7.tgz
+        SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop2.7.tgz
       run: |
-        if [[ ! -e "/spark" ]]
+        if [[ ! -e "~/spark" ]]
         then
           wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC /tmp
-          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v /tmp/\${archive/%.tgz/} /spark"
+          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v /tmp/\${archive/%.tgz/} ~/spark"
         fi
-        echo "::set-output name=spark-home::/spark"
       shell: bash
 
     - name: Integration Tests
       env:
-        SPARK_HOME: ${{ steps.spark-bin.outputs.spark-home }}
-        ARTIFACT_ID: ${{ steps.integration-test-params.outputs.artifact-id }}
-        VERSION: ${{ steps.integration-test-params.outputs.version }}
+        SPARK_HOME: ~/spark
+        ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
+        VERSION: ${{ steps.params.outputs.version }}
       run: |
         mvn install -DskipTests
         cd examples/scala
         mvn package
-        ${SPARK_HOME)/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ steps.integration-test-params.outputs.spark-compat }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME)/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
 
   publish-test-results:
     name: "Publish Unit Tests Results"
