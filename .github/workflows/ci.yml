@@ -20,7 +20,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Cache pip packages
+    - name: Cache Pip packages
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
@@ -28,7 +28,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-
 
-    - name: Cache maven packages
+    - name: Cache Maven packages
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
