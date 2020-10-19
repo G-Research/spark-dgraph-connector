@@ -280,14 +280,51 @@
           </transformers>
           <artifactSet>
             <includes>
-              <include>io.grpc:*</include>
               <include>io.dgraph:dgraph4j</include>
+              <include>io.grpc:*</include>
               <include>io.opencensus:*</include>
+              <include>io.perfmark:perfmark-api</include>
+              <include>com.google.android:annotations</include>
+              <include>com.google.api.grpc:proto-google-common-protos</include>
               <include>com.google.guava:guava</include>
               <include>com.google.protobuf:protobuf-java</include>
             </includes>
           </artifactSet>
           <relocations>
+            <relocation>
+              <pattern>android.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.android.</shadedPattern>
+              <includes>
+                <include>android.**</include>
+              </includes>
+            </relocation>
+            <relocation>
+              <pattern>com.google.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.com.google.</shadedPattern>
+              <includes>
+                <include>com.google.api.**</include>
+                <include>com.google.cloud.audit.**</include>
+                <include>com.google.logging.type.**</include>
+                <include>com.google.longrunning.**</include>
+                <include>com.google.rpc.**</include>
+                <include>com.google.type.**</include>
+                <include>com.google.common.**</include>
+                <include>com.google.protobuf.**</include>
+                <include>com.google.thirdparty.**</include>
+              </includes>
+            </relocation>
+            <relocation>
+              <pattern>google.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.google.</shadedPattern>
+              <includes>
+                <include>google.api.**</include>
+                <include>google.cloud.audit.**</include>
+                <include>google.logging.type.**</include>
+                <include>google.longrunning.**</include>
+                <include>google.rpc.**</include>
+                <include>google.type.**</include>
+              </includes>
+            </relocation>
             <relocation>
               <pattern>io.</pattern>
               <shadedPattern>uk.co.gresearch.thirdparty.io.</shadedPattern>
@@ -295,15 +332,7 @@
                 <include>io.dgraph.**</include>
                 <include>io.grpc.**</include>
                 <include>io.opencensus.**</include>
-              </includes>
-            </relocation>
-            <relocation>
-              <pattern>com.</pattern>
-              <shadedPattern>uk.co.gresearch.thirdparty.com.</shadedPattern>
-              <includes>
-                <include>com.google.common.**</include>
-                <include>com.google.protobuf.**</include>
-                <include>com.google.thirdparty.**</include>
+                <include>io.perfmark.**</include>
               </includes>
             </relocation>
           </relocations>

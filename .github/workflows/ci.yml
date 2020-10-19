@@ -113,6 +113,7 @@ jobs:
         mvn install -DskipTests
         cd examples/scala
         mvn package
+        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
         mvn dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
         mvn dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
         mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
