@@ -106,8 +106,6 @@ jobs:
           wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
           archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
         fi
-        ls -lah ~/spark
-        ls -lah ~/spark/bin
       shell: bash
 
     - name: Prepare Integration Tests
@@ -115,6 +113,11 @@ jobs:
         mvn install -DskipTests
         cd examples/scala
         mvn package
+        mvn dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
+        mvn dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
+        mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
+        mvn dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.6
+        mvn dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
       shell: bash
 
     - name: Integration Tests
@@ -123,7 +126,6 @@ jobs:
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
-        ls -lahR "${{ runner.workspace }}"
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
