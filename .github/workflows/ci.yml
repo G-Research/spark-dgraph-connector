@@ -116,7 +116,8 @@ jobs:
         mvn install -DskipTests
         cd examples/scala
         mvn package
-        ${SPARK_HOME)/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
 
   publish-test-results:
     name: "Publish Unit Tests Results"
