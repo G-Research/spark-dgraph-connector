@@ -29,6 +29,7 @@ jobs:
       run: |
         echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
         echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=home::$(cd ~; pwd)"
       shell: bash
 
     - name: Cache Pip packages
@@ -118,7 +119,7 @@ jobs:
 
     - name: Integration Tests
       env:
-        SPARK_HOME: /home/runner/spark
+        SPARK_HOME: ${{ steps.params.outputs.home }}/spark
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
