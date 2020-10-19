@@ -20,6 +20,22 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - name: Cache Pip packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-
+
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-mvn-packages-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-mvn-packages-
+
     - name: Setup JDK 1.8
       uses: actions/setup-java@v1
       with:
