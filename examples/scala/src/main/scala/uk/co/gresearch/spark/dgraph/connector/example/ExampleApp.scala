@@ -34,6 +34,7 @@ object ExampleApp {
         .config("spark.local.dir", ".")
         .getOrCreate()
     }
+    import spark.implicits._
 
     val target = "localhost:9080"
 
@@ -43,9 +44,10 @@ object ExampleApp {
       val edges: RDD[Edge[EdgeProperty]] = spark.read.dgraph.edges(target)
       val vertices: RDD[(VertexId, VertexProperty)] = spark.read.dgraph.vertices(target)
 
-      graph.edges.count()
-      edges.count()
-      vertices.count()
+      assert(graph.edges.count() == 12, graph.edges.count())
+      assert(graph.vertices.count() == 11, graph.vertices.count())
+      assert(edges.count() == 12, edges.count())
+      assert(vertices.count() == 35, vertices.count())
     }
 
     {
@@ -54,9 +56,10 @@ object ExampleApp {
       val edges: DataFrame = spark.read.dgraph.edges(target)
       val vertices: DataFrame = spark.read.dgraph.vertices(target)
 
-      graph.triangleCount.run().show()
-      edges.count()
-      vertices.count()
+      val triangles = graph.triangleCount.run().select($"id", $"count").orderBy($"id").as[(Long, Long)].collect().toSeq
+      assert(triangles == Range(1, 12).map(i => (i, 0)), triangles)
+      assert(edges.count() == 12)
+      assert(vertices.count() == 11)
     }
 
     {
@@ -65,9 +68,9 @@ object ExampleApp {
       val edges: DataFrame = spark.read.dgraph.edges(target)
       val nodes: DataFrame = spark.read.dgraph.nodes(target)
 
-      triples.show()
-      edges.show()
-      nodes.show()
+      assert(triples.count() == 47, triples.count())
+      assert(edges.count() == 12, edges.count())
+      assert(nodes.count() == 35, nodes.count())
     }
 
   }
