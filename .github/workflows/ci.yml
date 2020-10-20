@@ -35,8 +35,7 @@ jobs:
         with:
           name: Binaries
           path: |
-            .
-            !.git
+            target
             !target/*-javadoc.jar
             !target/site
 
@@ -54,32 +53,42 @@ jobs:
         spark-version: [3.0.0]
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
-        include:
-          - spark-version: '3.0.0'
-            spark-compat-version: '3.0'
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v2
       with:
         name: Binaries
-        path: .
+        path: target
 
     - name: Cache Maven packages
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-packages-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-test-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-mvn-packages-
+          ${{ runner.os }}-mvn-test-
+
+    - name: Setup JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+
+    - name: Scala Test
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: mvn --batch-mode test
 
     - name: Cache Pip packages
       uses: actions/cache@v2
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
 
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -91,16 +100,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r python/requirements.txt
         pip install pytest
-
-    - name: Setup JDK 1.8
-      uses: actions/setup-java@v1
-      with:
-        java-version: 1.8
-
-    - name: Scala Test
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-      run: mvn --batch-mode test
 
     - name: Python Test
       env:
@@ -123,6 +122,54 @@ jobs:
           target/surefire-reports/*.xml
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
+
+  publish-test-results:
+    name: Publish Unit Tests Results
+    needs: test
+
+    runs-on: ubuntu-latest
+    if: success() || failure()
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@master
+        with:
+          check_name: Unit Test Results
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: "artifacts/Unit Test Results*/**/*.xml"
+          log_level: DEBUG
+
+  integration:
+    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
+    runs-on: ubuntu-latest
+    needs: build
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+
+    strategy:
+      fail-fast: false
+      matrix:
+        spark-version: [3.0.0]
+        dgraph-version: [20.07.0]
+        include:
+          - spark-version: '3.0.0'
+            spark-compat-version: '3.0'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Binaries
+        path: target
 
     - name: Cache Spark Binaries
       uses: actions/cache@v2
@@ -191,24 +238,3 @@ jobs:
       run: |
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
-
-  publish-test-results:
-    name: Publish Unit Tests Results
-    needs: test
-
-    runs-on: ubuntu-latest
-    if: success() || failure()
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@master
-        with:
-          check_name: Unit Test Results
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: "artifacts/*Test Results*/**/*.xml"
-          log_level: DEBUG
