@@ -171,6 +171,14 @@ jobs:
         name: Binaries
         path: target
 
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-mvn-integration-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-mvn-integration-
+
     - name: Cache Spark Binaries
       uses: actions/cache@v2
       with:
@@ -181,7 +189,7 @@ jobs:
       env:
         SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop2.7.tgz
       run: |
-        if [[ ! -e "~/spark" ]]
+        if [[ ! -e ~/spark ]]
         then
           wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
           archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
