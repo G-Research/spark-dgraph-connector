@@ -78,19 +78,25 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
     }
 
     it("should read in transaction") {
-      val before = spark.read.dgraph.triples(dgraph.target)
-      val beforeTriples = before.as[TypedTriple].collect().toSet
-      assert(beforeTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
+      // the graph before any mutations, read with transaction ...
+      val beforeWithTransaction = spark.read.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target)
+      val beforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
+      assert(beforeWithTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
+      // ... and without transaction
+      val beforeWithoutTransaction = spark.read.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target)
+      val beforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
+      assert(beforeWithoutTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
 
+      // a mutation occurs
       mutate()
-      val afterBeforeTriples = before.as[TypedTriple].collect().toSet
-      assert(beforeTriples === afterBeforeTriples)
 
+      // create another dataframe after mutation
       val after = spark.read.dgraph.triples(dgraph.target)
       val afterTriples = after.as[TypedTriple].collect().toSet
 
+      // construct expected dataframe from materialized before triples
       val expectedAfterTriples =
-        beforeTriples
+        beforeWithTransactionTriples
           // minus updated
           .filterNot(t => t.subject == dgraph.leia && t.predicate == "name")
           // minus deleted
@@ -98,7 +104,7 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
           // plus
           Seq(
             // plus updated
-            beforeTriples
+            beforeWithTransactionTriples
               .find(t => t.subject == dgraph.leia && t.predicate == "name")
               .map(_.copy(objectString = Some("Princess Leia Organa")))
               .get,
@@ -108,7 +114,15 @@ class TestTransaction extends FunSpec with SparkTestSession with DgraphTestClust
             TypedTriple(dgraph.sw1, "starring", Some(dgraph.highestUid + 1), None, None, None, None, None, None, None, "uid")
           ).toSet
 
-      assert(afterTriples !== beforeTriples)
+      // no change in the dataframe with transaction
+      val afterBeforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
+      assert(afterBeforeWithTransactionTriples === beforeWithTransactionTriples)
+      // changes in the dataframe without transaction
+      val afterBeforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
+      assert(afterBeforeWithoutTransactionTriples !== beforeWithoutTransactionTriples)
+      assert(afterBeforeWithoutTransactionTriples === expectedAfterTriples)
+      // same content as in dataframe created after mutation
+      assert(afterTriples !== beforeWithTransactionTriples)
       assert(afterTriples === expectedAfterTriples)
     }
   }

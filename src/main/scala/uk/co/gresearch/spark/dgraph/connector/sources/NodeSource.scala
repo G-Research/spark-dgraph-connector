@@ -66,7 +66,7 @@ class NodeSource() extends TableProviderBase
     val adjustedOptions = adjustOptions(options)
 
     val targets = getTargets(adjustedOptions)
-    val transaction = getTransaction(targets)
+    val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets).filter(_.isProperty)
     val clusterState = getClusterState(targets)

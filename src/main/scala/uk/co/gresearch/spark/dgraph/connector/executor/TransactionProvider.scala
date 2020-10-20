@@ -17,10 +17,20 @@
 package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.grpc.ManagedChannel
-import uk.co.gresearch.spark.dgraph.connector.{Target, Transaction, getClientFromChannel, toChannel}
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import uk.co.gresearch.spark.dgraph.connector.{ConfigParser, Target, Transaction, TransactionModeDefault, TransactionModeNoneOption, TransactionModeOption, TransactionModeReadOption, getClientFromChannel, toChannel}
 
-trait TransactionProvider {
-  def getTransaction(targets: Seq[Target]): Transaction = {
+trait TransactionProvider extends ConfigParser {
+
+  def getTransaction(targets: Seq[Target], options: CaseInsensitiveStringMap): Option[Transaction] = {
+    getStringOption(TransactionModeOption, options, TransactionModeDefault) match {
+      case TransactionModeNoneOption => None
+      case TransactionModeReadOption => Some(getTransaction(targets))
+      case mode => throw new IllegalArgumentException(s"Unsupported transaction mode: $mode")
+    }
+  }
+
+  private def getTransaction(targets: Seq[Target]): Transaction = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
       val client = getClientFromChannel(channels)
@@ -31,4 +41,5 @@ trait TransactionProvider {
       channels.foreach(_.shutdown())
     }
   }
+
 }

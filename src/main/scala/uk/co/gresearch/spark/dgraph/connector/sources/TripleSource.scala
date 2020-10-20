@@ -31,11 +31,12 @@ class TripleSource() extends TableProviderBase
   with ClusterStateProvider with PartitionerProvider
   with TransactionProvider {
 
-  private var transaction: Option[Transaction] = None
+  // cache the first Option[Transaction] generated from options
+  private var transaction: Option[Option[Transaction]] = None
 
-  override def getTransaction(targets: Seq[Target]): Transaction = {
+  override def getTransaction(targets: Seq[Target], options: CaseInsensitiveStringMap): Option[Transaction] = {
     if (transaction.isEmpty) {
-      transaction = Some(super.getTransaction(targets))
+      transaction = Some(super.getTransaction(targets, options))
     }
     transaction.get
   }
@@ -47,7 +48,7 @@ class TripleSource() extends TableProviderBase
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
     val targets = getTargets(options)
-    val transaction = getTransaction(targets)
+    val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets)
     val clusterState = getClusterState(targets)

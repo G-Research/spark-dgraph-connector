@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.executor
 import uk.co.gresearch.spark.dgraph.connector.{Partition, Transaction}
 
-case class DgraphExecutorProvider(transaction: Transaction) extends ExecutorProvider {
+case class DgraphExecutorProvider(transaction: Option[Transaction]) extends ExecutorProvider {
 
   /**
    * Provide an executor for the given partition.

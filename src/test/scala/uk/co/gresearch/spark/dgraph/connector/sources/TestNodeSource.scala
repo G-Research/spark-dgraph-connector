@@ -18,13 +18,12 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
-import io.dgraph.DgraphProto.TxnContext
+import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
-import org.apache.spark.sql._
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
@@ -215,8 +214,7 @@ class TestNodeSource extends FunSpec
       Predicate("dgraph.graphql.xid", "string"),
       Predicate("dgraph.type", "string")
     ))
-    val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
-    val execution = DgraphExecutorProvider(transaction)
+    val execution = DgraphExecutorProvider(None)
     val encoder = TypedNodeEncoder(schema.predicateMap)
     implicit val model: NodeTableModel = NodeTableModel(execution, encoder, ChunkSizeDefault)
 

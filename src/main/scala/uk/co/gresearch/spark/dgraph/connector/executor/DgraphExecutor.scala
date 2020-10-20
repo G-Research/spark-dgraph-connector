@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.executor
 
+import io.dgraph.DgraphClient
 import io.grpc.ManagedChannel
 import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Logging, Target, Transaction, getClientFromChannel, toChannel}
 
@@ -26,7 +27,10 @@ import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Logging, Target, T
  * @param transaction transaction
  * @param targets dgraph cluster targets
  */
-case class DgraphExecutor(transaction: Transaction, targets: Seq[Target]) extends JsonGraphQlExecutor with Logging {
+case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]) extends JsonGraphQlExecutor with Logging {
+
+  private def getTransaction(client: DgraphClient): io.dgraph.Transaction =
+    transaction.fold(client.newReadOnlyTransaction())(txn => client.newReadOnlyTransaction(txn.context))
 
   /**
    * Executes a GraphQl query against a Dgraph cluster and returns the JSON query result.
@@ -40,7 +44,7 @@ case class DgraphExecutor(transaction: Transaction, targets: Seq[Target]) extend
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
     try {
       val client = getClientFromChannel(channels)
-      val response = client.newReadOnlyTransaction(transaction.context).query(query.string)
+      val response = getTransaction(client).query(query.string)
       val json = response.getJson.toStringUtf8
 
       if (log.isTraceEnabled)

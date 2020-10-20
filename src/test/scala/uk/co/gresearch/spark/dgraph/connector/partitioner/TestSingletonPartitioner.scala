@@ -25,13 +25,11 @@ import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
 class TestSingletonPartitioner extends FunSpec {
 
-  val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
-
   describe("SingletonPartitioner") {
 
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
     val schema = Schema(Set(Predicate("predicate", "string")))
-    val execution = DgraphExecutorProvider(transaction)
+    val execution = DgraphExecutorProvider(None)
     val encoder = TypedTripleEncoder(schema.predicateMap)
     val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
 

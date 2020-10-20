@@ -28,7 +28,7 @@ trait PartitionerProvider {
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
-                     transaction: Transaction,
+                     transaction: Option[Transaction],
                      options: CaseInsensitiveStringMap): Partitioner =
     partitionerOptions
       .flatMap(_.getPartitioner(schema, clusterState, transaction, options))

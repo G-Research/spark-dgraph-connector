@@ -126,7 +126,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
 
     @tailrec
     def attempt(no: Int, limit: Int): Uid = {
-      val transaction = Transaction(TxnContext.newBuilder().build())
+      val transaction = Some(Transaction(TxnContext.newBuilder().build()))
       val json = DgraphExecutor(transaction, Seq(Target(target))).query(query)
       log.debug(s"retrieved dgraph.graphql.schema node: ${json.string}")
 

@@ -34,7 +34,7 @@ class TestDefaultPartitionerOption extends FunSpec {
       10000,
       UUID.randomUUID()
     )
-    val transaction = Transaction(TxnContext.newBuilder().build())
+    val transaction = Some(Transaction(TxnContext.newBuilder().build()))
     val options = CaseInsensitiveStringMap.empty()
 
     it(s"should provide a partitioner") {

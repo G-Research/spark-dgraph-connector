@@ -18,7 +18,6 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
 
-import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
@@ -222,8 +221,7 @@ class TestTriplesSource extends FunSpec
       Predicate("director", "uid"),
       Predicate("starring", "uid")
     ))
-    val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
-    val execution = DgraphExecutorProvider(transaction)
+    val execution = DgraphExecutorProvider(None)
     val encoder = TypedTripleEncoder(schema.predicateMap)
     implicit val model: TripleTableModel = TripleTableModel(execution, encoder, ChunkSizeDefault)
 

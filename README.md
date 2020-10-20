@@ -50,7 +50,7 @@ nodes: DataFrame = spark.read.dgraph.nodes("localhost:9080")
 The connector is under continuous development. It has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
-- **Limited Lifetime of Transactions**: The connector reads all partitions within the same transaction, but concurrent mutations can reduce the lifetime of that transaction.
+- **Limited Lifetime of Transactions**: The connector optionally reads all partitions within the same transaction, but concurrent mutations reduce the lifetime of that transaction.
 - **Language tags & facets**: The connector cannot read any string values with language tags or facets.
 
 Beside the **language tags & facets**, which is a limitation of Dgraph, all the other issues mentioned
@@ -380,6 +380,17 @@ Though there is only a single `object` column for the destination node, it is ca
 |10     |starring |2        |
 |10     |starring |6        |
 |10     |director |8        |
+
+## Transactions
+
+Dgraph isolates reads from writes through transactions. Since the connector initiates multiple reads
+while fetching the entire graph (partitioning), writes called [mutations](https://dgraph.io/docs/mutations/)
+should be isolated in order to get a consistent snapshot of the graph.
+
+Setting the `dgraph.transaction.mode` option to `"read"` will cause the connector to read all partitions
+within the same transaction. However, this will cause an exception on the Dgraph cluster when too many
+mutations occur while reading partitions. With that option set to `"none"`, no such exception will
+occur but reads are not isolated from writes.
 
 ## Filter Pushdown
 
