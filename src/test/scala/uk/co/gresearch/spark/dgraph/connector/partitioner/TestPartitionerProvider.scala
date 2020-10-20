@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import io.dgraph.DgraphProto.TxnContext
-import org.apache.spark.sql.sources.v2.DataSourceOptions
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
@@ -62,7 +62,7 @@ class TestPartitionerProvider extends FunSpec {
 
       it(s"should provide $partOption partitioner via option") {
         val provider = new PartitionerProvider {}
-        val options = new DataSourceOptions(Map(PartitionerOption -> partOption).asJava)
+        val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> partOption).asJava)
         val partitioner = provider.getPartitioner(schema, state, transaction, options)
         assert(partitioner === expected)
       }
@@ -71,7 +71,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it("should provide default partitioner") {
       val provider = new PartitionerProvider {}
-      val options = DataSourceOptions.empty()
+      val options = CaseInsensitiveStringMap.empty()
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
@@ -81,7 +81,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it("should provide configurable default partitioner") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(
+      val options = new CaseInsensitiveStringMap(
         Map(
           PredicatePartitionerPredicatesOption -> "1",
           UidRangePartitionerUidsPerPartOption -> "2",
@@ -97,7 +97,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it("should fail on unknown partitioner option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(PartitionerOption -> "unknown").asJava)
+      val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "unknown").asJava)
       assertThrows[IllegalArgumentException] {
         provider.getPartitioner(schema, state, transaction, options)
       }
@@ -105,7 +105,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it("should fail on unknown uidRange partitioner option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(PartitionerOption -> "unknown+uid-range").asJava)
+      val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "unknown+uid-range").asJava)
       assertThrows[IllegalArgumentException] {
         provider.getPartitioner(schema, state, transaction, options)
       }
@@ -113,21 +113,21 @@ class TestPartitionerProvider extends FunSpec {
 
     it(s"should provide alpha partitioner with non-default partsPerAlpha via option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(PartitionerOption -> "alpha", AlphaPartitionerPartitionsOption -> "2").asJava)
+      val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "alpha", AlphaPartitionerPartitionsOption -> "2").asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
       assert(partitioner === alpha.copy(partitionsPerAlpha = 2))
     }
 
     it(s"should provide predicate partitioner with non-default predsPerPart via option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(PartitionerOption -> "predicate", PredicatePartitionerPredicatesOption -> "2").asJava)
+      val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> "predicate", PredicatePartitionerPredicatesOption -> "2").asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
       assert(partitioner === pred.copy(predicatesPerPartition = 2))
     }
 
     it(s"should provide uid-range partitioner with non-default values via option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(
+      val options = new CaseInsensitiveStringMap(Map(
         PartitionerOption -> "uid-range",
         UidRangePartitionerUidsPerPartOption -> "2",
         UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
@@ -138,7 +138,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it(s"should provide alpha uid-range partitioner with non-default values via option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(
+      val options = new CaseInsensitiveStringMap(Map(
         PartitionerOption -> "alpha+uid-range",
         AlphaPartitionerPartitionsOption -> "2",
         UidRangePartitionerUidsPerPartOption -> "2",
@@ -151,7 +151,7 @@ class TestPartitionerProvider extends FunSpec {
 
     it(s"should provide predicate partitioner with non-default values via option") {
       val provider = new PartitionerProvider {}
-      val options = new DataSourceOptions(Map(
+      val options = new CaseInsensitiveStringMap(Map(
         PartitionerOption -> "predicate+uid-range",
         PredicatePartitionerPredicatesOption -> "2",
         UidRangePartitionerUidsPerPartOption -> "2",

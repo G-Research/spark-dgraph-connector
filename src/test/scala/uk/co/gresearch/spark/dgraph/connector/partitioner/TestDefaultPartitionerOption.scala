@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import io.dgraph.DgraphProto.TxnContext
-import org.apache.spark.sql.sources.v2.DataSourceOptions
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.FunSpec
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Predicate, Schema, Target, Transaction}
 
@@ -35,7 +35,7 @@ class TestDefaultPartitionerOption extends FunSpec {
       UUID.randomUUID()
     )
     val transaction = Transaction(TxnContext.newBuilder().build())
-    val options = DataSourceOptions.empty()
+    val options = CaseInsensitiveStringMap.empty()
 
     it(s"should provide a partitioner") {
       new DefaultPartitionerOption().getPartitioner(schema, state, transaction, options)

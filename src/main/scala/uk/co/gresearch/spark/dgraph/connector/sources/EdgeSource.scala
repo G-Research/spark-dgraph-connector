@@ -42,7 +42,7 @@ class EdgeSource() extends TableProviderBase
     val encoder = EdgeEncoder(schema.predicateMap)
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = EdgeTableModel(execution, encoder, chunkSize)
-    new TripleScan(partitioner, model)
+    TripleScan(partitioner, model)
   }
 
   override def createReader(schema: StructType, options: DataSourceOptions): DataSourceReader =
