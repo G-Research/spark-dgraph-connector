@@ -2,7 +2,7 @@ This spark-dgraph-connector package redistributes the following third-party soft
 as shaded dependencies under the Java package root uk.co.gresearch.thirdparty:
 
 
-dgraph4j (https://github.com/dgraph-io/dgraph4j/blob/master/LICENSE)
+Dgraph Client for Java (https://github.com/dgraph-io/dgraph4j/blob/master/LICENSE)
 
                                  Apache License
                            Version 2.0, January 2004
@@ -207,7 +207,7 @@ dgraph4j (https://github.com/dgraph-io/dgraph4j/blob/master/LICENSE)
    limitations under the License.
 
 
-opencensus-java (https://github.com/census-instrumentation/opencensus-java/blob/master/LICENSE)
+OpenCensus (https://github.com/census-instrumentation/opencensus-java/blob/master/LICENSE)
 
 
                                  Apache License
@@ -1033,7 +1033,7 @@ Google Common Protos Java: (https://github.com/googleapis/common-protos-java/blo
    limitations under the License.
 
 
-grpc-java: (https://github.com/grpc/grpc-java/blob/master/LICENSE)
+gRPC-Java: (https://github.com/grpc/grpc-java/blob/master/LICENSE)
 
                                  Apache License
                            Version 2.0, January 2004
@@ -1238,7 +1238,7 @@ grpc-java: (https://github.com/grpc/grpc-java/blob/master/LICENSE)
    limitations under the License.
 
 
-guava (https://github.com/google/guava/blob/master/COPYING)
+Guava (https://github.com/google/guava/blob/master/COPYING)
 
                                  Apache License
                            Version 2.0, January 2004
@@ -1443,7 +1443,7 @@ guava (https://github.com/google/guava/blob/master/COPYING)
    limitations under the License.
 
 
-protobuf (https://github.com/protocolbuffers/protobuf/blob/master/LICENSE)
+Protocol Buffers (https://github.com/protocolbuffers/protobuf/blob/master/LICENSE)
 
 Copyright 2008 Google Inc.  All rights reserved.
 
