@@ -3,9 +3,46 @@ name: CI
 on: [push, pull_request_target]
 
 jobs:
-  build-and-test:
-    name: Build and Test (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
+  build:
+    name: Build
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-mvn-build-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-mvn-build-
+
+      - name: Setup JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Build
+        run: mvn --batch-mode compile test-compile package -DskipTests
+
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Binaries
+          path: |
+            target
+            !target/*-javadoc.jar
+            !target/site
+
+  test:
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: build
     if: >
       github.event_name == 'push' ||
       github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
@@ -16,48 +53,42 @@ jobs:
         spark-version: [3.0.0]
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
-        include:
-          - spark-version: '3.0.0'
-            spark-compat-version: '3.0'
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Parametrize
-      id: params
-      run: |
-        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=home::$(cd ~; pwd)"
-      shell: bash
-
-    - name: Cache Pip packages
-      uses: actions/cache@v2
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v2
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-packages-${{ matrix.python-version }}-
+        name: Binaries
+        path: target
 
     - name: Cache Maven packages
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-packages-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-test-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-mvn-packages-
-
-    - name: Cache Spark Binaries
-      uses: actions/cache@v2
-      with:
-        path: ~/spark
-        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
+          ${{ runner.os }}-mvn-test-
 
     - name: Setup JDK 1.8
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+
+    - name: Scala Test
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: mvn --batch-mode test
+
+    - name: Cache Pip packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
 
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -70,12 +101,7 @@ jobs:
         pip install -r python/requirements.txt
         pip install pytest
 
-    - name: Build and Test
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-      run: mvn --batch-mode test
-
-    - name: PyTest
+    - name: Python Test
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
         PYTHONPATH: python:python/test
@@ -97,15 +123,85 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
+  publish-test-results:
+    name: Publish Unit Tests Results
+    needs: test
+
+    runs-on: ubuntu-latest
+    if: success() || failure()
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@master
+        with:
+          check_name: Unit Test Results
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          files: "artifacts/Unit Test Results*/**/*.xml"
+          log_level: DEBUG
+
+  integration:
+    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
+    runs-on: ubuntu-latest
+    needs: build
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+
+    strategy:
+      fail-fast: false
+      matrix:
+        spark-version: [3.0.0]
+        dgraph-version: [20.07.0]
+        include:
+          - spark-version: '3.0.0'
+            spark-compat-version: '3.0'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Binaries
+        path: target
+
+    - name: Cache Maven packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-mvn-integration-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-mvn-integration-
+
+    - name: Cache Spark Binaries
+      uses: actions/cache@v2
+      with:
+        path: ~/spark
+        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
+
     - name: Setup Spark Binaries
       env:
         SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop2.7.tgz
       run: |
-        if [[ ! -e "~/spark" ]]
+        if [[ ! -e ~/spark ]]
         then
           wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
           archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
         fi
+      shell: bash
+
+    - name: Parametrize
+      id: params
+      run: |
+        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=home::$(cd ~; pwd)"
       shell: bash
 
     - name: Prepare Integration Tests
@@ -150,23 +246,3 @@ jobs:
       run: |
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
-
-  publish-test-results:
-    name: "Publish Unit Tests Results"
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: success() || failure()
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@master
-        with:
-          check_name: Unit Test Results
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          files: "artifacts/**/*.xml"
-          log_level: DEBUG
