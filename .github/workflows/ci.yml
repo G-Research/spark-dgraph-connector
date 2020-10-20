@@ -13,12 +13,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        spark-version: [2.4.2]
         dgraph-version: [20.03.3, 20.03.4, 20.07.0]
         python-version: [3.6]
+        include:
+          - spark-version: '2.4.2'
+            spark-compat-version: '2.4'
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Parametrize
+      id: params
+      run: |
+        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=graphframes-version::$(grep -A 1 "<artifactId>graphframes</artifactId>" pom.xml | tail -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
+        echo "::set-output name=home::$(cd ~; pwd)"
+      shell: bash
 
     - name: Cache Pip packages
       uses: actions/cache@v2
@@ -35,6 +48,12 @@ jobs:
         key: ${{ runner.os }}-mvn-packages-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-packages-
+
+    - name: Cache Spark Binaries
+      uses: actions/cache@v2
+      with:
+        path: ~/spark
+        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
 
     - name: Setup JDK 1.8
       uses: actions/setup-java@v1
@@ -78,6 +97,60 @@ jobs:
           target/surefire-reports/*.xml
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
+
+    - name: Setup Spark Binaries
+      env:
+        SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop2.7.tgz
+      run: |
+        if [[ ! -e "~/spark" ]]
+        then
+          wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
+          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
+        fi
+      shell: bash
+
+    - name: Prepare Integration Tests
+      run: |
+        mvn install -DskipTests
+        cd examples/scala
+        mvn package
+        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
+        mvn dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
+        mvn dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
+        mvn dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
+        mvn dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.6
+        mvn dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
+      shell: bash
+
+    - name: Start Dgraph cluster
+      id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: |
+        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        sleep 10
+        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
+        then
+          ./dgraph-instance.drop-all.sh
+        fi
+        ./dgraph-instance.insert.sh
+        ./dgraph-instance.schema.sh
+      shell: bash
+
+    - name: Integration Tests
+      env:
+        SPARK_HOME: ${{ steps.params.outputs.home }}/spark
+        ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
+        VERSION: ${{ steps.params.outputs.version }}
+      run: |
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
+
+    - name: Stop Dgraph cluster
+      if: always() && steps.dgraph.outcome == 'success'
+      run: |
+        docker stop ${{ steps.dgraph.outputs.docker }}
+      shell: bash
 
   publish-test-results:
     name: "Publish Unit Tests Results"
