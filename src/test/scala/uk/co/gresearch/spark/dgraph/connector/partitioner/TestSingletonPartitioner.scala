@@ -16,10 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Partition, Predicate, Schema, Target}
 
-class TestSingletonPartitioner extends FunSpec {
+class TestSingletonPartitioner extends AnyFunSpec {
 
   describe("SingletonPartitioner") {
 

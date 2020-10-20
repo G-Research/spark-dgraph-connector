@@ -18,9 +18,9 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import java.util.UUID
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 
-class TestClusterState extends FunSpec {
+class TestClusterState extends AnyFunSpec {
 
   describe("ClusterState") {
     it("should load from Json") {

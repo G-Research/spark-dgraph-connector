@@ -18,10 +18,10 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import java.util.UUID
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
-class TestPredicatePartitioner extends FunSpec {
+class TestPredicatePartitioner extends AnyFunSpec {
 
   describe("PredicatePartitioner") {
 

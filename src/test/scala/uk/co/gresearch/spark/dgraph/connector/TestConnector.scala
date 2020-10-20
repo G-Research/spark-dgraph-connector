@@ -16,9 +16,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 
-class TestConnector extends FunSpec {
+class TestConnector extends AnyFunSpec {
 
   describe("Connector") {
 

@@ -22,14 +22,14 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.StringType
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
 import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.reflect.runtime.universe._
 
-class TestTriplesSource extends FunSpec
+class TestTriplesSource extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {

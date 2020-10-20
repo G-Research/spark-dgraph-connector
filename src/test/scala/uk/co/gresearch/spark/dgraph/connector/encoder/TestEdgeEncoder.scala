@@ -18,10 +18,10 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Json, Predicate, Schema, Uid}
 
-class TestEdgeEncoder extends FunSpec {
+class TestEdgeEncoder extends AnyFunSpec {
 
   describe("EdgeEncoder") {
 

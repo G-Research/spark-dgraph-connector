@@ -16,10 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestClusterStateProvider extends FunSpec with DgraphTestCluster {
+class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
 
   describe("ClusterStateProvider") {
 
