@@ -162,6 +162,11 @@ package object connector {
   val NodesModeTypedOption: String = "typed"
   val NodesModeWideOption: String = "wide"
 
+  val TransactionModeOption: String = "dgraph.transaction.mode"
+  val TransactionModeNoneOption: String = "none"
+  val TransactionModeReadOption: String = "read"
+  val TransactionModeDefault: String = TransactionModeNoneOption
+
   val ChunkSizeOption: String = "dgraph.chunkSize"
   val ChunkSizeDefault: Int = 100000
 

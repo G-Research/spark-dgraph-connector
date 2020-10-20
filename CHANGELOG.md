@@ -6,8 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [UNRELEASED] - YYYY-MM-DD
 
 ### Added
-- Reads all partitions within the same transaction. This guarantees a consistent snapshot of the graph ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
-  However, concurrent mutations can reduce the lifetime of a transaction.
+- Optionally reads all partitions within the same transaction. This guarantees a consistent snapshot of the graph ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
+  However, concurrent mutations reduce the lifetime of such a transaction and will cause an exception when lifespan exceeds.
 - Add Python API that mirrors the Scala API. The README.md fully documents how to load Dgraph data in PySpark.
 - Fixed dependency conflicts between connector dependencies and Spark
   by shading the Java Dgraph client and all its dependencies.

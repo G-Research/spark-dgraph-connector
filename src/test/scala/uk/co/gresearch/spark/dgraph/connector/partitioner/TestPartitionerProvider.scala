@@ -35,7 +35,7 @@ class TestPartitionerProvider extends FunSpec {
     10000,
     UUID.randomUUID()
   )
-  val transaction: Transaction = Transaction(TxnContext.newBuilder().build())
+  val transaction: Option[Transaction] = Some(Transaction(TxnContext.newBuilder().build()))
   val maxLeaseEstimator: UidCardinalityEstimator = MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId)
   assert(UidRangePartitionerEstimatorDefault === MaxLeaseIdEstimatorOption, "tests assume this default estimator")
 

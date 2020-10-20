@@ -26,7 +26,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption
 
   override def getPartitioner(schema: Schema,
                               clusterState: ClusterState,
-                              transaction: Transaction,
+                              transaction: Option[Transaction],
                               options: CaseInsensitiveStringMap): Option[Partitioner] =
     getStringOption(PartitionerOption, options)
       .map(getPartitioner(_, schema, clusterState, transaction, options))
@@ -34,7 +34,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption
   def getPartitioner(partitionerName: String,
                      schema: Schema,
                      clusterState: ClusterState,
-                     transaction: Transaction,
+                     transaction: Option[Transaction],
                      options: CaseInsensitiveStringMap): Partitioner =
     partitionerName match {
       case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState), schema)
