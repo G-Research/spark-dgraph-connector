@@ -120,6 +120,21 @@ jobs:
         mvn dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
       shell: bash
 
+    - name: Start Dgraph cluster
+      id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: |
+        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        sleep 10
+        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
+        then
+          ./dgraph-instance.drop-all.sh
+        fi
+        ./dgraph-instance.insert.sh
+        ./dgraph-instance.schema.sh
+      shell: bash
+
     - name: Integration Tests
       env:
         SPARK_HOME: ${{ steps.params.outputs.home }}/spark
@@ -127,6 +142,12 @@ jobs:
         VERSION: ${{ steps.params.outputs.version }}
       run: |
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:0.8.0-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
+
+    - name: Stop Dgraph cluster
+      if: always() && steps.dgraph.outcome == 'success'
+      run: |
+        docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
 
   publish-test-results:

@@ -114,7 +114,7 @@ provided in the following scripts:
 
 ```shell script
 ./dgraph-instance.start.sh
-./dgraph-instance.drop_all.sh  # for Dgraph ≥20.07.0 only
+./dgraph-instance.drop-all.sh  # for Dgraph ≥20.07.0 only
 ./dgraph-instance.insert.sh
 ./dgraph-instance.schema.sh
 ```
