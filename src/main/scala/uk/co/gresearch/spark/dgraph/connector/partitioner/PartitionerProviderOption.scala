@@ -23,7 +23,7 @@ trait PartitionerProviderOption {
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
-                     transaction: Transaction,
+                     transaction: Option[Transaction],
                      options: CaseInsensitiveStringMap): Option[Partitioner]
 
 }

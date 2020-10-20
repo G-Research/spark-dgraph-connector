@@ -43,7 +43,7 @@ class EdgeSource() extends TableProviderBase
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
-    val transaction = getTransaction(targets)
+    val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets).filter(_.isEdge)
     val clusterState = getClusterState(targets)
