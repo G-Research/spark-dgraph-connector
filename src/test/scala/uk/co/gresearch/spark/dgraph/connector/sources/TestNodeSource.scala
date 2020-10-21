@@ -24,14 +24,14 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, Row, SparkSession}
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
 import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.reflect.runtime.universe._
 
-class TestNodeSource extends FunSpec
+class TestNodeSource extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {

@@ -20,10 +20,10 @@ import java.util.UUID
 
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Predicate, Schema, Target, Transaction}
 
-class TestDefaultPartitionerOption extends FunSpec {
+class TestDefaultPartitionerOption extends AnyFunSpec {
 
   describe("DefaultPartitionerOption") {
     val target = Target("localhost:9080")

@@ -16,10 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange, Uids}
 
-class TestUidCardinalityEstimator extends FunSpec {
+class TestUidCardinalityEstimator extends AnyFunSpec {
 
   def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
                                         expectedEstimationWithoutRange: Option[Long]): Unit = {

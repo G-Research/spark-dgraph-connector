@@ -17,11 +17,11 @@
 package uk.co.gresearch.spark.dgraph.connector.model
 
 import com.google.gson.{JsonArray, JsonObject, JsonPrimitive}
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Uid}
 
-class TestChunkIterator extends FunSpec {
+class TestChunkIterator extends AnyFunSpec {
 
   describe("ChunkIterator") {
 
