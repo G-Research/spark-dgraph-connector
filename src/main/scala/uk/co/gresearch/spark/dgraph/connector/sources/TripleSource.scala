@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{StringTripleEncoder, TypedTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
@@ -41,7 +42,7 @@ class TripleSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-triples"
 
-  def getTripleMode(options: DataSourceOptions): Option[String] =
+  def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(TriplesModeOption, options)
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
@@ -60,7 +61,7 @@ class TripleSource() extends TableProviderBase
     }
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)
-    new TripleScan(partitioner, model)
+    TripleScan(partitioner, model)
   }
 
   override def createReader(schema: StructType, options: DataSourceOptions): DataSourceReader =

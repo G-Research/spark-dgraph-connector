@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.DataSourceReader
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
@@ -39,15 +40,15 @@ class NodeSource() extends TableProviderBase
    * @param options original options
    * @return modified options
    */
-  def adjustOptions(options: DataSourceOptions): DataSourceOptions = {
+  def adjustOptions(options: CaseInsensitiveStringMap): CaseInsensitiveStringMap = {
     if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
       getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))) {
       if (getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)) {
         log.warn("predicate partitioner enforced to a single partition to support wide node source")
       }
 
-      new DataSourceOptions(
-        (options.asMap().asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
+      new CaseInsensitiveStringMap(
+        (options.asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
           Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
           ).asJava
       )
@@ -58,7 +59,7 @@ class NodeSource() extends TableProviderBase
 
   override def shortName(): String = "dgraph-nodes"
 
-  def getNodeMode(options: DataSourceOptions): Option[String] =
+  def getNodeMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(NodesModeOption, options)
 
   override def createReader(options: DataSourceOptions): DataSourceReader = {
@@ -79,7 +80,7 @@ class NodeSource() extends TableProviderBase
     }
     val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)
-    new TripleScan(partitioner, model)
+    TripleScan(partitioner, model)
   }
 
   override def createReader(schema: StructType, options: DataSourceOptions): DataSourceReader =

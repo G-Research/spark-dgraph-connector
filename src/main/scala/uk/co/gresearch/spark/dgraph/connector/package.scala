@@ -17,6 +17,7 @@
 package uk.co.gresearch.spark.dgraph
 
 import java.sql.Timestamp
+import java.util.Optional
 
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
@@ -24,6 +25,7 @@ import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
 import org.apache.spark.sql.DataFrameReader
+import org.apache.spark.sql.sources.v2.DataSourceOptions
 
 package object connector {
 
