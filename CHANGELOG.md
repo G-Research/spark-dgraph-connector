@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [UNRELEASED] - YYYY-MM-DD
+## [0.5.0] - 2020-10-21
 
 ### Added
 - Optionally reads all partitions within the same transaction. This guarantees a consistent snapshot of the graph ([issue #6](https://github.com/G-Research/spark-dgraph-connector/issues/6)).
