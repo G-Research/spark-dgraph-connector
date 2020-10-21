@@ -20,12 +20,12 @@ import java.util.UUID
 
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.collection.JavaConverters._
 
-class TestPartitionerProvider extends FunSpec {
+class TestPartitionerProvider extends AnyFunSpec {
 
   val target = Seq(Target("localhost:9080"))
   val schema: Schema = Schema(Set(Predicate("pred", "string")))

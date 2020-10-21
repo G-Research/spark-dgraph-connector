@@ -19,13 +19,13 @@ package uk.co.gresearch.spark.dgraph.connector.model
 import com.google.gson.JsonArray
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
 
-class TestGraphTableModel extends FunSpec {
+class TestGraphTableModel extends AnyFunSpec {
 
   describe("GraphTableModel") {
 

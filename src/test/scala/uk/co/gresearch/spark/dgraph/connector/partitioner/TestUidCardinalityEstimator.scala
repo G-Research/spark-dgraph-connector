@@ -16,13 +16,13 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-class TestUidCardinalityEstimator extends FunSpec {
+class TestUidCardinalityEstimator extends AnyFunSpec {
 
   val schema: Schema = Schema(Set(Predicate("predicate", "string")))
   val execution: DgraphExecutorProvider = DgraphExecutorProvider(None)

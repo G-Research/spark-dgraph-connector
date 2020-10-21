@@ -17,13 +17,13 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import io.dgraph.DgraphProto.TxnContext
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-class TestPartition extends FunSpec with SchemaProvider with DgraphTestCluster {
+class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluster {
 
   describe("Partition") {
 

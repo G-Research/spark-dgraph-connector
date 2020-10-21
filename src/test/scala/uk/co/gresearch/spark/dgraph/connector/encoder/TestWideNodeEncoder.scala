@@ -23,10 +23,10 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StringType, StructField, StructType, TimestampType}
 import org.apache.spark.unsafe.types.UTF8String
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Schema, Uid}
 
-class TestWideNodeEncoder extends FunSpec {
+class TestWideNodeEncoder extends AnyFunSpec {
 
   describe("WideNodeEncoder") {
 

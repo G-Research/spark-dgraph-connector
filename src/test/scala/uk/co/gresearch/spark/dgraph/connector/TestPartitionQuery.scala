@@ -16,9 +16,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 
-class TestPartitionQuery extends FunSpec {
+class TestPartitionQuery extends AnyFunSpec {
 
   describe("PartitionQuery") {
 

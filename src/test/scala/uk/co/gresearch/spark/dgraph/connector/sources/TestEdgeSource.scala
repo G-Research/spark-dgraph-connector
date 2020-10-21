@@ -19,7 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.scalatest.FunSpec
+import org.apache.spark.sql.{Column, DataFrame, Encoders, Row, SparkSession}
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.EdgeEncoder
@@ -29,7 +30,7 @@ import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import scala.reflect.runtime.universe._
 
-class TestEdgeSource extends FunSpec
+class TestEdgeSource extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {

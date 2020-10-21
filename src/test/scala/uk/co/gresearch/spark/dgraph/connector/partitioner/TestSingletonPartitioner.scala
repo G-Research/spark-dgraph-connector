@@ -17,13 +17,13 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import io.dgraph.DgraphProto.TxnContext
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-class TestSingletonPartitioner extends FunSpec {
+class TestSingletonPartitioner extends AnyFunSpec {
 
   describe("SingletonPartitioner") {
 

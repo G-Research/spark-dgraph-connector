@@ -22,11 +22,11 @@ import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.{DoubleType, FloatType, LongType, StructField, StructType}
 import org.graphframes.GraphFrame
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestGraphFrames extends FunSpec
+class TestGraphFrames extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster {
 
   describe("GraphFrames") {

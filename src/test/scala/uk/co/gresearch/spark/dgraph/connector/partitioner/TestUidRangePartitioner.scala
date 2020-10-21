@@ -19,14 +19,14 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import java.util.UUID
 
 import io.dgraph.DgraphProto.TxnContext
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, Schema, SubjectIsIn, Target, Uid, UidRange, _}
 
-class TestUidRangePartitioner extends FunSpec {
+class TestUidRangePartitioner extends AnyFunSpec {
 
   describe("UidRangePartitioner") {
 

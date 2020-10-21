@@ -21,11 +21,11 @@ import java.sql.Timestamp
 import org.apache.spark.graphx
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-class TestGraphX extends FunSpec
+class TestGraphX extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster {
 
   describe("GraphX") {

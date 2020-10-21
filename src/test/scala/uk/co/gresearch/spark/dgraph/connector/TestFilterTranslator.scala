@@ -20,10 +20,10 @@ import java.sql.Timestamp
 
 import org.apache.spark.sql
 import org.apache.spark.sql.sources._
-import org.scalatest.FunSpec
+import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfoProvider
 
-class TestFilterTranslator extends FunSpec {
+class TestFilterTranslator extends AnyFunSpec {
 
   // typed triples
   val subjectColumn = "subject"
