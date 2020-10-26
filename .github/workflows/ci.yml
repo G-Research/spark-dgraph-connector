@@ -51,7 +51,7 @@ jobs:
       fail-fast: false
       matrix:
         spark-version: [3.0.0]
-        dgraph-version: [20.03.3, 20.03.4, 20.07.0]
+        dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.07.0, 20.07.1, 20.07.2]
         python-version: [3.6]
 
     steps:
