@@ -134,6 +134,9 @@ class TestConnector extends AnyFunSpec {
         .foreach(i => assert(Seq.empty.rotateRight(i) === Seq.empty))
     }
 
+    it("should error") {
+      throw new RuntimeException("this test always throws an exception")
+    }
   }
 
 }

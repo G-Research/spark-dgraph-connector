@@ -129,5 +129,13 @@ class TestClusterState extends AnyFunSpec {
       assert(state.maxLeaseId === 10000)
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
+
+    it("should fail") {
+      fail("testing failures")
+    }
+
+    it("should also fail but randomly") {
+      if (Math.random() < 0.2) fail("testing flaky tests")
+    }
   }
 }
