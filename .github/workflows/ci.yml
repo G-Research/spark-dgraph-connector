@@ -229,8 +229,8 @@ jobs:
         then
           ./dgraph-instance.drop-all.sh
         fi
-        ./dgraph-instance.insert.sh
         ./dgraph-instance.schema.sh
+        ./dgraph-instance.insert.sh
       shell: bash
 
     - name: Integration Tests
