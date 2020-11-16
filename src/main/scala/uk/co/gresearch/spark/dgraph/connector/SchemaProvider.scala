@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 
 trait SchemaProvider {
 
-  private val query = "schema { predicate type }"
+  private val query = "schema { predicate type lang }"
 
   def getSchema(targets: Seq[Target]): Schema = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
@@ -36,11 +36,15 @@ trait SchemaProvider {
       val schema = new Gson().fromJson(json, classOf[JsonObject])
         .get("schema").getAsJsonArray.asScala
         .map(_.getAsJsonObject)
-        .map(o => Predicate(o.get("predicate").getAsString, o.get("type").getAsString))
+        .map(o => Predicate(
+          o.get("predicate").getAsString,
+          o.get("type").getAsString,
+          o.has("lang") && o.get("lang").getAsBoolean
+        ))
         .toSet
       Schema(schema)
     } catch {
-      // this is potentially a async exception which does not include any useful stacktrace, so we add it here
+      // this is potentially an async exception which does not include any useful stacktrace, so we add it here
       case e: Throwable => throw e.fillInStackTrace()
     } finally {
       channels.foreach(_.shutdown())

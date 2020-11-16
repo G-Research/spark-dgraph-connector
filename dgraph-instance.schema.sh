@@ -1,6 +1,7 @@
 curl "localhost:8080/alter" -XPOST -d $'
   director: [uid] .
   name: string @index(term) .
+  title: string @lang @index(term) .
   release_date: datetime @index(year) .
   revenue: float .
   running_time: int .
@@ -11,7 +12,7 @@ curl "localhost:8080/alter" -XPOST -d $'
   }
 
   type Film {
-    name
+    title
     release_date
     revenue
     running_time

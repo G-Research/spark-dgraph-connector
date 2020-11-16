@@ -50,11 +50,10 @@ nodes: DataFrame = spark.read.dgraph.nodes("localhost:9080")
 The connector is under continuous development. It has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
-- **Limited Lifetime of Transactions**: The connector optionally reads all partitions within the same transaction, but concurrent mutations reduce the lifetime of that transaction.
-- **Language tags & facets**: The connector cannot read any string values with language tags or facets.
-
-Beside the **language tags & facets**, which is a limitation of Dgraph, all the other issues mentioned
-above will be addressed in the near future.
+- **Limited Lifetime of Transactions**: The connector optionally reads all partitions within the same transaction, but concurrent mutations [reduce the lifetime of that transaction](#transactions).
+- **Language tags**: The node source in wide mode cannot read string values with [language tags](https://dgraph.io/docs/tutorial-4/#strings-and-languages). All other sources and modes can read language strings.
+- **Filtering on language string**: The connector does not support filtering predicates with [Dgraph `@lang` directives](https://dgraph.io/docs/tutorial-4/#strings-and-languages).
+- **Facets**: The connector cannot read [facets](https://dgraph.io/docs/query-language/facets/).
 
 ## Using Spark Dgraph Connector
 
@@ -118,8 +117,8 @@ provided in the following scripts:
 ```shell script
 ./dgraph-instance.start.sh
 ./dgraph-instance.drop-all.sh  # for Dgraph ≥20.07.0 only
-./dgraph-instance.insert.sh
 ./dgraph-instance.schema.sh
+./dgraph-instance.insert.sh
 ```
 
 The Dgraph version can optionally be set via `DGRAPH_TEST_CLUSTER_VERSION` environment variable.
@@ -380,6 +379,36 @@ Though there is only a single `object` column for the destination node, it is ca
 |10     |starring |2        |
 |10     |starring |6        |
 |10     |director |8        |
+
+## Language Strings
+
+Predicates marked in the Dgraph schema with the `@lang` directive can store string values in
+multiple languages at a time:
+
+```
+{
+  set {
+   _:sw3 <title> "Star Wars: Episode VI - Return of the Jedi" .
+   _:sw3 <title@en> "Star Wars: Episode VI - Return of the Jedi" .
+   _:sw3 <title@zh> "星際大戰六部曲：絕地大反攻" .
+   _:sw3 <title@th> "สตาร์ วอร์ส เอพพิโซด 6: การกลับมาของเจได" .
+   _:sw3 <title@de> "Die Rückkehr der Jedi-Ritter" .
+  }
+}
+```
+
+All these values can be read by the connector. Each of the predicate name contains the language
+in the form `predicate@language`:
+
+|subject|predicate            |objectString                                            |objectType|
+|:-----:|:-------------------:|:-------------------------------------------------------|:--------:|
+|6      |dgraph.type          |Film                                                    |string    |
+|6      |title                |Star Wars: Episode VI - Return of the Jedi              |string    |
+|6      |title@en             |Star Wars: Episode VI - Return of the Jedi              |string    |
+|6      |title@zh             |星際大戰六部曲：絕地大反攻                              |string    |
+|6      |title@th             |สตาร์ วอร์ส เอพพิโซด 6: การกลับมาของเจได                    |string    |
+|6      |title@de             |Die Rückkehr der Jedi-Ritter                            |string    |
+
 
 ## Transactions
 

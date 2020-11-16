@@ -20,6 +20,9 @@ import uk.co.gresearch.spark.dgraph.connector.{Partition, Schema, Target}
 
 case class SingletonPartitioner(targets: Seq[Target], schema: Schema) extends Partitioner {
 
-  override def getPartitions: Seq[Partition] = Seq(Partition(targets).has(schema.predicates))
+  override def getPartitions: Seq[Partition] = {
+    val langs = schema.predicates.filter(_.isLang).map(_.predicateName)
+    Seq(Partition(targets).has(schema.predicates).langs(langs))
+  }
 
 }

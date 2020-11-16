@@ -38,6 +38,16 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
   override def fromJson(result: JsonArray): Iterator[InternalRow] =
     getNodes(result).flatMap(toTriples)
 
+  def getPredicate(jsonPredicateName: String): Option[Predicate] = {
+    if (jsonPredicateName.contains("@")) {
+      val predicateName = jsonPredicateName.split("@", 2)(0)
+      val predicate = predicates.get(predicateName)
+      predicate.filter(_.isLang)
+    } else {
+      predicates.get(jsonPredicateName)
+    }
+  }
+
   /**
    * Encodes a node as InternalRows.
    *
@@ -52,8 +62,7 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
         .entrySet()
         .iterator().asScala
         .flatMap(e =>
-          predicates
-            .get(e.getKey)
+          getPredicate(e.getKey)
             .map(_.dgraphType)
             .map(t => (e.getKey, e.getValue, t))
         )
