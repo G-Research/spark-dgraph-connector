@@ -47,7 +47,7 @@ object ExampleApp {
       assert(graph.edges.count() == 12, graph.edges.count())
       assert(graph.vertices.count() == 11, graph.vertices.count())
       assert(edges.count() == 12, edges.count())
-      assert(vertices.count() == 35, vertices.count())
+      assert(vertices.count() == 52, vertices.count())
     }
 
     {
@@ -68,9 +68,9 @@ object ExampleApp {
       val edges: DataFrame = spark.read.dgraph.edges(target)
       val nodes: DataFrame = spark.read.dgraph.nodes(target)
 
-      assert(triples.count() == 47, triples.count())
+      assert(triples.count() == 64, triples.count())
       assert(edges.count() == 12, edges.count())
-      assert(nodes.count() == 35, nodes.count())
+      assert(nodes.count() == 52, nodes.count())
     }
 
   }

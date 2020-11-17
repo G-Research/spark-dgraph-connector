@@ -90,6 +90,22 @@ class TestAlphaPartitioner extends AnyFunSpec {
       assertThrows[IllegalArgumentException]{ AlphaPartitioner(schema, clusterState, 0) }
     }
 
+    it("should provide lang directives") {
+      val langPreds = Set("pred3", "pred5")
+      val langSchema = Schema(schema.predicates.map(p => if (langPreds.contains(p.predicateName)) p.copy(isLang = true) else p))
+      val partitioner = AlphaPartitioner(langSchema, clusterState, 1)
+      val partitions = partitioner.getPartitions
+      assert(partitions.toSet === Set(
+        // predicates are shuffled within group and alpha, targets rotate within group, empty group does not get a partition
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2"), Set.empty).getAll,
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred3", "pred4"), Set.empty).langs(Set("pred3")).getAll,
+
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred5"), Set.empty).langs(Set("pred5")).getAll,
+
+        Partition(Seq(Target("host6:9080"))).has(Set("pred7", "pred6"), Set.empty).getAll
+      ))
+    }
+
   }
 
 }

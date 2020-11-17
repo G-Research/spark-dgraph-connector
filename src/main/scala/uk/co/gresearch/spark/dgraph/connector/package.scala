@@ -94,7 +94,7 @@ package object connector {
     override def toString: String = password
   }
 
-  case class Predicate(predicateName: String, dgraphType: String, sparkType: String) {
+  case class Predicate(predicateName: String, dgraphType: String, sparkType: String, isLang: Boolean = false) {
     def isProperty: Boolean = dgraphType != "uid"
     def isEdge: Boolean = dgraphType == "uid"
   }
@@ -103,6 +103,9 @@ package object connector {
 
     def apply(predicateName: String, dgraphType: String): Predicate =
       Predicate(predicateName, dgraphType, sparkDataType(dgraphType))
+
+    def apply(predicateName: String, dgraphType: String, isLang: Boolean): Predicate =
+      Predicate(predicateName, dgraphType, sparkDataType(dgraphType), isLang)
 
     def columnNameForPredicateName(predicateName: String): String = predicateName match {
       case "uid" => "subject"

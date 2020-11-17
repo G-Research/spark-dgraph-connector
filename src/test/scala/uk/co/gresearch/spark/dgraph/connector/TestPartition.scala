@@ -43,8 +43,9 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
         val transaction = Some(Transaction(TxnContext.newBuilder().build()))
         val execution = DgraphExecutorProvider(transaction)
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
-        val partition = Partition(targets)(model).has(schema.predicates)
-        assert(model.modelPartition(partition).length === 47)
+        val partition = Partition(targets)(model).has(schema.predicates).langs(existingPredicates.filter(_.isLang).map(_.predicateName))
+        val res = model.modelPartition(partition).toList
+        assert(model.modelPartition(partition).length === 64)
       }
 
     }

@@ -52,6 +52,8 @@ class TestPartitionQuery extends AnyFunSpec {
     val propFilters: Set[Operator] = Set(IsIn("prop", Set[Any]("one", "two")))
     val edgeFilters: Set[Operator] = Set(IsIn("edge", Set[Any](1L, 2L)))
 
+    val langProps: Set[Operator] = Set(LangDirective(Set("prop1")))
+
     val predicateValueOperators = Seq(
       LessThan(propName, 1),
       LessOrEqual(propName, 1),
@@ -152,7 +154,7 @@ class TestPartitionQuery extends AnyFunSpec {
     }
 
     it("should provide query with other gets than has") {
-      val query = PartitionQuery("result", hasPredicates ++ Set(Get(Set(propName), Set(edgeName))))
+      val query = PartitionQuery("result", hasPredicates + Get(Set(propName), Set(edgeName)))
       assert(query.forChunk(None).string ===
         """{
           |  pred1 as var(func: has(<edge1>))
@@ -260,9 +262,19 @@ class TestPartitionQuery extends AnyFunSpec {
         ))
       }
 
+      it("should support language strings") {
+        val query = PartitionQuery("result", hasPredicates ++ langProps)
+        assert(query.getPredicateQueries(None) === Map(
+          "pred1" -> "pred1 as var(func: has(<edge1>))",
+          "pred2" -> "pred2 as var(func: has(<edge2>))",
+          "pred3" -> "pred3 as var(func: has(<prop1>@.))",
+          "pred4" -> "pred4 as var(func: has(<prop2>))",
+        ))
+      }
+
       predicateValueOperators.foreach { op =>
         it(s"should support predicate value operator ${op.filter} with single property") {
-          val query = PartitionQuery("result", hasProp ++ Set(op))
+          val query = PartitionQuery("result", hasProp + op)
           assert(query.getPredicateQueries(None) === Map(
             "pred1" -> s"""pred1 as var(func: has(<${op.predicates.head}>)) @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))"""
           ))
@@ -271,7 +283,7 @@ class TestPartitionQuery extends AnyFunSpec {
 
       predicatesValueOperators.foreach { op =>
         it(s"should support predicate value operator ${op.filter} with multiple properties") {
-          val query = PartitionQuery("result", hasPredicates ++ Set(op))
+          val query = PartitionQuery("result", hasPredicates + op)
           assert(query.getPredicateQueries(None) === Map(
             "pred1" -> "pred1 as var(func: has(<edge1>))",
             "pred2" -> "pred2 as var(func: has(<edge2>))",
@@ -360,9 +372,19 @@ class TestPartitionQuery extends AnyFunSpec {
         ))
       }
 
+      it("should support language strings") {
+        val query = PartitionQuery("result", hasPredicates ++ langProps)
+        assert(query.predicatePaths === Seq(
+          "<edge1> { uid }",
+          "<edge2> { uid }",
+          "<prop1>@*",
+          "<prop2>",
+        ))
+      }
+
       predicateValueOperators.foreach { op =>
         it(s"should support predicate value ${op.filter} with single predicate") {
-          val query = PartitionQuery("result", hasProp ++ Set(op))
+          val query = PartitionQuery("result", hasProp + op)
           assert(query.predicatePaths === Seq(
             s"""<${op.predicates.head}> @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
           ))
@@ -371,7 +393,7 @@ class TestPartitionQuery extends AnyFunSpec {
 
       predicatesValueOperators.foreach { op =>
         it(s"should support predicate value ${op.filter} with multiple predicates") {
-          val query = PartitionQuery("result", hasPredicates ++ Set(op))
+          val query = PartitionQuery("result", hasPredicates + op)
           assert(query.predicatePaths === Seq(
             "<edge1> { uid }",
             "<edge2> { uid }",

@@ -29,7 +29,7 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       assert(state.isDefined === true)
       assert(state.get === ClusterState(
         Map("1" -> Set(Target(dgraph.target))),
-        Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
+        Map("1" -> Set("name", "title", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
         state.get.cid
       ))
@@ -40,7 +40,7 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       val state = provider.getClusterState(Seq(Target(dgraph.target), Target(dgraph.targetLocalIp)))
       assert(state === ClusterState(
         Map("1" -> Set(Target(dgraph.target))),
-        Map("1" -> Set("name", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
+        Map("1" -> Set("name", "title", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
         10000,
         state.cid
       ))

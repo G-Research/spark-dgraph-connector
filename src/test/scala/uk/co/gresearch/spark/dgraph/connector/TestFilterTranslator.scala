@@ -54,7 +54,7 @@ class TestFilterTranslator extends AnyFunSpec {
     objectGeoColumn -> "geo",
     objectPasswordColumn -> "password"
   )
-  val objectValues: Set[String] = objectValueTypes.keys.toSet ++ Set(allObjectStringColumn)
+  val objectValues: Set[String] = objectValueTypes.keys.toSet + allObjectStringColumn
 
   val columns: ColumnInfoProvider = new ColumnInfoProvider {
     override def subjectColumnName: Option[String] = Some(subjectColumn)

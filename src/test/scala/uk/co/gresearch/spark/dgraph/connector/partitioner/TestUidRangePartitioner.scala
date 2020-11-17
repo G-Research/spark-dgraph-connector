@@ -75,7 +75,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
           assert(uidPartitions.length === partitions.length * ranges.length)
           val expectedPartitions = partitions.flatMap( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.operators ++ Set(range))
+              Partition(partition.targets.rotateLeft(idx), partition.operators + range)
             }
           )
 
@@ -158,6 +158,20 @@ class TestUidRangePartitioner extends AnyFunSpec {
           .projection
       assert(actual.isDefined === true)
       assert(actual.get eq projection)
+    }
+
+    it("should provide lang directives") {
+      val langPreds = Set("pred2")
+      val langSchema = Schema(schema.predicates.map(p => if (langPreds.contains(p.predicateName)) p.copy(isLang = true) else p))
+      val partitioner = PredicatePartitioner(langSchema, clusterState, 5)
+      val uidPartitioner = UidRangePartitioner(partitioner, 500, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val partitions = uidPartitioner.getPartitions
+      assert(partitions === Seq(
+        Partition(Seq(Target("host1:9080"), Target("host2:9080"))).has(Set("pred1"), Set.empty).range(1, 501).getAll,
+        Partition(Seq(Target("host2:9080"), Target("host1:9080"))).has(Set("pred1"), Set.empty).range(501, 1001).getAll,
+        Partition(Seq(Target("host3:9080"))).has(Set("pred2"), Set.empty).langs(Set("pred2")).range(1, 501).getAll,
+        Partition(Seq(Target("host3:9080"))).has(Set("pred2"), Set.empty).langs(Set("pred2")).range(501, 1001).getAll,
+      ))
     }
 
   }

@@ -37,7 +37,7 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
     with ProjectedSchema with ColumnInfoProvider with Logging {
 
   // puts subject first
-  val allPredicates: Seq[Predicate] = Seq(Predicate("uid", "subject")) ++ predicates.toSeq.sortBy(_.predicateName)
+  val allPredicates: Seq[Predicate] = Seq(Predicate("uid", "subject", isLang = false)) ++ predicates.toSeq.sortBy(_.predicateName)
   val allPredicatesMap: Map[String, Predicate] = allPredicates.map(p => p.predicateName -> p).toMap
 
   override def withSchema(schema: StructType): WideNodeEncoder = copy(projectedSchema = Some(schema))

@@ -51,7 +51,7 @@ class TestNodeSource extends AnyFunSpec
 
     def doTestLoadTypedNodes(load: () => DataFrame): Unit = {
       val nodes = load().as[TypedNode].collect().toSet
-      assert(nodes === expectedTypedNodes)
+      assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expectedTypedNodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
     }
 
     def doTestLoadWideNodes(load: () => DataFrame): Unit = {
@@ -184,7 +184,7 @@ class TestNodeSource extends AnyFunSpec
           .load(dgraph.target)
           .as[TypedNode]
           .collectAsList()
-      assert(rows.size() === 35)
+      assert(rows.size() === 52)
     }
 
     it("should fail without target") {
@@ -239,9 +239,10 @@ class TestNodeSource extends AnyFunSpec
         Predicate("name", "string"),
         Predicate("release_date", "datetime"),
         Predicate("revenue", "float"),
-        Predicate("running_time", "int")
+        Predicate("running_time", "int"),
+        Predicate("title", "string"),
       )
-      assert(partitions === Seq(Some(Partition(targets).has(predicates))))
+      assert(partitions === Seq(Some(Partition(targets).has(predicates).langs(Set("title")))))
     }
 
     it("should load as a predicate partitions") {
@@ -259,9 +260,9 @@ class TestNodeSource extends AnyFunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll),
         Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "title"), Set.empty).langs(Set("title")).getAll),
         Some(Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set.empty).getAll),
         Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date", "name"), Set.empty).getAll)
       )
@@ -490,6 +491,7 @@ class TestNodeSource extends AnyFunSpec
         Predicate("dgraph.graphql.xid", "string"),
         Predicate("dgraph.type", "string"),
         Predicate("name", "string"),
+        Predicate("title", "string", isLang = true),
         Predicate("release_date", "datetime"),
         Predicate("revenue", "float"),
         Predicate("running_time", "int")
@@ -554,7 +556,7 @@ class TestNodeSource extends AnyFunSpec
           wideNodes,
           wideNodes.columns.reverse.map(c => col(s"`$c`")),
           None,
-          expectedWideNodes.map(select(7, 6, 5, 4, 3, 2, 1, 0))
+          expectedWideNodes.map(select(8, 7, 6, 5, 4, 3, 2, 1, 0))
         )
       }
 
@@ -614,7 +616,7 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
       TypedNode(cluster.graphQlSchema, "dgraph.graphql.xid", Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.graphQlSchema, "dgraph.graphql.schema", Some(""), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(cluster.st1, "name", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.st1, "title@en", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
       TypedNode(cluster.st1, "revenue", None, None, Some(1.39E8), None, None, None, None, "double"),
       TypedNode(cluster.st1, "running_time", None, Some(132L), None, None, None, None, None, "long"),
@@ -625,12 +627,23 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
       TypedNode(cluster.irvin, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.irvin, "name", Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.sw1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(cluster.sw1, "name", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@en", Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@hu", Some("Csillagok háborúja IV: Egy új remény"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@be", Some("Зорныя войны. Эпізод IV: Новая надзея"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@cs", Some("Star Wars: Epizoda IV – Nová naděje"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@br", Some("Star Wars Lodenn 4: Ur Spi Nevez"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw1, "title@de", Some("Krieg der Sterne"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.sw1, "release_date", None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
       TypedNode(cluster.sw1, "revenue", None, None, Some(7.75E8), None, None, None, None, "double"),
       TypedNode(cluster.sw1, "running_time", None, Some(121L), None, None, None, None, None, "long"),
       TypedNode(cluster.sw2, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(cluster.sw2, "name", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title@en", Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title@ka", Some("ვარსკვლავური ომები, ეპიზოდი V: იმპერიის საპასუხო დარტყმა"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title@ko", Some("제국의 역습"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title@iw", Some("מלחמת הכוכבים - פרק 5: האימפריה מכה שנית"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw2, "title@de", Some("Das Imperium schlägt zurück"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.sw2, "release_date", None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
       TypedNode(cluster.sw2, "revenue", None, None, Some(5.34E8), None, None, None, None, "double"),
       TypedNode(cluster.sw2, "running_time", None, Some(124L), None, None, None, None, None, "long"),
@@ -641,7 +654,13 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
       TypedNode(cluster.richard, "dgraph.type", Some("Person"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.richard, "name", Some("Richard Marquand"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.sw3, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
-      TypedNode(cluster.sw3, "name", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@en", Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@zh", Some("星際大戰六部曲：絕地大反攻"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@th", Some("สตาร์ วอร์ส เอพพิโซด 6: การกลับมาของเจได"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@fa", Some("بازگشت جدای"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@ar", Some("حرب النجوم الجزء السادس: عودة الجيداي"), None, None, None, None, None, None, "string"),
+      TypedNode(cluster.sw3, "title@de", Some("Die Rückkehr der Jedi-Ritter"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.sw3, "release_date", None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
       TypedNode(cluster.sw3, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
       TypedNode(cluster.sw3, "running_time", None, Some(131L), None, None, None, None, None, "long"),
@@ -655,7 +674,8 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
     StructField("name", StringType, nullable = true),
     StructField("release_date", TimestampType, nullable = true),
     StructField("revenue", DoubleType, nullable = true),
-    StructField("running_time", LongType, nullable = true)
+    StructField("running_time", LongType, nullable = true),
+    StructField("title", StringType, nullable = true)
   ))
 
   def getExpectedWideNodeDf(spark: SparkSession): DataFrame =
@@ -663,17 +683,17 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
 
   def getExpectedWideNodes: Set[Row] =
     Set(
-      Row(cluster.graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null),
-      Row(cluster.st1, null, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132L),
-      Row(cluster.leia, null, null, "Person", "Princess Leia", null, null, null),
-      Row(cluster.lucas, null, null, "Person", "George Lucas", null, null, null),
-      Row(cluster.irvin, null, null, "Person", "Irvin Kernshner", null, null, null),
-      Row(cluster.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121L),
-      Row(cluster.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124L),
-      Row(cluster.luke, null, null, "Person", "Luke Skywalker", null, null, null),
-      Row(cluster.han, null, null, "Person", "Han Solo", null, null, null),
-      Row(cluster.richard, null, null, "Person", "Richard Marquand", null, null, null),
-      Row(cluster.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131L)
+      Row(cluster.graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null, null),
+      Row(cluster.st1, null, null, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132L, null),
+      Row(cluster.leia, null, null, "Person", "Princess Leia", null, null, null, null),
+      Row(cluster.lucas, null, null, "Person", "George Lucas", null, null, null, null),
+      Row(cluster.irvin, null, null, "Person", "Irvin Kernshner", null, null, null, null),
+      Row(cluster.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121L, "Star Wars: Episode IV - A New Hope"),
+      Row(cluster.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124L, "Star Wars: Episode V - The Empire Strikes Back"),
+      Row(cluster.luke, null, null, "Person", "Luke Skywalker", null, null, null, null),
+      Row(cluster.han, null, null, "Person", "Han Solo", null, null, null, null),
+      Row(cluster.richard, null, null, "Person", "Richard Marquand", null, null, null, null),
+      Row(cluster.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131L, "Star Wars: Episode VI - Return of the Jedi")
     )
 
 }

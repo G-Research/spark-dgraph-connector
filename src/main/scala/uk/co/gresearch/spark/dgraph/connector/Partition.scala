@@ -32,28 +32,36 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
   extends InputPartition[InternalRow] {
 
   def has(predicates: Set[Predicate]): Partition =
-    copy(operators = operators ++ Set(Has(predicates)))
+    copy(operators = operators + Has(predicates))
 
   def has(properties: Set[String], edges: Set[String]): Partition =
-    copy(operators = operators ++ Set(Has(properties, edges)))
+    copy(operators = operators + Has(properties, edges))
 
   def get(predicates: Set[Predicate]): Partition =
-    copy(operators = operators ++ Set(Get(predicates)))
+    copy(operators = operators + Get(predicates))
 
   def get(properties: Set[String], edges: Set[String]): Partition =
-    copy(operators = operators ++ Set(Get(properties, edges)))
+    copy(operators = operators + Get(properties, edges))
 
   def getAll: Partition =
     copy(operators = operators ++ operators.filter(_.isInstanceOf[Has]).map(_.asInstanceOf[Has]).map(has => Get(has.properties, has.edges)))
 
   def uids(uids: Uid*): Partition =
-    copy(operators = operators ++ Set(Uids(uids.toSet)))
+    copy(operators = operators + Uids(uids.toSet))
+
+  def range(first: Long, until: Long): Partition =
+    copy(operators = operators + UidRange(Uid(first), Uid(until)))
 
   def eq(predicate: String, values: Set[Any]): Partition =
-    copy(operators = operators ++ Set(IsIn(predicate, values)))
+    copy(operators = operators + IsIn(predicate, values))
 
   def eq(predicates: Set[String], values: Set[Any]): Partition =
-    copy(operators = operators ++ Set(IsIn(predicates, values)))
+    copy(operators = operators + IsIn(predicates, values))
+
+  def langs(properties: Set[String]): Partition = {
+    val langs = Some(properties).filter(_.nonEmpty).map(p => Set(LangDirective(p))).getOrElse(Set.empty)
+    copy(operators = operators ++ langs)
+  }
 
   val uidRange: Option[UidRange] =
     Some(operators.filter(_.isInstanceOf[UidRange]).map(_.asInstanceOf[UidRange]))

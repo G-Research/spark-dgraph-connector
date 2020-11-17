@@ -144,6 +144,18 @@ class TestPredicatePartitioner extends AnyFunSpec {
       }
     }
 
+    it("should provide lang directives") {
+      val langPreds = Set("pred3", "pred5")
+      val langSchema = Schema(schema.predicates.map(p => if (langPreds.contains(p.predicateName)) p.copy(isLang = true) else p))
+      val partitioner = PredicatePartitioner(langSchema, clusterState, 5)
+      val partitions = partitioner.getPartitions
+      assert(partitions === Seq(
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred1", "pred2", "pred3"), Set.empty).langs(Set("pred3")).getAll,
+        Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred4", "pred5"), Set.empty).langs(Set("pred5")).getAll,
+        Partition(Seq(Target("host6:9080"))).has(Set("pred6"), Set.empty).getAll
+      ))
+    }
+
     it("should apply SubjectIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
       val partitions = partitioner.withFilters(Filters.fromPromised(SubjectIsIn(Uid("0x1")))).getPartitions
