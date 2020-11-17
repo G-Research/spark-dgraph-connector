@@ -16,7 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, LangDirective, Partition, Schema}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
 
 case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
   extends Partitioner with ClusterStateHelper {

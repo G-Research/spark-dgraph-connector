@@ -383,7 +383,7 @@ Though there is only a single `object` column for the destination node, it is ca
 ## Language Strings
 
 Predicates marked in the Dgraph schema with the `@lang` directive can store string values in
-multiple languages at a time:
+[multiple languages](https://dgraph.io/docs/tutorial-4/#strings-and-languages) at a time:
 
 ```
 {
@@ -397,7 +397,7 @@ multiple languages at a time:
 }
 ```
 
-All these values can be read by the connector. Each of the predicate name contains the language
+The connector reads all these languages. Each of the predicate name contains the language
 in the form `predicate@language`:
 
 |subject|predicate            |objectString                                            |objectType|

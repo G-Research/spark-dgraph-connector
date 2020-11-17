@@ -8,8 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 - Adds support to read string predicates with language tags like `<http://www.w3.org/2000/01/rdf-schema#label@en>` ([issue #63](https://github.com/G-Research/spark-dgraph-connector/issues/63)).
   This works with any source and mode except the node source in wide mode.
-  Note that reading into GraphFrames is based on the wide mode.
-  Filter pushdown is not yet supported for multi-language predicates ([issue #68](https://github.com/G-Research/spark-dgraph-connector/issues/68)).
+  Note that reading into GraphFrames is based on the wide mode, so only the untagged
+  language strings can be read there.
+  Filter pushdown is not supported yet for multi-language predicates ([issue #68](https://github.com/G-Research/spark-dgraph-connector/issues/68)).
 
 ### Changed
 - Upgraded all dependencies to latest versions
