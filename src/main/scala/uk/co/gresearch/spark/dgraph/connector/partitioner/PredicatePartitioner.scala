@@ -201,6 +201,11 @@ object PredicatePartitioner extends ClusterStateHelper {
     }
   }
 
+  def getLangDirectives(schema: Schema, partitions: Seq[Set[Predicate]]): Seq[Set[String]] = {
+    val langPredicates = schema.predicates.filter(_.isLang).map(_.predicateName)
+    partitions.map(_.map(_.predicateName).intersect(langPredicates))
+  }
+
   def getPartitions(schema: Schema,
                     clusterState: ClusterState,
                     partitionsInGroup: (String) => Int,
@@ -211,6 +216,7 @@ object PredicatePartitioner extends ClusterStateHelper {
       val partitions = partitionsInGroup(group)
       val groupPredicates = getGroupPredicates(clusterState, group, schema)
       val predicatesPartitions = partition(groupPredicates, partitions)
+      val langPartitions = getLangDirectives(schema, predicatesPartitions)
       val (props, edges) = schema.predicates.partition(_.isProperty)
       val propNames = props.map(_.predicateName)
       val edgeNames = edges.map(_.predicateName)
@@ -219,7 +225,9 @@ object PredicatePartitioner extends ClusterStateHelper {
         Partition(
           targets.rotateLeft(index),
           getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
-        ).get(projection.foldLeft(predicatesPartitions(index))((preds, proj) => preds.intersect(proj.toSet)))
+        )
+          .langs(langPartitions(index))
+          .get(projection.foldLeft(predicatesPartitions(index))((preds, proj) => preds.intersect(proj.toSet)))
       }
     }.toSeq
 

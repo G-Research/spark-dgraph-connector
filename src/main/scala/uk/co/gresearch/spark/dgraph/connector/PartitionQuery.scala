@@ -68,10 +68,15 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
   val predicateOps: Map[String, Set[PredicateOperator]] =
     operators
       .filter(op => op.isInstanceOf[PredicateOperator])
-      .map(op => op.asInstanceOf[PredicateOperator])
-      .flatMap(op => op.predicates.map(predicate => predicate -> op))
+      .flatMap { case op: PredicateOperator => op.predicates.map(predicate => predicate -> op) }
       .groupBy(_._1)
       .mapValues(_.map(_._2))
+
+  val langPredicates: Set[String] =
+    operators
+      .filter(_.isInstanceOf[LangDirective])
+      .flatMap { case LangDirective(predicates) => predicates }
+
 
   /**
    * Provides the GraphQl query for the given chunk, or if no chunk is given
@@ -130,18 +135,22 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
     case op: PredicateValueOperator => s"""${op.filter}(<$predicateName>, "${op.value}")"""
   }
 
-  def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] =
+  def getPredicateQueries(chunk: Option[Chunk]): Map[String, String] = {
+    def lang(pred: String): String = if (langPredicates.contains(pred)) "@." else ""
     hasPredicates
       .flatten
       .map(pred =>
-        predicateVals(pred) -> s"""${predicateVals(pred)} as var(func: has(<$pred>)${getChunkString(chunk)})${getValueFilter(pred, "uids")}"""
+        predicateVals(pred) -> s"""${predicateVals(pred)} as var(func: has(<$pred>${lang(pred)})${getChunkString(chunk)})${getValueFilter(pred, "uids")}"""
       )
       .toMap
+  }
 
-  val predicatePaths: Seq[String] =
-    (getProperties.map(pred => pred -> s"<$pred>") ++ getEdges.map(edge => edge -> s"<$edge> { uid }"))
+  val predicatePaths: Seq[String] = {
+    def lang(pred: String): String = if (langPredicates.contains(pred)) "@*" else ""
+    (getProperties.map(pred => pred -> s"<$pred>${lang(pred)}") ++ getEdges.map(edge => edge -> s"<$edge> { uid }"))
       .toSeq.sortBy(_._1)
       .map { case (pred, path) => s"$path${getValueFilter(pred, "vals")}" }
+  }
 
   val resultOperatorFilters: Option[String] = {
     val filters: Seq[String] =

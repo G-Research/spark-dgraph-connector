@@ -48,6 +48,7 @@ class TestTriplesSource extends AnyFunSpec
     }
 
     def doTestLoadStringTriples(load: () => DataFrame): Unit = {
+      load().as[StringTriple].show(100, false)
       val triples = load().as[StringTriple].collect().toSet
       assert(triples === expectedStringTriples)
     }
@@ -58,6 +59,7 @@ class TestTriplesSource extends AnyFunSpec
       Predicate("dgraph.type", "string"),
       Predicate("director", "uid"),
       Predicate("name", "string"),
+      Predicate("title", "string", isLang = true),
       Predicate("release_date", "datetime"),
       Predicate("revenue", "float"),
       Predicate("running_time", "int"),
@@ -174,7 +176,7 @@ class TestTriplesSource extends AnyFunSpec
           .dgraph.triples(dgraph.target)
           .as[StringTriple]
           .collectAsList()
-      assert(rows.size() == 47)
+      assert(rows.size() == 64)
     }
 
     it("should encode TypedTriple") {
@@ -185,7 +187,7 @@ class TestTriplesSource extends AnyFunSpec
           .dgraph.triples(dgraph.target)
           .as[TypedTriple]
           .collectAsList()
-      assert(rows.size() == 47)
+      assert(rows.size() == 64)
     }
 
     it("should fail without target") {
@@ -220,7 +222,7 @@ class TestTriplesSource extends AnyFunSpec
           case p: DataSourceRDDPartition => Some(p.inputPartition)
           case _ => None
         }
-      assert(partitions === Seq(Some(Partition(targets).has(predicates))))
+      assert(partitions === Seq(Some(Partition(targets).has(predicates).langs(Set("title")))))
     }
 
     it("should load as predicate partitions") {
@@ -238,9 +240,9 @@ class TestTriplesSource extends AnyFunSpec
 
       val expected = Set(
         Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue", "dgraph.graphql.xid"), Set.empty).getAll),
         Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "title"), Set.empty).langs(Set("title")).getAll),
         Some(Partition(Seq(Target(dgraph.target))).has(Set("name"), Set("director")).getAll)
       )
 
@@ -264,8 +266,8 @@ class TestTriplesSource extends AnyFunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), UidRange(Uid(1), Uid(8))))),
-        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), UidRange(Uid(8), Uid(15))))),
+        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(1), Uid(8))))),
+        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(8), Uid(15))))),
       )
 
       assert(partitions.toSet === expected)
@@ -292,11 +294,11 @@ class TestTriplesSource extends AnyFunSpec
 
       val expected = Set(
         Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "dgraph.graphql.xid"), Set.empty).getAll,
         Partition(Seq(Target(dgraph.target))).has(Set("dgraph.graphql.schema", "running_time"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "dgraph.graphql.xid"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "title"), Set.empty).langs(Set("title")).getAll,
         Partition(Seq(Target(dgraph.target))).has(Set("name"), Set("director")).getAll
-      ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators ++ Set(range)))))
+      ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators + range))))
 
       assert(partitions.toSet === expected)
     }
@@ -545,7 +547,7 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       TypedTriple(cluster.graphQlSchema, "dgraph.graphql.xid", None, Some("dgraph.graphql.schema"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.graphQlSchema, "dgraph.graphql.schema", None, Some(""), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
-      TypedTriple(cluster.st1, "name", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.st1, "title@en", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
       TypedTriple(cluster.st1, "revenue", None, None, None, Some(1.39E8), None, None, None, None, "double"),
       TypedTriple(cluster.st1, "running_time", None, None, Some(132), None, None, None, None, None, "long"),
@@ -557,7 +559,13 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       TypedTriple(cluster.irvin, "name", None, Some("Irvin Kernshner"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw1, "director", Some(cluster.lucas), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(cluster.sw1, "name", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@en", None, Some("Star Wars: Episode IV - A New Hope"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@hu", None, Some("Csillagok háborúja IV: Egy új remény"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@be", None, Some("Зорныя войны. Эпізод IV: Новая надзея"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@cs", None, Some("Star Wars: Epizoda IV – Nová naděje"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@br", None, Some("Star Wars Lodenn 4: Ur Spi Nevez"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw1, "title@de", None, Some("Krieg der Sterne"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1977-05-25 00:00:00.0")), None, None, None, "timestamp"),
       TypedTriple(cluster.sw1, "revenue", None, None, None, Some(7.75E8), None, None, None, None, "double"),
       TypedTriple(cluster.sw1, "running_time", None, None, Some(121), None, None, None, None, None, "long"),
@@ -566,7 +574,12 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       TypedTriple(cluster.sw1, "starring", Some(cluster.han), None, None, None, None, None, None, None, "uid"),
       TypedTriple(cluster.sw2, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw2, "director", Some(cluster.irvin), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(cluster.sw2, "name", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title@en", None, Some("Star Wars: Episode V - The Empire Strikes Back"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title@ka", None, Some("ვარსკვლავური ომები, ეპიზოდი V: იმპერიის საპასუხო დარტყმა"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title@ko", None, Some("제국의 역습"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title@iw", None, Some("מלחמת הכוכבים - פרק 5: האימפריה מכה שנית"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw2, "title@de", None, Some("Das Imperium schlägt zurück"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw2, "release_date", None, None, None, None, Some(Timestamp.valueOf("1980-05-21 00:00:00.0")), None, None, None, "timestamp"),
       TypedTriple(cluster.sw2, "revenue", None, None, None, Some(5.34E8), None, None, None, None, "double"),
       TypedTriple(cluster.sw2, "running_time", None, None, Some(124), None, None, None, None, None, "long"),
@@ -581,7 +594,13 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       TypedTriple(cluster.richard, "name", None, Some("Richard Marquand"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw3, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw3, "director", Some(cluster.richard), None, None, None, None, None, None, None, "uid"),
-      TypedTriple(cluster.sw3, "name", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@en", None, Some("Star Wars: Episode VI - Return of the Jedi"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@zh", None, Some("星際大戰六部曲：絕地大反攻"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@th", None, Some("สตาร์ วอร์ส เอพพิโซด 6: การกลับมาของเจได"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@fa", None, Some("بازگشت جدای"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@ar", None, Some("حرب النجوم الجزء السادس: عودة الجيداي"), None, None, None, None, None, None, "string"),
+      TypedTriple(cluster.sw3, "title@de", None, Some("Die Rückkehr der Jedi-Ritter"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.sw3, "release_date", None, None, None, None, Some(Timestamp.valueOf("1983-05-25 00:00:00.0")), None, None, None, "timestamp"),
       TypedTriple(cluster.sw3, "revenue", None, None, None, Some(5.72E8), None, None, None, None, "double"),
       TypedTriple(cluster.sw3, "running_time", None, None, Some(131), None, None, None, None, None, "long"),
@@ -599,7 +618,7 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       StringTriple(cluster.graphQlSchema, "dgraph.graphql.xid", "dgraph.graphql.schema", "string"),
       StringTriple(cluster.graphQlSchema, "dgraph.graphql.schema", "", "string"),
       StringTriple(cluster.st1, "dgraph.type", "Film", "string"),
-      StringTriple(cluster.st1, "name", "Star Trek: The Motion Picture", "string"),
+      StringTriple(cluster.st1, "title@en", "Star Trek: The Motion Picture", "string"),
       StringTriple(cluster.st1, "release_date", "1979-12-07 00:00:00.0", "timestamp"),
       StringTriple(cluster.st1, "revenue", "1.39E8", "double"),
       StringTriple(cluster.st1, "running_time", "132", "long"),
@@ -611,7 +630,13 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       StringTriple(cluster.irvin, "name", "Irvin Kernshner", "string"),
       StringTriple(cluster.sw1, "dgraph.type", "Film", "string"),
       StringTriple(cluster.sw1, "director", cluster.lucas.toString, "uid"),
-      StringTriple(cluster.sw1, "name", "Star Wars: Episode IV - A New Hope", "string"),
+      StringTriple(cluster.sw1, "title", "Star Wars: Episode IV - A New Hope", "string"),
+      StringTriple(cluster.sw1, "title@en", "Star Wars: Episode IV - A New Hope", "string"),
+      StringTriple(cluster.sw1, "title@hu", "Csillagok háborúja IV: Egy új remény", "string"),
+      StringTriple(cluster.sw1, "title@be", "Зорныя войны. Эпізод IV: Новая надзея", "string"),
+      StringTriple(cluster.sw1, "title@cs", "Star Wars: Epizoda IV – Nová naděje", "string"),
+      StringTriple(cluster.sw1, "title@br", "Star Wars Lodenn 4: Ur Spi Nevez", "string"),
+      StringTriple(cluster.sw1, "title@de", "Krieg der Sterne", "string"),
       StringTriple(cluster.sw1, "release_date", "1977-05-25 00:00:00.0", "timestamp"),
       StringTriple(cluster.sw1, "revenue", "7.75E8", "double"),
       StringTriple(cluster.sw1, "running_time", "121", "long"),
@@ -620,7 +645,12 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       StringTriple(cluster.sw1, "starring", cluster.han.toString, "uid"),
       StringTriple(cluster.sw2, "dgraph.type", "Film", "string"),
       StringTriple(cluster.sw2, "director", cluster.irvin.toString, "uid"),
-      StringTriple(cluster.sw2, "name", "Star Wars: Episode V - The Empire Strikes Back", "string"),
+      StringTriple(cluster.sw2, "title", "Star Wars: Episode V - The Empire Strikes Back", "string"),
+      StringTriple(cluster.sw2, "title@en", "Star Wars: Episode V - The Empire Strikes Back", "string"),
+      StringTriple(cluster.sw2, "title@ka", "ვარსკვლავური ომები, ეპიზოდი V: იმპერიის საპასუხო დარტყმა", "string"),
+      StringTriple(cluster.sw2, "title@ko", "제국의 역습", "string"),
+      StringTriple(cluster.sw2, "title@iw", "מלחמת הכוכבים - פרק 5: האימפריה מכה שנית", "string"),
+      StringTriple(cluster.sw2, "title@de", "Das Imperium schlägt zurück", "string"),
       StringTriple(cluster.sw2, "release_date", "1980-05-21 00:00:00.0", "timestamp"),
       StringTriple(cluster.sw2, "revenue", "5.34E8", "double"),
       StringTriple(cluster.sw2, "running_time", "124", "long"),
@@ -635,7 +665,13 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       StringTriple(cluster.richard, "name", "Richard Marquand", "string"),
       StringTriple(cluster.sw3, "dgraph.type", "Film", "string"),
       StringTriple(cluster.sw3, "director", cluster.richard.toString, "uid"),
-      StringTriple(cluster.sw3, "name", "Star Wars: Episode VI - Return of the Jedi", "string"),
+      StringTriple(cluster.sw3, "title", "Star Wars: Episode VI - Return of the Jedi", "string"),
+      StringTriple(cluster.sw3, "title@en", "Star Wars: Episode VI - Return of the Jedi", "string"),
+      StringTriple(cluster.sw3, "title@zh", "星際大戰六部曲：絕地大反攻", "string"),
+      StringTriple(cluster.sw3, "title@th", "สตาร์ วอร์ส เอพพิโซด 6: การกลับมาของเจได", "string"),
+      StringTriple(cluster.sw3, "title@fa", "بازگشت جدای", "string"),
+      StringTriple(cluster.sw3, "title@ar", "حرب النجوم الجزء السادس: عودة الجيداي", "string"),
+      StringTriple(cluster.sw3, "title@de", "Die Rückkehr der Jedi-Ritter", "string"),
       StringTriple(cluster.sw3, "release_date", "1983-05-25 00:00:00.0", "timestamp"),
       StringTriple(cluster.sw3, "revenue", "5.72E8", "double"),
       StringTriple(cluster.sw3, "running_time", "131", "long"),

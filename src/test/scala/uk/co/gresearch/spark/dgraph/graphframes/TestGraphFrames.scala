@@ -54,64 +54,64 @@ class TestGraphFrames extends AnyFunSpec
 
       val expected = Set(
         Row(
-          Row(dgraph.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, 0.8118081180811808.toFloat),
+          Row(dgraph.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope", 0.8118081180811808.toFloat),
           Row(dgraph.sw1, dgraph.leia, "starring", 0.25),
-          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, 0.8118081180811808.toFloat),
+          Row(dgraph.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, "Star Wars: Episode V - The Empire Strikes Back", 0.8118081180811808.toFloat),
           Row(dgraph.sw2, dgraph.leia, "starring", 0.25),
-          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, 0.8118081180811808.toFloat),
+          Row(dgraph.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi", 0.8118081180811808.toFloat),
           Row(dgraph.sw3, dgraph.leia, "starring", 0.25),
-          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, 0.8118081180811808.toFloat),
+          Row(dgraph.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, "Star Wars: Episode V - The Empire Strikes Back", 0.8118081180811808.toFloat),
           Row(dgraph.sw2, dgraph.irvin, "director", 0.25),
-          Row(dgraph.irvin, null, null, "Person", "Irvin Kernshner", null, null, null, 0.9843173431734319.toFloat),
+          Row(dgraph.irvin, null, null, "Person", "Irvin Kernshner", null, null, null, null, 0.9843173431734319.toFloat),
         ),
         Row(
-          Row(dgraph.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, 0.8118081180811808.toFloat),
+          Row(dgraph.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope", 0.8118081180811808.toFloat),
           Row(dgraph.sw1, dgraph.han, "starring", 0.25),
-          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, 0.8118081180811808.toFloat),
+          Row(dgraph.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, "Star Wars: Episode V - The Empire Strikes Back", 0.8118081180811808.toFloat),
           Row(dgraph.sw2, dgraph.han, "starring", 0.25),
-          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, 0.8118081180811808.toFloat),
+          Row(dgraph.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi", 0.8118081180811808.toFloat),
           Row(dgraph.sw3, dgraph.han, "starring", 0.25),
-          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, 0.8118081180811808.toFloat),
+          Row(dgraph.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope", 0.8118081180811808.toFloat),
           Row(dgraph.sw1, dgraph.lucas, "director", 0.25),
-          Row(dgraph.lucas, null, null, "Person", "George Lucas", null, null, null, 0.9843173431734319.toFloat),
+          Row(dgraph.lucas, null, null, "Person", "George Lucas", null, null, null, null, 0.9843173431734319.toFloat),
         ),
         Row(
-          Row(dgraph.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, 0.8118081180811808.toFloat),
+          Row(dgraph.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope", 0.8118081180811808.toFloat),
           Row(dgraph.sw1, dgraph.luke, "starring", 0.25),
-          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, 0.8118081180811808.toFloat),
+          Row(dgraph.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, "Star Wars: Episode V - The Empire Strikes Back", 0.8118081180811808.toFloat),
           Row(dgraph.sw2, dgraph.luke, "starring", 0.25),
-          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, 0.8118081180811808.toFloat),
+          Row(dgraph.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi", 0.8118081180811808.toFloat),
           Row(dgraph.sw3, dgraph.luke, "starring", 0.25),
-          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, 1.3293357933579335.toFloat),
+          Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, null, 1.3293357933579335.toFloat),
         ),
         Row(
-          Row(dgraph.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, 0.8118081180811808.toFloat),
+          Row(dgraph.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi", 0.8118081180811808.toFloat),
           Row(dgraph.sw3, dgraph.richard, "director", 0.25),
-          Row(dgraph.richard, null, null, "Person", "Richard Marquand", null, null, null, 0.9843173431734319.toFloat),
+          Row(dgraph.richard, null, null, "Person", "Richard Marquand", null, null, null, null, 0.9843173431734319.toFloat),
         )
       )
       assert(triplets === expected)
@@ -120,17 +120,17 @@ class TestGraphFrames extends AnyFunSpec
     def doVerticesTest(load: () => DataFrame): Unit = {
       val vertices = load().collect().toSet
       val expected = Set(
-        Row(dgraph.graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null),
-        Row(dgraph.st1, null, null, "Film", "Star Trek: The Motion Picture", Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132),
-        Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null),
-        Row(dgraph.lucas, null, null, "Person", "George Lucas", null, null, null),
-        Row(dgraph.irvin, null, null, "Person", "Irvin Kernshner", null, null, null),
-        Row(dgraph.sw1, null, null, "Film", "Star Wars: Episode IV - A New Hope", Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121),
-        Row(dgraph.sw2, null, null, "Film", "Star Wars: Episode V - The Empire Strikes Back", Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124),
-        Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null),
-        Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null),
-        Row(dgraph.richard, null, null, "Person", "Richard Marquand", null, null, null),
-        Row(dgraph.sw3, null, null, "Film", "Star Wars: Episode VI - Return of the Jedi", Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131)
+        Row(dgraph.graphQlSchema, "", "dgraph.graphql.schema", "dgraph.graphql", null, null, null, null, null),
+        Row(dgraph.st1, null, null, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132, null),
+        Row(dgraph.leia, null, null, "Person", "Princess Leia", null, null, null, null),
+        Row(dgraph.lucas, null, null, "Person", "George Lucas", null, null, null, null),
+        Row(dgraph.irvin, null, null, "Person", "Irvin Kernshner", null, null, null, null),
+        Row(dgraph.sw1, null, null, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope"),
+        Row(dgraph.sw2, null, null, "Film", null, Timestamp.valueOf("1980-05-21 00:00:00.0"), 5.34E8, 124, "Star Wars: Episode V - The Empire Strikes Back"),
+        Row(dgraph.luke, null, null, "Person", "Luke Skywalker", null, null, null, null),
+        Row(dgraph.han, null, null, "Person", "Han Solo", null, null, null, null),
+        Row(dgraph.richard, null, null, "Person", "Richard Marquand", null, null, null, null),
+        Row(dgraph.sw3, null, null, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi")
       )
       assert(vertices === expected)
     }

@@ -22,6 +22,13 @@ package uk.co.gresearch.spark.dgraph.connector
 trait Operator
 
 /**
+ * Adds @lang directive to the set of predicates. This operator provides schema
+ * information to the PartitionQuery class but does not invoke any operation itself.
+ * @param predicates predicates that have lang directive
+ */
+case class LangDirective(predicates: Set[String]) extends Operator
+
+/**
  * Operator on a single predicate.
  */
 trait PredicateOperator extends Operator {

@@ -19,7 +19,8 @@ Follow this procedure to release a new version from default branch `spark-3.0`:
 - Inspect and test the staged version. Use `spark-examples` for that. If you are happy with everything:
   - Push the commit and tag to origin.
   - Release the package with `mvn nexus-staging:release`.
-  - Bump the version to the next [minor version](https://semver.org/) in `pom.xml` and append the `-SNAPSHOT` suffix again, e.g. `1.1.0-3.0` → `1.2.0-3.0-SNAPSHOT`.
+  - Bump the version to the next [minor version](https://semver.org/) in `pom.xml` and `examples/scala/pom.xml`,
+    and append the `-SNAPSHOT` suffix again, e.g. `1.1.0-3.0` → `1.2.0-3.0-SNAPSHOT`.
   - Commit this change to your local git repository, use a commit message like `Post-release version bump to 1.2.0`.
   - Push all local commits to origin.
 - Otherwise drop it with `mvn nexus-staging:drop`. Remove the last two commits from your local history.
@@ -112,7 +113,8 @@ but the version increment occurs on [patch level](https://semver.org/):
 - Inspect and test the staged version. Use `spark-examples` for that. If you are happy with everything:
   - Push the commit and tag to origin.
   - Release the package with `mvn nexus-staging:release`.
-  - Bump the version to the next [patch version](https://semver.org/) in `pom.xml` and append the `-SNAPSHOT` suffix again, e.g. `1.1.1-3.0` → `1.1.2-3.0-SNAPSHOT`.
+  - Bump the version to the next [patch version](https://semver.org/) in `pom.xml` and `examples/scala/pom.xml`,
+    and append the `-SNAPSHOT` suffix again, e.g. `1.1.1-3.0` → `1.1.2-3.0-SNAPSHOT`.
   - Commit this change to your local git repository, use a commit message like `Post-release version bump to 1.1.2`.
   - Push all local commits to origin.
 - Otherwise drop it with `mvn nexus-staging:drop`. Remove the last two commits from your local history.
