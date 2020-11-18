@@ -18,7 +18,7 @@ package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.dgraph.DgraphClient
 import io.grpc.ManagedChannel
-import uk.co.gresearch.spark.dgraph.connector.{GraphQl, Json, Logging, Target, Transaction, getClientFromChannel, toChannel}
+import uk.co.gresearch.spark.dgraph.connector.{ExtendedThrowable, GraphQl, Json, Logging, Target, Transaction, getClientFromChannel, toChannel}
 
 /**
  * A QueryExecutor implementation that executes a GraphQl query against a Dgraph cluster returning a Json result.
@@ -52,8 +52,21 @@ case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]
 
       Json(json)
     } catch {
-      // this is potentially a async exception which does not include any useful stacktrace, so we add it here
-      case e: Throwable => throw e.fillInStackTrace()
+      case e: Throwable =>
+        // this is potentially an async exception which does not include any useful stacktrace, so we add it here
+        val exc = e.fillInStackTrace()
+
+        // provide a useful exception when we see an RESOURCE_EXHAUSTED gRPC code
+        if (exc.causedByResourceExhausted())
+          throw new RuntimeException("Query failed because the result is too large. " +
+            "Try a different chunk size or partition configuration: " +
+            "https://github.com/g-research/spark-dgraph-connector#streamed-partitions and " +
+            "https://github.com/g-research/spark-dgraph-connector#partitioning",
+            exc
+          )
+
+        // just rethrow any other exception
+        throw exc
     } finally {
       channels.foreach(_.shutdown())
     }
