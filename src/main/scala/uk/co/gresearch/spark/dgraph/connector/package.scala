@@ -21,8 +21,8 @@ import java.sql.Timestamp
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
-import io.grpc.ManagedChannel
 import io.grpc.netty.NettyChannelBuilder
+import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 import org.apache.spark.sql.DataFrameReader
 
 package object connector {
@@ -151,7 +151,7 @@ package object connector {
   }
 
   // typed strings
-  case class GraphQl(string: String) // technically not GraphQl but GraphQl+: https://dgraph.io/docs/query-language/
+  case class GraphQl(string: String) // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
   case class Json(string: String)
 
   val TargetOption: String = "dgraph.target"
@@ -249,6 +249,18 @@ package object connector {
       else
         seq.drop(seq.length - i) ++ seq.take(seq.length - i)
 
+  }
+
+  implicit class ExtendedThrowable(throwable: Throwable) {
+    def causedByResourceExhausted(): Boolean = isCausedByResourceExhausted(throwable)
+  }
+
+  @scala.annotation.tailrec
+  private def isCausedByResourceExhausted(throwable: Throwable): Boolean = throwable match {
+    case sre: StatusRuntimeException =>
+      sre.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED
+    case _ =>
+      throwable.getCause != null && isCausedByResourceExhausted(throwable.getCause)
   }
 
 }

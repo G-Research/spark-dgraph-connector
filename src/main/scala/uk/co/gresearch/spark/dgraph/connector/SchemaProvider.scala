@@ -19,8 +19,9 @@ package uk.co.gresearch.spark.dgraph.connector
 import com.google.gson.{Gson, JsonObject}
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
-import io.grpc.ManagedChannel
+import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 
+import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 trait SchemaProvider {
@@ -44,8 +45,21 @@ trait SchemaProvider {
         .toSet
       Schema(schema)
     } catch {
-      // this is potentially an async exception which does not include any useful stacktrace, so we add it here
-      case e: Throwable => throw e.fillInStackTrace()
+      case e: Throwable =>
+        // this is potentially an async exception which does not include any useful stacktrace, so we add it here
+        val exc = e.fillInStackTrace()
+
+        // provide a useful exception when we see an RESOURCE_EXHAUSTED gRPC code
+        if (exc.causedByResourceExhausted())
+          throw new RuntimeException(
+            "Schema could not be retrieved, because it is too large. " +
+              "Increasing the maximum size is not supported: " +
+              "https://github.com/G-Research/spark-dgraph-connector/issues/71",
+            exc
+          )
+
+        // just rethrow any other exception
+        throw exc
     } finally {
       channels.foreach(_.shutdown())
     }
