@@ -113,9 +113,9 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
       case "datetime" | "timestamp" =>
         Timestamp.valueOf(ZonedDateTime.parse(value.getAsString, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toLocalDateTime)
       case "bool" | "boolean" => value.getAsString == "true"
-      case "geo" => Geo(value.getAsString)
-      case "password" => Password(value.getAsString)
-      case "default" => value.getAsString
+      case "geo" => Geo(value.getAsJsonObject.toString)
+      case "password" => Password(value.getAsJsonObject.getAsString)
+      case "default" => value.getAsJsonObject.getAsString
       case _ => value.getAsString
     }
 
