@@ -1,14 +1,14 @@
 name: CI
 
-on: [push, pull_request_target]
+on: [push, pull_request, pull_request_target]
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'push' ||
-      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+#    if: >
+#      github.event_name == 'push' ||
+#      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
 
     steps:
       - name: Checkout
@@ -43,9 +43,9 @@ jobs:
     name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     needs: build
-    if: >
-      github.event_name == 'push' ||
-      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+#    if: >
+#      github.event_name == 'push' ||
+#      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
 
     strategy:
       fail-fast: false
@@ -137,9 +137,9 @@ jobs:
           path: artifacts
 
       - name: Publish Unit Test Results
-        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:latest
+        uses: EnricoMi/publish-unit-test-result-action@master
         with:
-          check_name: Unit Test Results
+          check_name: Unit Test Results (${{ github.event_name }})
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: "artifacts/Unit Test Results*/**/*.xml"
           log_level: DEBUG
