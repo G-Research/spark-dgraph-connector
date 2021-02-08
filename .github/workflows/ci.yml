@@ -14,7 +14,7 @@ jobs:
       - name: Unit Test Results Comment
         uses: EnricoMi/publish-unit-test-result-action@branch-pull-request-target
         with:
-          check_name: Unit Test Results (${{ github.event_name }})
+          check_name: Unit Test Results
           log_level: DEBUG
 
   build:
@@ -148,7 +148,7 @@ jobs:
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@master
         with:
-          check_name: Unit Test Results (${{ github.event_name }})
+          check_name: Unit Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: "artifacts/Unit Test Results*/**/*.xml"
           log_level: DEBUG
