@@ -17,7 +17,8 @@
   <scm>
     <connection>scm:git:git://github.com/g-research/spark-dgraph-connector.git</connection>
     <developerConnection>scm:git:ssh://github.com:g-research/spark-dgraph-connector.git</developerConnection>
-    <url>http://github.com/g-research/spark-dgraph-connector.git/tree/master</url>
+    <url>https://github.com/g-research/spark-dgraph-connector/tree/${project.scm.tag}</url>
+    <tag>spark-3.0</tag>
   </scm>
   <developers>
     <developer>
