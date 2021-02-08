@@ -1,26 +1,11 @@
 name: CI
 
-on: [push, pull_request_target]
+on: [push]
 
 jobs:
-  comment:
-    name: Comment on Pull Request
-    runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'pull_request_target' &&
-      github.event.pull_request.head.repo.full_name != github.repository
-
-    steps:
-      - name: Unit Test Results Comment
-        uses: EnricoMi/publish-unit-test-result-action@branch-pull-request-target
-        with:
-          check_name: Unit Test Results
-          log_level: DEBUG
-
   build:
     name: Build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
