@@ -1,14 +1,26 @@
 name: CI
 
-on: [push, pull_request, pull_request_target]
+on: [push, pull_request_target]
 
 jobs:
+  comment:
+    name: Comment on Pull Request
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.head.repo.full_name != github.repository
+
+    steps:
+      - name: Unit Test Results Comment
+        uses: EnricoMi/publish-unit-test-result-action@branch-pull-request-target
+        with:
+          check_name: Unit Test Results (${{ github.event_name }})
+          log_level: DEBUG
+
   build:
     name: Build
     runs-on: ubuntu-latest
-#    if: >
-#      github.event_name == 'push' ||
-#      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -43,9 +55,6 @@ jobs:
     name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     needs: build
-#    if: >
-#      github.event_name == 'push' ||
-#      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
 
     strategy:
       fail-fast: false
@@ -148,9 +157,6 @@ jobs:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
     needs: build
-    if: >
-      github.event_name == 'push' ||
-      github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository
 
     strategy:
       fail-fast: false
