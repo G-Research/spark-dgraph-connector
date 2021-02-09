@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Post Pull Request Comment
-        uses: EnricoMi/publish-unit-test-result-action@branch-pull-request-target
+        uses: EnricoMi/publish-unit-test-result-action@branch-test-base-commit
         with:
           check_name: Unit Test Results
           log_level: DEBUG
