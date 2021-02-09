@@ -125,6 +125,13 @@ jobs:
     if: success() || failure()
 
     steps:
+      - name: Debug Action
+        uses: hmarr/debug-action@v1.0.0
+
+      - name: GitHub JSON
+        run: echo "${{ toJSON(github) }}"
+        shell: bash
+
       - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
