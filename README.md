@@ -1,5 +1,7 @@
 # Spark Dgraph Connector
 
+REVERT: commit base test
+
 This project provides an [Apache Spark](https://spark.apache.org/) connector
 for [Dgraph databases](https://dgraph.io/) in Scala and Python.
 It comes with a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html)
