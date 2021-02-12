@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - 'spark-*'
+    tags:
+      - '*'
+  pull_request:
 
 jobs:
   build:
@@ -122,7 +128,11 @@ jobs:
     needs: test
 
     runs-on: ubuntu-latest
-    if: success() || failure()
+    # the workflow is useless on pull_request events from fork repositories
+    # as it can not create check runs or pull request comments
+    if: >
+      ( success() || failure() ) &&
+      ( github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository )
 
     steps:
       - name: Debug Action
@@ -138,10 +148,9 @@ jobs:
           path: artifacts
 
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@branch-test-base-commit
+        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1
         with:
-          check_name: Unit Test Results
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           files: "artifacts/Unit Test Results*/**/*.xml"
           log_level: DEBUG
 
