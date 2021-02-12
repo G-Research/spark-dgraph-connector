@@ -6,6 +6,11 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # always run on push events, but only run on pull_request events when pull request pulls from fork repository
+    # for pull requests within the same repository, the pull event is sufficient
+    if: >
+      github.event_name == 'push' ||
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
 
     steps:
       - name: Checkout
@@ -122,7 +127,7 @@ jobs:
     needs: test
 
     runs-on: ubuntu-latest
-    if: success() || failure()
+    if: ( success() || failure() ) && github.event_name == 'push'
 
     steps:
       - name: Debug Action
