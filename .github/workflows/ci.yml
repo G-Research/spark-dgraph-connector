@@ -1,6 +1,6 @@
 name: CI
 
-on: [pull_request]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -144,7 +144,7 @@ jobs:
           path: artifacts
 
       - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@branch-test-base-commit
+        uses: EnricoMi/publish-unit-test-result-action@branch-pr-info-from-event
         with:
           check_name: Unit Test Results
           github_token: ${{ secrets.GITHUB_TOKEN }}
