@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.07.0, 20.07.1, 20.07.2]
+        dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.03.7, 20.07.0, 20.07.1, 20.07.2, 20.11.0, 20.11.1, 20.11.2]
         python-version: [3.6]
 
     steps:
@@ -177,7 +177,7 @@ jobs:
       fail-fast: false
       matrix:
         spark-version: ${{ fromJSON(needs.build.outputs.spark-version-matrix) }}
-        dgraph-version: [20.07.0]
+        dgraph-version: [20.03.7, 20.07.2, 20.11.2]
         include:
           - spark-version: ${{ needs.build.outputs.spark-version }}
             spark-compat-version: ${{ needs.build.outputs.spark-compat-version }}
