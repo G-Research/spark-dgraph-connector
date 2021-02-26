@@ -41,15 +41,15 @@ class TestTriplesSource extends AnyFunSpec
     lazy val expectedTypedTriples = expecteds.getExpectedTypedTriples
     lazy val expectedStringTriples = expecteds.getExpectedStringTriples
 
-    def doTestLoadTypedTriples(load: () => DataFrame): Unit = {
+    def doTestLoadTypedTriples(load: () => DataFrame, expected: Set[TypedTriple] = expectedTypedTriples): Unit = {
       val triples = load().as[TypedTriple].collect().toSet
-      assert(triples === expectedTypedTriples)
+      assert(triples === expected)
     }
 
-    def doTestLoadStringTriples(load: () => DataFrame): Unit = {
+    def doTestLoadStringTriples(load: () => DataFrame, expected: Set[StringTriple] = expectedStringTriples): Unit = {
       load().as[StringTriple].show(100, false)
       val triples = load().as[StringTriple].collect().toSet
-      assert(triples === expectedStringTriples)
+      assert(triples === expected)
     }
 
     val predicates = Set(
@@ -134,6 +134,226 @@ class TestTriplesSource extends AnyFunSpec
           .read
           .option(TriplesModeOption, TriplesModeTypedOption)
           .dgraph.triples(dgraph.target)
+      )
+    }
+
+    it("should load string-object triples and include reserved predicates") {
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+      )
+    }
+
+    it("should load string-object triples and exclude reserved predicates") {
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+      )
+    }
+
+    it("should load string-object triples and include/exclude reserved predicates") {
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedStringTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadStringTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+          .dgraph.triples(dgraph.target),
+        expectedStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
+      )
+    }
+
+    it("should load typed-object triples and include reserved predicates") {
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+      )
+    }
+
+    it("should load typed-object triples and exclude reserved predicates") {
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+      )
+    }
+
+    it("should load typed-object triples and include/exclude reserved predicates") {
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedTriples.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedTriples(() =>
+        spark
+          .read
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+          .dgraph.triples(dgraph.target),
+        expectedTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
       )
     }
 

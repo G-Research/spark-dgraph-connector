@@ -165,6 +165,9 @@ package object connector {
   val NodesModeTypedOption: String = "typed"
   val NodesModeWideOption: String = "wide"
 
+  val IncludeReservedPredicatesOption: String = "dgraph.include.reserved-predicates"
+  val ExcludeReservedPredicatesOption: String = "dgraph.exclude.reserved-predicates"
+
   val TransactionModeOption: String = "dgraph.transaction.mode"
   val TransactionModeNoneOption: String = "none"
   val TransactionModeReadOption: String = "read"

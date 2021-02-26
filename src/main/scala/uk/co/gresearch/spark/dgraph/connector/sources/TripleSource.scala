@@ -53,7 +53,7 @@ class TripleSource() extends TableProviderBase
     val targets = getTargets(options)
     val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
-    val schema = getSchema(targets)
+    val schema = getSchema(targets, options)
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val tripleMode = getTripleMode(options)

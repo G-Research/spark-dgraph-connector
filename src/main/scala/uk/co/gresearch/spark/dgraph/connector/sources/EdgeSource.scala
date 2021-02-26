@@ -45,7 +45,7 @@ class EdgeSource() extends TableProviderBase
     val targets = getTargets(options)
     val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
-    val schema = getSchema(targets).filter(_.isEdge)
+    val schema = getSchema(targets, options).filter(_.isEdge)
     val clusterState = getClusterState(targets)
     val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val encoder = EdgeEncoder(schema.predicateMap)
