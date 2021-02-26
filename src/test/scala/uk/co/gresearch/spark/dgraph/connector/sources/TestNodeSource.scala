@@ -47,16 +47,18 @@ class TestNodeSource extends AnyFunSpec
     lazy val expectedWideNodes = expecteds.getExpectedWideNodes
     lazy val expectedWideSchema: StructType = expecteds.getExpectedWideNodeSchema
 
-    def doTestLoadTypedNodes(load: () => DataFrame): Unit = {
+    def doTestLoadTypedNodes(load: () => DataFrame, expected: Set[TypedNode] = expectedTypedNodes): Unit = {
       val nodes = load().as[TypedNode].collect().toSet
-      assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expectedTypedNodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
+      assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expected.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
     }
 
-    def doTestLoadWideNodes(load: () => DataFrame): Unit = {
+    def doTestLoadWideNodes(load: () => DataFrame,
+                            expectedNodes: Set[Row] = expectedWideNodes,
+                            expectedSchema: StructType = expectedWideSchema): Unit = {
       val df = load()
       val nodes = df.collect().toSet
-      assert(nodes === expectedWideNodes)
-      assert(df.schema === expectedWideSchema)
+      assert(df.schema === expectedSchema)
+      assert(nodes === expectedNodes)
     }
 
     it("should load nodes via path") {
@@ -128,6 +130,246 @@ class TestNodeSource extends AnyFunSpec
           .read
           .option(NodesModeOption, NodesModeWideOption)
           .dgraph.nodes(dgraph.target)
+      )
+    }
+
+    it("should load typed-object nodes and include reserved predicates") {
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+      )
+    }
+
+    it("should load typed-object nodes and exclude reserved predicates") {
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+      )
+    }
+
+    it("should load typed-object nodes and include/exclude reserved predicates") {
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.type"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.schema"))
+      assert(expectedTypedNodes.map(_.predicate).contains("dgraph.graphql.xid"))
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+      )
+
+      doTestLoadTypedNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeTypedOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+          .dgraph.nodes(dgraph.target),
+        expectedTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
+      )
+    }
+
+    def expectedWideNodesFiltered(filter: StructField => Boolean): Set[Row] = {
+      val filteredIndices = expectedWideSchema.zipWithIndex.filter(x => filter(x._1)).map(_._2)
+      expectedWideNodes.map(select(filteredIndices: _*))
+        // drop all-null (except the first column) rows
+        .filter(_.toSeq.tail.map(Option(_)).exists(_.isDefined))
+    }
+
+    def expectedWideSchemaFiltered(filter: StructField => Boolean): StructType =
+      expectedWideSchema.copy(fields = expectedWideSchema.fields.filter(filter))
+
+    it("should load wide nodes and include reserved predicates") {
+      assert(expectedWideSchema.map(_.name).contains("dgraph.type"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.schema"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.xid"))
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type")
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid")
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql.")),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql."))
+      )
+    }
+
+    it("should load wide nodes and exclude reserved names") {
+      assert(expectedWideSchema.map(_.name).contains("dgraph.type"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.schema"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.xid"))
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => predicate.name != "dgraph.graphql.xid"),
+        expectedWideSchemaFiltered(predicate => predicate.name != "dgraph.graphql.xid")
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)),
+        expectedWideSchemaFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name))
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.")),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql."))
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type")
+      )
+    }
+
+    it("should load wide nodes and include/exclude reserved names") {
+      assert(expectedWideSchema.map(_.name).contains("dgraph.type"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.schema"))
+      assert(expectedWideSchema.map(_.name).contains("dgraph.graphql.xid"))
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid"),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid")
+      )
+
+      doTestLoadWideNodes(() =>
+        spark
+          .read
+          .option(NodesModeOption, NodesModeWideOption)
+          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+          .dgraph.nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x")),
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x"))
       )
     }
 

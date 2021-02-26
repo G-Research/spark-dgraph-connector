@@ -587,10 +587,10 @@ This estimator can be selected with the `maxLeaseId` value.
 
 The connector reads each partition from Dgraph in a streamed fashion. It splits up a partition into smaller chunks,
 where each chunk contains `100000` uids. This chunk size can be configured via `dgraph.chunkSize`.
-Each chunk sends a single query sent to Dgraph. The chunk size limits the size of the result.
+Each chunk sends a single query to Dgraph. The chunk size limits the size of the result.
 Due to the low memory footprint of the connector, Spark could read your entire graph via a single partition
 (you would have to `repartition` the read DataFrame to make Spark shuffle the data properly).
-However, this would be would slow, but it proves the connector can handle any size of graph with fixed executor memory requirement.
+However, this would be slow, but it proves the connector can handle any size of graph with fixed executor memory requirement.
 
 ## Shaded Dependencies
 

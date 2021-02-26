@@ -19,17 +19,46 @@ package uk.co.gresearch.spark.dgraph.connector
 import com.google.gson.{Gson, JsonObject}
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
-import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
+import io.grpc.ManagedChannel
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import java.util.regex.Pattern
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
-trait SchemaProvider {
+trait SchemaProvider extends ConfigParser {
 
   private val query = "schema { predicate type lang }"
 
-  def getSchema(targets: Seq[Target]): Schema = {
+  def getPredicateFilters(filters: String): Set[Pattern] = {
+    val replacements = Seq(
+      (".", "\\."),
+      ("?", "\\?"),
+      ("[", "\\["), ("]", "\\]"),
+      ("{", "\\{"), ("}", "\\}"),
+      ("*", ".*"),
+    )
+
+    val filterStrings = filters.split(",")
+    if (filterStrings.exists(!_.startsWith("dgraph."))) {
+      throw new IllegalArgumentException(s"Reserved predicate filters must start with 'dgraph.': ${filterStrings.mkString(", ")}")
+    }
+
+    filterStrings
+      .map(f => replacements.foldLeft[String](f) { case (f, (pat, repl)) => f.replace(pat, repl) })
+      .map(Pattern.compile)
+      .toSet
+  }
+
+  def getSchema(targets: Seq[Target], options: CaseInsensitiveStringMap): Schema = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
+    val includes = getStringOption(IncludeReservedPredicatesOption, options)
+      .orElse(Some("dgraph.*"))
+      .map(getPredicateFilters)
+      .get
+    val excludes = getStringOption(ExcludeReservedPredicatesOption, options)
+      .map(getPredicateFilters)
+      .getOrElse(Set())
+
     try {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
@@ -42,6 +71,10 @@ trait SchemaProvider {
           o.get("type").getAsString,
           o.has("lang") && o.get("lang").getAsBoolean
         ))
+        .filter(p =>
+          ! p.predicateName.startsWith("dgraph.") ||
+          includes.exists(_.matcher(p.predicateName).matches()) &&
+          ! excludes.exists(_.matcher(p.predicateName).matches()))
         .toSet
       Schema(schema)
     } catch {
