@@ -25,7 +25,7 @@ import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector.sources.{TestTriplesSource, TriplesSourceExpecteds}
 
-class TestTransaction extends AnyFunSpec with SparkTestSession with DgraphTestCluster {
+class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with DgraphTestCluster {
 
   import spark.implicits._
 
@@ -79,11 +79,11 @@ class TestTransaction extends AnyFunSpec with SparkTestSession with DgraphTestCl
 
     it("should read in transaction") {
       // the graph before any mutations, read with transaction ...
-      val beforeWithTransaction = spark.read.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target)
+      val beforeWithTransaction = reader.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target)
       val beforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
       // ... and without transaction
-      val beforeWithoutTransaction = spark.read.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target)
+      val beforeWithoutTransaction = reader.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target)
       val beforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithoutTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
 
@@ -91,7 +91,7 @@ class TestTransaction extends AnyFunSpec with SparkTestSession with DgraphTestCl
       mutate()
 
       // create another dataframe after mutation
-      val after = spark.read.dgraph.triples(dgraph.target)
+      val after = reader.dgraph.triples(dgraph.target)
       val afterTriples = after.as[TypedTriple].collect().toSet
 
       // construct expected dataframe from materialized before triples
