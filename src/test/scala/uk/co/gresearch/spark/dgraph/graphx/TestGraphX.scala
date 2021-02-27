@@ -17,16 +17,16 @@
 package uk.co.gresearch.spark.dgraph.graphx
 
 import java.sql.Timestamp
-
 import org.apache.spark.graphx
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
+import uk.co.gresearch.spark.dgraph.connector.{ConnectorSparkTestSession, Target}
 
 class TestGraphX extends AnyFunSpec
-  with SparkTestSession with DgraphTestCluster {
+  with ConnectorSparkTestSession with DgraphTestCluster {
 
   describe("GraphX") {
 
@@ -54,8 +54,6 @@ class TestGraphX extends AnyFunSpec
       val vertices = load().collect().toSet
       val expected = Set(
         (dgraph.graphQlSchema,StringVertexProperty("dgraph.type", "dgraph.graphql")),
-        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.xid", "dgraph.graphql.schema")),
-        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.schema", "")),
         (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
         (dgraph.st1, StringVertexProperty("title@en", "Star Trek: The Motion Picture")),
         (dgraph.st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
@@ -134,27 +132,27 @@ class TestGraphX extends AnyFunSpec
     ).foreach{case (test, targets) =>
 
       it(s"should load dgraph from $test via implicit session") {
-        doGraphTest(() => loadGraph(targets(): _*))
+        doGraphTest(() => loadGraph(reader, targets().map(Target): _*))
       }
 
       it(s"should load dgraph from $test via reader") {
-        doGraphTest(() => spark.read.dgraph.graphx(targets(): _*))
+        doGraphTest(() => reader.dgraph.graphx(targets(): _*))
       }
 
       it(s"should load vertices from $test via implicit session") {
-        doVertexTest(() => loadVertices(targets(): _*))
+        doVertexTest(() => loadVertices(reader, targets().map(Target): _*))
       }
 
       it(s"should load vertices from $test via reader") {
-        doVertexTest(() => spark.read.dgraph.vertices(targets(): _*))
+        doVertexTest(() => reader.dgraph.vertices(targets(): _*))
       }
 
       it(s"should load edges from $test via implicit session") {
-        doEdgeTest(() => loadEdges(targets(): _*))
+        doEdgeTest(() => loadEdges(reader, targets().map(Target): _*))
       }
 
       it(s"should load edges from $test via reader") {
-        doEdgeTest(() => spark.read.dgraph.edges(targets(): _*))
+        doEdgeTest(() => reader.dgraph.edges(targets(): _*))
       }
 
     }

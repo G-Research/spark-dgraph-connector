@@ -19,6 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
+import java.util.UUID
+
 class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
 
   describe("ClusterStateProvider") {
@@ -27,23 +29,23 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       val provider = new ClusterStateProvider {}
       val state = provider.getClusterState(Target(dgraph.target))
       assert(state.isDefined === true)
-      assert(state.get === ClusterState(
-        Map("1" -> Set(Target(dgraph.target))),
-        Map("1" -> Set("name", "title", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
-        10000,
-        state.get.cid
-      ))
+      assert(state.get.groupMembers === Map("1" -> Set(Target(dgraph.target))))
+      assert(state.get.groupPredicates.contains("1"))
+      val actualPredicates = state.get.groupPredicates("1")
+      val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
+      assert(expectedPredicates.diff(actualPredicates) === Set.empty)
+      assert(state.get.maxLeaseId === 10000)
     }
 
     it("should retrieve cluster states") {
       val provider = new ClusterStateProvider {}
       val state = provider.getClusterState(Seq(Target(dgraph.target), Target(dgraph.targetLocalIp)))
-      assert(state === ClusterState(
-        Map("1" -> Set(Target(dgraph.target))),
-        Map("1" -> Set("name", "title", "dgraph.graphql.schema", "starring", "dgraph.graphql.xid", "running_time", "release_date", "director", "revenue", "dgraph.type")),
-        10000,
-        state.cid
-      ))
+      assert(state.groupMembers === Map("1" -> Set(Target(dgraph.target))))
+      assert(state.groupPredicates.contains("1"))
+      val actualPredicates = state.groupPredicates("1")
+      val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
+      assert(expectedPredicates.diff(actualPredicates) === Set.empty)
+      assert(state.maxLeaseId === 10000)
     }
 
     it("should fail for unavailable cluster") {

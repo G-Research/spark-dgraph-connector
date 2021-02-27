@@ -71,12 +71,13 @@ trait SchemaProvider extends ConfigParser {
           o.get("type").getAsString,
           o.has("lang") && o.get("lang").getAsBoolean
         ))
+      val filteredSchema = schema
         .filter(p =>
           ! p.predicateName.startsWith("dgraph.") ||
           includes.exists(_.matcher(p.predicateName).matches()) &&
-          ! excludes.exists(_.matcher(p.predicateName).matches()))
+          excludes.forall(!_.matcher(p.predicateName).matches()))
         .toSet
-      Schema(schema)
+      Schema(filteredSchema)
     } catch {
       case e: Throwable =>
         // this is potentially an async exception which does not include any useful stacktrace, so we add it here

@@ -25,6 +25,8 @@ import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 trait ProjectionPushDownTestHelper extends Assertions {
 
+  def select(idx: Int*)(row: Row): Row = Row(idx.map(row.get): _*)
+
   /**
    * Tests projection push down. An empty selection is interpreted as no selection.
    *
@@ -63,7 +65,5 @@ trait ProjectionPushDownTestHelper extends Assertions {
     assert(actual.toSet === expectedDs)
     assert(actual.length === expectedDs.size)
   }
-
-  def select(idx: Int*)(row: Row): Row = Row(idx.map(row.get): _*)
 
 }
