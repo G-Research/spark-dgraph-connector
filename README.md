@@ -425,7 +425,7 @@ occur but reads are not isolated from writes.
 
 The connector supports filter pushdown to improve efficiency when reading only sub-graphs.
 This is supported only in conjunction with the [predicate partitioner](#partitioning-by-predicates).
-Spark filters cannot be pushed for any column and any data source because columns have different meaning.
+Spark filters can only be pushed for some column and data source because columns may have different meaning.
 Columns can be of the following types:
 
 |Column Type|Description|Type |Columns|Sources|
@@ -433,15 +433,15 @@ Columns can be of the following types:
 |subject column|the subject of the row|`long`|`subject`|all [DataFrame sources](#dataframe)|
 |predicate column|the predicate of the row|`string`|`predicate`|all but [Wide Nodes source](#wide-nodes)|
 |predicate value column|the value of a specific predicate, column name is predicate name|*any*|one column for each predicate in the schema, e.g. `dgraph.type`|[Wide Nodes source](#wide-nodes)|
-|object value columns|object value of the row|`long`<br/>`string`<br/>`long`<br/>`double`<br/>`timestamp`<br/>`boolean`<br/>`geo`<br/>`password`|`objectUid`<br>`objectString`<br>`objectLong`<br>`objectDouble`<br>`objectTimestamp`<br>`objectBoolean`<br>`objectGeo`<br>`objectPassword`|all but [Wide Nodes source](#Wide-nodes)<br>the [String Triples source](#string-triples) has only `objectString`<br>the [Typed Triples source](#typed-triples) lacks the `objectUid`<br>the [Edges source](#edges) has only `objectUid`|
-|object type column|the type of the object|`string`|`objectType`|all but [Wide Nodes](#wide-nodes) and [Edges](#edges) source|
+|object value columns|object value of the row|`long`<br/>`string`<br/>`long`<br/>`double`<br/>`timestamp`<br/>`boolean`<br/>`geo`<br/>`password`|`objectUid`<br>`objectString`<br>`objectLong`<br>`objectDouble`<br>`objectTimestamp`<br>`objectBoolean`<br>`objectGeo`<br>`objectPassword`|all but [Wide Nodes source](#Wide-nodes)<br>the [String Triples source](#string-triples) has only `objectString`<br>the [Typed Nodes source](#typed-nodes) lacks the `objectUid`<br>the [Edges source](#edges) has only `objectUid`|
+|object type column|the type of the object|`string`|`objectType`|[String Triples source](#string-triples), [Typed Triples source](#typed-triples) and [Typed Nodes source](#typed-nodes)|
 
 The following table lists all supported Spark filters:
 
 |Spark Filter|Supported Columns|Example|
 |:----------:|-------|-------|
-|`EqualTo`   |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"subject" === 1L)`</li><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectLong" === 123)`</li><li>`.where($"objectType" === "string")`</li></ul>|
-|`In`        |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li><li>object type column</li></ul>|<ul><li>`.where($"subject".isin(1L,2L))`</li><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectLong".isin(123,456))`</li><li>`.where($"objectType".isin("string","long"))`</li></ul>|
+|`EqualTo`   |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object type column</li><li>object value columns<ul><li>for [Typed Triples source](#typed-triples) and [Edge source](#edges) only with single predicate per partition</li><li>not for [String Triples source](#string-triples)</li></ul></li></ul>|<ul><li>`.where($"subject" === 1L)`</li><li>`.where($"predicate" === "dgraph.type")`</li><li>`.where($"dgraph.type" === "Person")`</li><li>`.where($"objectType" === "string")`</li><li>`.where($"objectLong" === 123)`</li></ul>|
+|`In`        |<ul><li>subject column</li><li>predicate column</li><li>predicate value column</li><li>object type column</li><li>object value columns<ul><li>for [Typed Triples source](#typed-triples) and [Edge source](#edges) only with single predicate per partition</li><li>not for [String Triples source](#string-triples)</li></ul></li></ul>|<ul><li>`.where($"subject".isin(1L,2L))`</li><li>`.where($"predicate".isin("release_date", "revenue"))`</li><li>`.where($"dgraph.type".isin("Person","Film"))`</li><li>`.where($"objectType".isin("string","long"))`</li><li>`.where($"objectLong".isin(123,456))`</li></ul>|
 |`IsNotNull` |<ul><li>predicate value column</li><li>object value columns (not for [String Triples source](#string-triples))</li></ul>|<ul><li>`.where($"dgraph.type".isNotNull)`</li><li>`.where($"objectLong".isNotNull)`</li></ul>|
 
 ## Projection Pushdown
@@ -577,7 +577,10 @@ The following `Partitioner` implementations are available:
 #### Partitioning by Predicates
 
 The Dgraph data can be partitioned by predicates. Each partition then contains a distinct set of predicates.
-Those partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
+The number of predicates per partition can be configured via `dgraph.partitioner.predicate.predicatesPerPartition`,
+which defaults to `1000`.
+
+Predicate partitions connect only to alpha nodes that contain those predicates. Hence, these reads are all
 locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 #### Partitioning by Uids

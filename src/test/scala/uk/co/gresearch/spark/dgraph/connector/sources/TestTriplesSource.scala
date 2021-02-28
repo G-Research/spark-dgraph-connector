@@ -17,14 +17,13 @@
 package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
-
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
+import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.reflect.runtime.universe._
@@ -340,6 +339,24 @@ class TestTriplesSource extends AnyFunSpec
         .dgraph.triples(dgraph.target)
         .as[StringTriple]
 
+    lazy val typedTriplesSinglePredicatePartitions =
+      spark
+        .read
+        .option(TriplesModeOption, TriplesModeTypedOption)
+        .option(PartitionerOption, PredicatePartitionerOption)
+        .option(PredicatePartitionerPredicatesOption, "1")
+        .dgraph.triples(dgraph.target)
+        .as[TypedTriple]
+
+    lazy val stringTriplesSinglePredicatePartitions =
+      spark
+        .read
+        .option(TriplesModeOption, TriplesModeStringOption)
+        .option(PartitionerOption, PredicatePartitionerOption)
+        .option(PredicatePartitionerPredicatesOption, "1")
+        .dgraph.triples(dgraph.target)
+        .as[StringTriple]
+
     it("should push subject filters") {
       doTestFilterPushDown(
         $"subject" === dgraph.leia,
@@ -425,21 +442,52 @@ class TestTriplesSource extends AnyFunSpec
       doTestFilterPushDownDf(typedTriples,
         $"objectString" === "Person",
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
+        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+      )
+      doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
+        $"objectString" === "Person",
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person"),
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriples,
+        $"objectString".isin("Person", "Film"),
+        Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))),
+        expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
+      )
+      doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
+        $"objectString".isin("Person"),
+        Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+      )
+      doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString".isin("Person", "Film"),
         Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
 
       doTestFilterPushDownDf(typedTriples,
+        $"objectString" === "Person" && $"objectUid" === 1,
+        Set(AlwaysFalse),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person")),
+          EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(1L))
+        ),
+        expectedDs = Set.empty
+      )
+      doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person" && $"objectUid" === 1,
         Set(AlwaysFalse),
         expectedDs = Set.empty
@@ -502,6 +550,57 @@ class TestTriplesSource extends AnyFunSpec
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
         expectedDs = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString) && t.objectType.equals("string"))
+      )
+    }
+
+    // The 'should push object value filters with predicate name filters for ... triples' tests
+    // test a bug that surfaced when one of multiple predicates in a partition matches
+    // the object value, then the other predicates are retrieved for those uids as well
+    // no matter if they match
+    // so we restrict to exactly two predicates here, where only one matches 'Person'
+    it("should push object value filters with predicate name filters for typed triples") {
+      doTestFilterPushDownDf(typedTriples,
+        $"objectString" === "Person" && $"predicate".isin("dgraph.type", "name"),
+        Set(ObjectTypeIsIn("string"), ObjectValueIsIn("Person"), IntersectPredicateNameIsIn("dgraph.type", "name")),
+        // With multiple predicates per partition, we cannot filter for object values
+        // Spark will have to filter on top
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        ),
+        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+      )
+
+      doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
+        $"objectString" === "Person" && $"predicate".isin("dgraph.type", "name"),
+        Set(IntersectPredicateValueIsIn(Set("dgraph.type", "name"), Set("Person")), ObjectTypeIsIn("string")),
+        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+      )
+    }
+
+    it("should push object value filters with predicate name filters for string triples") {
+      doTestFilterPushDownDf(stringTriples,
+        $"objectString".isin("Person") && $"predicate".isin("dgraph.type", "name"),
+        Set(IntersectPredicateNameIsIn(Set("dgraph.type", "name")), ObjectValueIsIn("Person")),
+        // With multiple predicates per partition, we cannot filter for object values
+        // The partitioner will push some value filters to dgraph
+        // but Spark will have to filter on top
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        ),
+        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
+      )
+      doTestFilterPushDownDf(stringTriplesSinglePredicatePartitions,
+        $"objectString".isin("Person") && $"predicate".isin("dgraph.type", "name"),
+        Set(IntersectPredicateValueIsIn(Set("dgraph.type", "name"), Set("Person"))),
+        // Even with a single predicate per partition, we cannot tell
+        // TableScanBuilder that EqualTo("objectString") is actually being done
+        // by ObjectValueIsIn("Person") and ObjectTypeIsIn("string")
+        // so the partitioner will efficiently perform the EqualTo("objectString")
+        // but Spark will still filter on top, which is fine
+        Seq(
+          EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
+        ),
+        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
       )
     }
 
