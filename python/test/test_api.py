@@ -46,7 +46,7 @@ def create_test(const, value):
 api = connector
 # all attributes of the connector package
 attrs = [(key, getattr(api, key)) for key in api.__dict__.keys() if not key.startswith('__')]
-# all constants of the connector package (stings, ints, floats and booleans)
+# all constants of the connector package (strings, ints, floats and booleans)
 consts = [(key, attr) for (key, attr) in attrs if type(attr) in [str, int, float, bool]]
 
 # create a test method for each constant
