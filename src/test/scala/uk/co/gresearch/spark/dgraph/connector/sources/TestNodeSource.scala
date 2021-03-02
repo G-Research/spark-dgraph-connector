@@ -463,10 +463,9 @@ class TestNodeSource extends AnyFunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date", "name"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "title"), Set.empty).langs(Set("title")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set.empty).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date", "running_time"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll),
+        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll)
       )
 
       assert(partitions.toSet === expected)
