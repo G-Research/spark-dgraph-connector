@@ -21,11 +21,11 @@ import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, E
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import java.sql.Timestamp
@@ -44,13 +44,13 @@ class TestTriplesSource extends AnyFunSpec
     lazy val expectedTypedTriples = expecteds.getExpectedTypedTriples
     lazy val expectedStringTriples = expecteds.getExpectedStringTriples
 
-    def doTestLoadTypedTriples(load: () => DataFrame, expected: Set[TypedTriple] = expectedTypedTriples): Unit = {
-      val triples = load().as[TypedTriple].collect().toSet
+    def doTestLoadTypedTriples(load: () => DataFrame, expected: Set[TypedTriple] = expectedTypedTriples, removeDgraph: Boolean = true): Unit = {
+      val triples = (if (removeDgraph) removeDgraphTriples(load().as[TypedTriple]) else load().as[TypedTriple]).collect().toSet
       assert(triples === expected)
     }
 
-    def doTestLoadStringTriples(load: () => DataFrame, expected: Set[StringTriple] = expectedStringTriples): Unit = {
-      val triples = load().as[StringTriple].collect().toSet
+    def doTestLoadStringTriples(load: () => DataFrame, expected: Set[StringTriple] = expectedStringTriples, removeDgraph: Boolean = true): Unit = {
+      val triples = (if (removeDgraph) removeDgraphTriples(load().as[StringTriple]) else load().as[StringTriple]).collect().toSet
       assert(triples === expected)
     }
 
@@ -147,7 +147,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type"),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -156,7 +157,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -165,7 +167,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -174,7 +177,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
     }
 
@@ -185,7 +189,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => triple.predicate != "dgraph.graphql.xid")
+        availableStringTriples.filter(triple => triple.predicate != "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -194,7 +199,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+        availableStringTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate)),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -203,7 +209,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -212,7 +219,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeStringOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type"),
+        removeDgraph = false
       )
     }
 
@@ -224,7 +232,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadStringTriples(() =>
@@ -234,7 +243,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
           .dgraph.triples(dgraph.target),
-        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
+        availableStringTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x")),
+        removeDgraph = false
       )
     }
 
@@ -254,7 +264,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type"),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -263,7 +274,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -272,7 +284,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -281,7 +294,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
     }
 
@@ -292,7 +306,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => triple.predicate != "dgraph.graphql.xid")
+        availableTypedTriples.filter(triple => triple.predicate != "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -301,7 +316,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+        availableTypedTriples.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate)),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -310,7 +326,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -319,7 +336,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(TriplesModeOption, TriplesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type"),
+        removeDgraph = false
       )
     }
 
@@ -331,7 +349,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid"),
+        removeDgraph = false
       )
 
       doTestLoadTypedTriples(() =>
@@ -341,7 +360,8 @@ class TestTriplesSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
           .dgraph.triples(dgraph.target),
-        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
+        availableTypedTriples.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x")),
+        removeDgraph = false
       )
     }
 
@@ -375,22 +395,24 @@ class TestTriplesSource extends AnyFunSpec
 
     it("should encode StringTriple") {
       val rows =
-        reader
-          .option(TriplesModeOption, TriplesModeStringOption)
-          .dgraph.triples(dgraph.target)
-          .as[StringTriple]
-          .collectAsList()
-      assert(rows.size() == 62)
+        removeDgraphTriples(
+          reader
+            .option(TriplesModeOption, TriplesModeStringOption)
+            .dgraph.triples(dgraph.target)
+            .as[StringTriple]
+        ).collectAsList()
+      assert(rows.size() == 61)
     }
 
     it("should encode TypedTriple") {
       val rows =
-        reader
-          .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraph.triples(dgraph.target)
-          .as[TypedTriple]
-          .collectAsList()
-      assert(rows.size() == 62)
+        removeDgraphTriples(
+          reader
+            .option(TriplesModeOption, TriplesModeTypedOption)
+            .dgraph.triples(dgraph.target)
+            .as[TypedTriple]
+        ).collectAsList()
+      assert(rows.size() == 61)
     }
 
     it("should fail without target") {
@@ -514,16 +536,19 @@ class TestTriplesSource extends AnyFunSpec
     }
 
     it("should partition data") {
-      val partitions =
-        reader
-          .options(Map(
-            PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.triples(dgraph.target)
+      val partitions = {
+        removeDgraphTriples(
+          reader
+            .options(Map(
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.triples(dgraph.target)
+        )
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
+      }
 
       // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
       val allUidInts = dgraph.allUids.map(_.toInt).toSet
@@ -532,38 +557,44 @@ class TestTriplesSource extends AnyFunSpec
     }
 
     lazy val typedTriples =
-      reader
-        .option(TriplesModeOption, TriplesModeTypedOption)
-        .option(PartitionerOption, PredicatePartitionerOption)
-        .option(PredicatePartitionerPredicatesOption, "2")
-        .dgraph.triples(dgraph.target)
-        .as[TypedTriple]
+      removeDgraphTriples(
+        reader
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .as[TypedTriple]
+      )
 
     lazy val stringTriples =
-      reader
-        .option(TriplesModeOption, TriplesModeStringOption)
-        .option(PartitionerOption, PredicatePartitionerOption)
-        .option(PredicatePartitionerPredicatesOption, "2")
-        .dgraph.triples(dgraph.target)
-        .as[StringTriple]
+      removeDgraphTriples(
+        reader
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .as[StringTriple]
+      )
 
     lazy val typedTriplesSinglePredicatePartitions =
-      spark
-        .read
-        .option(TriplesModeOption, TriplesModeTypedOption)
-        .option(PartitionerOption, PredicatePartitionerOption)
-        .option(PredicatePartitionerPredicatesOption, "1")
-        .dgraph.triples(dgraph.target)
-        .as[TypedTriple]
+      removeDgraphTriples(
+        reader
+          .option(TriplesModeOption, TriplesModeTypedOption)
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.triples(dgraph.target)
+          .as[TypedTriple]
+      )
 
     lazy val stringTriplesSinglePredicatePartitions =
-      spark
-        .read
-        .option(TriplesModeOption, TriplesModeStringOption)
-        .option(PartitionerOption, PredicatePartitionerOption)
-        .option(PredicatePartitionerPredicatesOption, "1")
-        .dgraph.triples(dgraph.target)
-        .as[StringTriple]
+      removeDgraphTriples(
+        reader
+          .option(TriplesModeOption, TriplesModeStringOption)
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.triples(dgraph.target)
+          .as[StringTriple]
+      )
 
     it("should push subject filters") {
       doTestFilterPushDown(
@@ -850,7 +881,6 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
 
   def getExpectedTypedTriples: Set[TypedTriple] =
     Set(
-      TypedTriple(cluster.graphQlSchema, "dgraph.type", None, Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "dgraph.type", None, Some("Film"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "title@en", None, Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
       TypedTriple(cluster.st1, "release_date", None, None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
@@ -919,7 +949,6 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
 
   def getExpectedStringTriples: Set[StringTriple] =
     Set(
-      StringTriple(cluster.graphQlSchema, "dgraph.type", "dgraph.graphql", "string"),
       StringTriple(cluster.st1, "dgraph.type", "Film", "string"),
       StringTriple(cluster.st1, "title@en", "Star Trek: The Motion Picture", "string"),
       StringTriple(cluster.st1, "release_date", "1979-12-07 00:00:00.0", "timestamp"),
@@ -982,5 +1011,15 @@ case class TriplesSourceExpecteds(cluster: DgraphCluster) {
       StringTriple(cluster.sw3, "starring", cluster.luke.toString, "uid"),
       StringTriple(cluster.sw3, "starring", cluster.han.toString, "uid"),
     )
+
+}
+
+object TestTriplesSource {
+
+  def removeDgraphTriples[T](triples: Dataset[T]): Dataset[T] = {
+    import triples.sparkSession.implicits._
+    val dgraphNodeUids = triples.where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph.")).select($"subject").distinct().as[Long].collect()
+    triples.where(!$"subject".isin(dgraphNodeUids: _*))
+  }
 
 }

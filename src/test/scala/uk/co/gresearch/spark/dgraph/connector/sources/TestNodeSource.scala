@@ -39,6 +39,22 @@ class TestNodeSource extends AnyFunSpec
 
   import spark.implicits._
 
+  def removeDgraphTypedNodes(nodes: Dataset[TypedNode]): Dataset[TypedNode] = {
+    val dgraphNodeUids =
+      nodes
+        .where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph."))
+        .select($"subject").distinct().as[Long].collect()
+    nodes.where(!$"subject".isin(dgraphNodeUids: _*))
+  }
+
+  def removeDgraphWideNodes[T](nodes: Dataset[T]): Dataset[T] = {
+    val dgraphNodeUids =
+      nodes
+        .where($"`dgraph.type`".startsWith("dgraph."))
+        .select($"subject").distinct().as[Long].collect()
+    nodes.where(!$"subject".isin(dgraphNodeUids: _*))
+  }
+
   describe("NodeDataSource") {
 
     lazy val expecteds = NodesSourceExpecteds(dgraph)
@@ -46,15 +62,16 @@ class TestNodeSource extends AnyFunSpec
     lazy val expectedWideNodes = expecteds.getExpectedWideNodes
     lazy val expectedWideSchema: StructType = expecteds.getExpectedWideNodeSchema
 
-    def doTestLoadTypedNodes(load: () => DataFrame, expected: Set[TypedNode] = expectedTypedNodes): Unit = {
-      val nodes = load().as[TypedNode].collect().toSet
+    def doTestLoadTypedNodes(load: () => DataFrame, expected: Set[TypedNode] = expectedTypedNodes, removeDgraphNodes: Boolean = true): Unit = {
+      val nodes = (if (removeDgraphNodes) removeDgraphTypedNodes(load().as[TypedNode]) else load().as[TypedNode]).collect().toSet
       assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expected.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
     }
 
     def doTestLoadWideNodes(load: () => DataFrame,
                             expectedNodes: Set[Row] = expectedWideNodes,
-                            expectedSchema: StructType = expectedWideSchema): Unit = {
-      val df = load()
+                            expectedSchema: StructType = expectedWideSchema,
+                            removeDgraphNodes: Boolean = true): Unit = {
+      val df = if (removeDgraphNodes) removeDgraphWideNodes(load()) else load()
       val nodes = df.collect().toSet
       assert(df.schema === expectedSchema)
       assert(nodes === expectedNodes)
@@ -142,7 +159,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type")
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type"),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -151,7 +169,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid")
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -160,7 +179,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -169,7 +189,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
     }
 
@@ -180,7 +201,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => triple.predicate != "dgraph.graphql.xid")
+        availableTypedNodes.filter(triple => triple.predicate != "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -189,7 +211,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate))
+        availableTypedNodes.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate)),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -198,7 +221,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql."))
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -207,7 +231,8 @@ class TestNodeSource extends AnyFunSpec
           .option(NodesModeOption, NodesModeTypedOption)
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type")
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type"),
+        removeDgraphNodes = false
       )
     }
 
@@ -219,7 +244,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid")
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadTypedNodes(() =>
@@ -229,7 +255,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
           .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x"))
+        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x")),
+        removeDgraphNodes = false
       )
     }
 
@@ -262,7 +289,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.type")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type")
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -272,7 +300,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid")
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -282,7 +311,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql."))
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -292,7 +322,8 @@ class TestNodeSource extends AnyFunSpec
           .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql.")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql."))
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
     }
 
@@ -304,7 +335,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => predicate.name != "dgraph.graphql.xid"),
-        expectedWideSchemaFiltered(predicate => predicate.name != "dgraph.graphql.xid")
+        expectedWideSchemaFiltered(predicate => predicate.name != "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -314,7 +346,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)),
-        expectedWideSchemaFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name))
+        expectedWideSchemaFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -324,7 +357,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql."))
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.")),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -334,7 +368,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type")
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"),
+        removeDgraphNodes = false
       )
     }
 
@@ -347,7 +382,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid")
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid"),
+        removeDgraphNodes = false
       )
 
       doTestLoadWideNodes(() =>
@@ -358,7 +394,8 @@ class TestNodeSource extends AnyFunSpec
           .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
           .dgraph.nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x"))
+        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x")),
+        removeDgraphNodes = false
       )
     }
 
@@ -404,12 +441,13 @@ class TestNodeSource extends AnyFunSpec
 
     it("should encode TypedNode") {
       val rows =
+        removeDgraphTypedNodes(
         reader
           .format(NodesSource)
           .load(dgraph.target)
           .as[TypedNode]
-          .collectAsList()
-      assert(rows.size() === 50)
+        ).collectAsList()
+      assert(rows.size() === 49)
     }
 
     it("should fail without target") {
@@ -489,16 +527,21 @@ class TestNodeSource extends AnyFunSpec
 
     it("should partition data") {
       val target = dgraph.target
-      val partitions =
-        reader
-          .options(Map(
-            PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.nodes(target)
+      val partitions = {
+        removeDgraphTypedNodes(
+          reader
+            .options(Map(
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(target)
+            .as[TypedNode]
+        )
+          .toDF()
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
+      }
 
       // we retrieve partitions in chunks of 7 uids, if there are uids allocated but unused then we get partitions with less than 7 uids
       val allUidInts = dgraph.allUids.map(_.toInt).toSet
@@ -507,32 +550,37 @@ class TestNodeSource extends AnyFunSpec
     }
 
     lazy val typedNodes =
-      reader
-        .options(Map(
-          NodesModeOption -> NodesModeTypedOption,
-          PartitionerOption -> PredicatePartitionerOption,
-          PredicatePartitionerPredicatesOption -> "2"
-        ))
-        .dgraph.nodes(dgraph.target)
-        .as[TypedNode]
+      removeDgraphTypedNodes(
+        reader
+          .options(Map(
+            NodesModeOption -> NodesModeTypedOption,
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2"
+          ))
+          .dgraph.nodes(dgraph.target)
+          .as[TypedNode]
+      )
     lazy val typedNodesSinglePredicatePerPartition =
-      spark
-        .read
-        .options(Map(
-          NodesModeOption -> NodesModeTypedOption,
-          PartitionerOption -> PredicatePartitionerOption,
-          PredicatePartitionerPredicatesOption -> "1"
-        ))
-        .dgraph.nodes(dgraph.target)
-        .as[TypedNode]
+      removeDgraphTypedNodes(
+        reader
+          .options(Map(
+            NodesModeOption -> NodesModeTypedOption,
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "1"
+          ))
+          .dgraph.nodes(dgraph.target)
+          .as[TypedNode]
+      )
 
     lazy val wideNodes =
-      reader
-        .options(Map(
-          NodesModeOption -> NodesModeWideOption,
-          PartitionerOption -> PredicatePartitionerOption
-        ))
-        .dgraph.nodes(dgraph.target)
+      removeDgraphWideNodes(
+        reader
+          .options(Map(
+            NodesModeOption -> NodesModeWideOption,
+            PartitionerOption -> PredicatePartitionerOption
+          ))
+          .dgraph.nodes(dgraph.target)
+      )
 
     def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
       doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
@@ -903,7 +951,6 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
 
   def getExpectedTypedNodes: Set[TypedNode] =
     Set(
-      TypedNode(cluster.graphQlSchema, "dgraph.type", Some("dgraph.graphql"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "title@en", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "release_date", None, None, None, Some(Timestamp.valueOf("1979-12-07 00:00:00.0")), None, None, None, "timestamp"),
@@ -970,7 +1017,6 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
 
   def getExpectedWideNodes: Set[Row] =
     Set(
-      Row(cluster.graphQlSchema, "dgraph.graphql", null, null, null, null, null),
       Row(cluster.st1, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132L, null),
       Row(cluster.leia, "Person", "Princess Leia", null, null, null, null),
       Row(cluster.lucas, "Person", "George Lucas", null, null, null, null),

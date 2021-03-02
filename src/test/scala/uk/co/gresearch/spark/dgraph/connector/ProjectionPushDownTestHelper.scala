@@ -16,8 +16,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.execution.ProjectExec
-import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanExec
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, In, Not}
+import org.apache.spark.sql.catalyst.plans.logical
+import org.apache.spark.sql.catalyst.plans.logical.Project
+import org.apache.spark.sql.execution.{FilterExec, ProjectExec}
+import org.apache.spark.sql.execution.datasources.v2.{DataSourceV2Relation, DataSourceV2ScanExec}
 import org.apache.spark.sql.{Column, Dataset, Row}
 import org.scalatest.Assertions
 import uk.co.gresearch.spark.dgraph.connector.Predicate.columnNameForPredicateName
@@ -45,14 +48,42 @@ trait ProjectionPushDownTestHelper extends Assertions {
         .getOrElse(ds.columns.toSet)
     val projectedDs = if (selection.nonEmpty) ds.select(selection: _*) else ds
     val plan = projectedDs.queryExecution.sparkPlan
-    val root = plan match {
+    val unprojectedPlan = plan match {
       case ProjectExec(_, child) => child
       case _ => plan
     }
-    assert(root.isInstanceOf[DataSourceV2ScanExec])
+    val unfilteredPlan = unprojectedPlan match {
+      // some subjects might be excluded here as they refer to dgraph reserved nodes
+      case FilterExec(Not(In(ref, _)), child) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => child
+      case FilterExec(Not(EqualTo(ref, _)), child) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => child
+      case _ => unprojectedPlan
+    }
+    val scanExecNode = unfilteredPlan match {
+      case ProjectExec(_, child) => child
+      case _ => unfilteredPlan
+    }
+    assert(scanExecNode.isInstanceOf[DataSourceV2ScanExec])
 
-    val scan = root.asInstanceOf[DataSourceV2ScanExec]
-    assert(scan.outputSet.map(_.name).toSet === expectedOutput)
+    val scanExec = scanExecNode.asInstanceOf[DataSourceV2ScanExec]
+    val dsOutput = projectedDs.queryExecution.optimizedPlan.outputSet.map(_.name).toSet
+    val actualOutput = {
+      val output = scanExec.outputSet.map(_.name).toSet
+      // we expect there to be a "subject" in the output when we have filtered for it
+      if (unfilteredPlan != unprojectedPlan && !dsOutput.contains("subject")) output - "subject" else output
+    }
+    assert(actualOutput === expectedOutput)
+    assert(scanExec.reader.isInstanceOf[TripleScan])
+
+    val scan = scanExec.reader.asInstanceOf[TripleScan]
+    assert(scan.appliedPartitioner.isInstanceOf[PredicatePartitioner])
+
+    val partitioner = scan.appliedPartitioner.asInstanceOf[PredicatePartitioner]
+    val actualProjection = {
+      val projection = partitioner.projection
+      // we expect there to be a "subject" in the projection when we have filtered for it
+      if (unfilteredPlan != unprojectedPlan && !dsOutput.contains("subject")) projection.map(_.filterNot(p => p.predicateName == "uid" && p.dgraphType == "subject")) else projection
+    }
+    assert(actualProjection === expectedProjection)
 
     val actual = projectedDs.collect()
     assert(actual.toSet === expectedDs)
