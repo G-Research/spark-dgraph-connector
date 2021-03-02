@@ -18,7 +18,6 @@ package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, In, Not}
 import org.apache.spark.sql.catalyst.plans.logical
-import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import org.apache.spark.sql.{Column, Dataset}
 import org.scalatest.Assertions
