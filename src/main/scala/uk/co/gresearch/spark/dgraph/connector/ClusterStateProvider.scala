@@ -16,6 +16,8 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+
 import java.time.Clock
 
 trait ClusterStateProvider extends Logging {
@@ -38,7 +40,7 @@ trait ClusterStateProvider extends Logging {
           Some(ClusterState.fromJson(json))
         } catch {
           case t: Throwable =>
-            log.error(s"failed to parse cluster state json: ${abbreviate(json.string)}")
+            log.error(s"failed to parse cluster state json: ${abbreviate(json.string)}", t)
             throw t
         }
       } else {
@@ -52,14 +54,21 @@ trait ClusterStateProvider extends Logging {
     }
   }
 
-  def getClusterState(targets: Seq[Target]): ClusterState = {
+  def getClusterState(targets: Seq[Target], options: CaseInsensitiveStringMap): ClusterState = {
     val clusterStates = targets.map(getClusterState).flatten
     val cids = clusterStates.map(_.cid).toSet
     if (cids.size > 1)
       throw new RuntimeException(s"Retrived multiple cluster ids from " +
         s"Dgraph alphas (${targets.map(_.target).mkString(", ")}): ${cids.mkString(", ")}")
-    clusterStates.headOption.getOrElse(
+    val clusterState = clusterStates.headOption.getOrElse(
       throw new RuntimeException(s"Could not retrieve cluster state from Dgraph alphas (${targets.map(_.target).mkString(", ")})")
+    )
+
+    // filter out reserved predicates as configured
+    val reservedPredicateFilter = ReservedPredicateFilter(options)
+    val filteredGroupPredicates = clusterState.groupPredicates.mapValues(_.filter(reservedPredicateFilter.apply))
+    clusterState.copy(
+      groupPredicates = filteredGroupPredicates
     )
   }
 

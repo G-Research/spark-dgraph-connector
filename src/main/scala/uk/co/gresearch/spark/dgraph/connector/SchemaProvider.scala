@@ -25,39 +25,13 @@ import java.util.regex.Pattern
 
 import scala.collection.JavaConverters._
 
-trait SchemaProvider extends ConfigParser {
+trait SchemaProvider {
 
   private val query = "schema { predicate type lang }"
 
-  def getPredicateFilters(filters: String): Set[Pattern] = {
-    val replacements = Seq(
-      (".", "\\."),
-      ("?", "\\?"),
-      ("[", "\\["), ("]", "\\]"),
-      ("{", "\\{"), ("}", "\\}"),
-      ("*", ".*"),
-    )
-
-    val filterStrings = filters.split(",")
-    if (filterStrings.exists(!_.startsWith("dgraph."))) {
-      throw new IllegalArgumentException(s"Reserved predicate filters must start with 'dgraph.': ${filterStrings.mkString(", ")}")
-    }
-
-    filterStrings
-      .map(f => replacements.foldLeft[String](f) { case (f, (pat, repl)) => f.replace(pat, repl) })
-      .map(Pattern.compile)
-      .toSet
-  }
-
   def getSchema(targets: Seq[Target], options: CaseInsensitiveStringMap): Schema = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
-    val includes = getStringOption(IncludeReservedPredicatesOption, options)
-      .orElse(Some("dgraph.*"))
-      .map(getPredicateFilters)
-      .get
-    val excludes = getStringOption(ExcludeReservedPredicatesOption, options)
-      .map(getPredicateFilters)
-      .getOrElse(Set())
+    val reservedPredicateFilter = ReservedPredicateFilter(options)
 
     try {
       val client: DgraphClient = getClientFromChannel(channels)
@@ -71,13 +45,9 @@ trait SchemaProvider extends ConfigParser {
           o.get("type").getAsString,
           o.has("lang") && o.get("lang").getAsBoolean
         ))
-      val filteredSchema = schema
-        .filter(p =>
-          ! p.predicateName.startsWith("dgraph.") ||
-          includes.exists(_.matcher(p.predicateName).matches()) &&
-          excludes.forall(!_.matcher(p.predicateName).matches()))
+        .filter(p => reservedPredicateFilter.apply(p.predicateName))
         .toSet
-      Schema(filteredSchema)
+      Schema(schema)
     } catch {
       case e: Throwable =>
         // this is potentially an async exception which does not include any useful stacktrace, so we add it here
