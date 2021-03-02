@@ -16,12 +16,15 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-import java.util.UUID
+import scala.collection.JavaConverters._
 
 class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
+
+  val options = new CaseInsensitiveStringMap(Map(IncludeReservedPredicatesOption -> "dgraph.type").asJava)
 
   describe("ClusterStateProvider") {
 
@@ -39,19 +42,19 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
 
     it("should retrieve cluster states") {
       val provider = new ClusterStateProvider {}
-      val state = provider.getClusterState(Seq(Target(dgraph.target), Target(dgraph.targetLocalIp)))
+      val state = provider.getClusterState(Seq(Target(dgraph.target), Target(dgraph.targetLocalIp)), options)
       assert(state.groupMembers === Map("1" -> Set(Target(dgraph.target))))
       assert(state.groupPredicates.contains("1"))
       val actualPredicates = state.groupPredicates("1")
       val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
-      assert(expectedPredicates.diff(actualPredicates) === Set.empty)
+      assert(actualPredicates === expectedPredicates)
       assert(state.maxLeaseId === 10000)
     }
 
     it("should fail for unavailable cluster") {
       val provider = new ClusterStateProvider {}
       assertThrows[RuntimeException] {
-        provider.getClusterState(Seq(Target("localhost:1001")))
+        provider.getClusterState(Seq(Target("localhost:1001")), options)
       }
     }
 

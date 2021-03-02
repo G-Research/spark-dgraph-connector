@@ -17,10 +17,11 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.scalatest.funspec.AnyFunSpec
+import uk.co.gresearch.spark.dgraph.connector.ReservedPredicateFilter.getPredicateFilters
 
 import java.util.regex.Pattern
 
-class TestSchemaProvider extends AnyFunSpec with SchemaProvider {
+class TestReservedPredicateFilter extends AnyFunSpec {
 
   describe("SchemaProvider") {
 
