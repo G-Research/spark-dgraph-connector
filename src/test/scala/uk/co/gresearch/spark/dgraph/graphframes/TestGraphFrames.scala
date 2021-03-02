@@ -35,13 +35,16 @@ class TestGraphFrames extends AnyFunSpec
   val isDgraphNode: Column = $"`dgraph.type`".startsWith("dgraph.")
   def isDgraphEdge(dgraphVertexIds: Set[Long]): Column = $"`src`".isin(dgraphVertexIds.toSeq: _*) || $"dst".isin(dgraphVertexIds.toSeq: _*)
 
-  def removeDgraphEdge(edges: DataFrame, dgraphVertexIds: Set[Long]): DataFrame =
+  def removeDgraphEdges(edges: DataFrame, dgraphVertexIds: Set[Long]): DataFrame =
     edges.where(!isDgraphEdge(dgraphVertexIds))
+
+  def removeDgraphVertices(vertices: DataFrame): DataFrame =
+    vertices.where(!isDgraphNode)
 
   def removeDgraphNodes(graph: GraphFrame): GraphFrame = {
     val droppedVertexIds = graph.vertices.where(isDgraphNode).select($"id").as[Long].collect().toSet
     val filteredVertexes = graph.vertices.where(!isDgraphNode)
-    val filteredEdges = removeDgraphEdge(graph.edges, droppedVertexIds)
+    val filteredEdges = removeDgraphEdges(graph.edges, droppedVertexIds)
     GraphFrame(filteredVertexes, filteredEdges)
   }
 
@@ -163,7 +166,7 @@ class TestGraphFrames extends AnyFunSpec
     }
 
     def doVerticesTest(load: () => DataFrame): Unit = {
-      val vertices = load().where(!isDgraphNode).collect().sortBy(_.getLong(0))
+      val vertices = removeDgraphVertices(load()).collect().sortBy(_.getLong(0))
       val expected = Seq(
         new GenericRowWithSchema(Array(dgraph.st1, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132, null), vertexSchema),
         new GenericRowWithSchema(Array(dgraph.leia, "Person", "Princess Leia", null, null, null, null), vertexSchema),
@@ -182,7 +185,7 @@ class TestGraphFrames extends AnyFunSpec
 
     def doEdgesTest(load: () => DataFrame): Unit = {
       val dgraphNodes = reader.dgraph.vertices(dgraph.target).where(isDgraphNode).select($"id").as[Long].collect().toSet
-      val edges = removeDgraphEdge(load(), dgraphNodes).collect().sortBy(e => (e.getLong(0), e.getLong(1)))
+      val edges = removeDgraphEdges(load(), dgraphNodes).collect().sortBy(e => (e.getLong(0), e.getLong(1)))
       val expected = Seq(
         new GenericRowWithSchema(Array(dgraph.sw1, dgraph.leia, "starring"), edgeSchema),
         new GenericRowWithSchema(Array(dgraph.sw1, dgraph.lucas, "director"), edgeSchema),

@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.graphx
 
 import org.apache.spark.graphx
-import org.apache.spark.graphx.{Edge, EdgeRDD, Graph}
+import org.apache.spark.graphx.{Edge, EdgeRDD, Graph, VertexId, VertexRDD}
 import org.apache.spark.rdd.RDD
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
@@ -29,13 +29,16 @@ import java.sql.Timestamp
 class TestGraphX extends AnyFunSpec
   with ConnectorSparkTestSession with DgraphTestCluster {
 
-  def removeDgraphEdge[E](edges: RDD[Edge[E]], dgraphVertexIds: Set[Long]): RDD[Edge[E]] =
+  def removeDgraphEdges[E](edges: RDD[Edge[E]], dgraphVertexIds: Set[Long]): RDD[Edge[E]] =
     edges.filter(e => !dgraphVertexIds.contains(e.srcId) && !dgraphVertexIds.contains(e.dstId))
+
+  def removeDgraphVertices(vertices: RDD[(VertexId, VertexProperty)]): RDD[(VertexId, VertexProperty)] =
+    vertices.filter(v => !dgraphVertex(v._2))
 
   def removeDgraphNodes(graph: Graph[VertexProperty, EdgeProperty]): Graph[VertexProperty, EdgeProperty] = {
     val droppedVertexIds = graph.vertices.filter(v => dgraphVertex(v._2)).collect().map(_._1).toSet
     val filteredVertexes = graph.vertices.filter(v => !dgraphVertex(v._2))
-    val filteredEdges = removeDgraphEdge(graph.edges, droppedVertexIds)
+    val filteredEdges = removeDgraphEdges(graph.edges, droppedVertexIds)
     Graph(filteredVertexes, filteredEdges)
   }
 
@@ -61,7 +64,7 @@ class TestGraphX extends AnyFunSpec
     }
 
     def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
-      val vertices = load().filter(v => !dgraphVertex(v._2)).collect().sortBy(v => (v._1, v._2.property))
+      val vertices = removeDgraphVertices(load()).collect().sortBy(v => (v._1, v._2.property))
       val expected = Seq(
         (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
         (dgraph.st1, StringVertexProperty("title@en", "Star Trek: The Motion Picture")),
@@ -118,7 +121,7 @@ class TestGraphX extends AnyFunSpec
 
     def doEdgeTest(load: () => RDD[Edge[EdgeProperty]]): Unit = {
       val dgraphVertexIds = reader.dgraph.vertices(dgraph.target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
-      val edges = removeDgraphEdge(load(), dgraphVertexIds).collect().sortBy(e => (e.srcId, e.dstId))
+      val edges = removeDgraphEdges(load(), dgraphVertexIds).collect().sortBy(e => (e.srcId, e.dstId))
       val expected = Seq(
         Edge(dgraph.sw1, dgraph.leia, EdgeProperty("starring")),
         Edge(dgraph.sw1, dgraph.lucas, EdgeProperty("director")),
