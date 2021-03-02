@@ -16,14 +16,24 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.catalyst.expressions.{And, Expression}
+import org.apache.spark.sql.catalyst.expressions.{And, AttributeReference, EqualTo, Expression, In, Not}
 import org.apache.spark.sql.catalyst.plans.logical
+import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import org.apache.spark.sql.{Column, Dataset}
 import org.scalatest.Assertions
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
 trait FilterPushdownTestHelper extends Assertions {
+
+  // we filter out some dgraph nodes to get consistent test data
+  // we remove those filters here
+  def removedSubjectNotInFilter(expressions: Seq[Expression]): Seq[Expression] =
+    expressions.filter {
+      case Not(In(ref, _)) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => false
+      case Not(EqualTo(ref, _)) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => false
+      case _ => true
+    }
 
   def doTestFilterPushDownDf[T](ds: Dataset[T],
                                 condition: Column,
@@ -34,7 +44,7 @@ trait FilterPushdownTestHelper extends Assertions {
     val plan = conditionedDs.queryExecution.optimizedPlan
     val relationNode = plan match {
       case filter: logical.Filter =>
-        val unpushedFilters = getFilterNodes(filter.condition)
+        val unpushedFilters = removedSubjectNotInFilter(getFilterNodes(filter.condition))
         assert(unpushedFilters.map(_.sql).sorted === expectedUnpushed.map(_.sql).sorted)
         filter.child
       case _ =>

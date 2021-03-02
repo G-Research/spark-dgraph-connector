@@ -48,8 +48,10 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
         val execution = DgraphExecutorProvider(transaction)
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
         val partition = Partition(targets).has(schema.predicates).langs(existingPredicates.filter(_.isLang).map(_.predicateName))
-        val res = model.modelPartition(partition).toList
-        assert(res.length === 62)
+        val rows = model.modelPartition(partition).toList
+        val dgraphNodeUids = rows.filter(row => row.getString(1) == "dgraph.type" && row.getString(3).startsWith("dgraph.")).map(_.getLong(0)).toSet
+        val res = rows.filter(rows => !dgraphNodeUids.contains(rows.getLong(0)))
+        assert(res.length === 61)
       }
 
     }

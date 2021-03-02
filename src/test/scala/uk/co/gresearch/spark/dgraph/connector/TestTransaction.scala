@@ -24,6 +24,7 @@ import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector.sources.{TestTriplesSource, TriplesSourceExpecteds}
+import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
 
 class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with DgraphTestCluster {
 
@@ -79,11 +80,11 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
 
     it("should read in transaction") {
       // the graph before any mutations, read with transaction ...
-      val beforeWithTransaction = reader.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target)
+      val beforeWithTransaction = removeDgraphTriples(reader.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target))
       val beforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
       // ... and without transaction
-      val beforeWithoutTransaction = reader.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target)
+      val beforeWithoutTransaction = removeDgraphTriples(reader.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target))
       val beforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithoutTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
 
@@ -91,7 +92,7 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
       mutate()
 
       // create another dataframe after mutation
-      val after = reader.dgraph.triples(dgraph.target)
+      val after = removeDgraphTriples(reader.dgraph.triples(dgraph.target))
       val afterTriples = after.as[TypedTriple].collect().toSet
 
       // construct expected dataframe from materialized before triples
