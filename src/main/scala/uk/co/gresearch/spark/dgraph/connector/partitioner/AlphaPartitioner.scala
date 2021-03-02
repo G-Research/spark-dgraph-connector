@@ -27,7 +27,7 @@ case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitio
 
   override def getPartitions(implicit model: GraphTableModel): Seq[Partition] = {
     PredicatePartitioner.getPartitions(
-      schema, clusterState, getGroupTargets(clusterState, _).size * partitionsPerAlpha, Set.empty, None, model
+      schema, clusterState, (group, _) => getGroupTargets(clusterState, group).size * partitionsPerAlpha, Set.empty, None, model
     )
   }
 

@@ -161,8 +161,7 @@ class TestEdgeSource extends AnyFunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("starring")).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll)
       )
 
       assert(partitions.toSet === expected)

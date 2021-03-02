@@ -504,11 +504,10 @@ class TestTriplesSource extends AnyFunSpec
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
       val expected = Set(
-        Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date", "running_time"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "title"), Set.empty).langs(Set("title")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("name"), Set("director")).getAll
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll
       ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators + range))))
 
       assert(partitions.toSet === expected)
