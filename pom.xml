@@ -84,7 +84,7 @@
     <dependency>
       <groupId>graphframes</groupId>
       <artifactId>graphframes</artifactId>
-      <version>0.8.0-spark${spark.compat.version}-s_${scala.compat.version}</version>
+      <version>0.8.1-spark${spark.compat.version}-s_${scala.compat.version}</version>
       <scope>provided</scope>
     </dependency>
 

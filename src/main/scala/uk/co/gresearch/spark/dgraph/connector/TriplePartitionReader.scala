@@ -20,7 +20,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 
-case class TriplePartitionReader(partition: Partition, model: GraphTableModel) extends PartitionReader[InternalRow] {
+case class TriplePartitionReader(partition: Partition, model: GraphTableModel)
+  extends PartitionReader[InternalRow] {
 
   lazy val rows: Iterator[InternalRow] = model.modelPartition(partition)
 

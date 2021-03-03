@@ -16,13 +16,12 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.util.UUID
-
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
+import java.util.UUID
 import scala.collection.JavaConverters._
 
 class TestPartitionerProvider extends AnyFunSpec {

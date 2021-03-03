@@ -16,10 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.model
 
-import java.text.NumberFormat
-import java.time.Clock
-import java.util.Locale
-
 import com.google.gson.JsonArray
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
@@ -29,6 +25,7 @@ import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGr
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Logging, Partition, PartitionMetrics, Uid}
 
+import java.time.Clock
 import scala.collection.JavaConverters._
 
 /**

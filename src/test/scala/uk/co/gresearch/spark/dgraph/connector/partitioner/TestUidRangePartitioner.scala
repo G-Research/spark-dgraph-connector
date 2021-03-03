@@ -16,11 +16,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.util.UUID
-
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector._
+
+import java.util.UUID
 
 class TestUidRangePartitioner extends AnyFunSpec {
 

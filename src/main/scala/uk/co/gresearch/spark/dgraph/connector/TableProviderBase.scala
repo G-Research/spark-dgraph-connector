@@ -21,7 +21,10 @@ import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-trait TableProviderBase extends TableProvider with DataSourceRegister with TargetsConfigParser {
+trait TableProviderBase
+  extends TableProvider
+    with DataSourceRegister
+    with TargetsConfigParser {
   override def inferPartitioning(options: CaseInsensitiveStringMap): Array[Transform] =
     Array.empty
 }

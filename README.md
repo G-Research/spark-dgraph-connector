@@ -140,7 +140,7 @@ val graph = spark.read.dgraph.graphx("localhost:9080")
 ```
 
 Example code to perform a [PageRank](https://spark.apache.org/docs/latest/graphx-programming-guide.html#pagerank)
-computation on the graph to test that the connector is working:
+computation on this graph to test that the connector is working:
 
 ```scala
 val pageRank = graph.pageRank(0.0001)

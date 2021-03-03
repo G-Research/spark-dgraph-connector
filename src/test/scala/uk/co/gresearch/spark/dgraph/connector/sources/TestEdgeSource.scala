@@ -16,10 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.types.{LongType, StringType}
-import org.apache.spark.sql.{Column, DataFrame, Encoders, Row, SparkSession}
+import org.apache.spark.sql.types.LongType
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._

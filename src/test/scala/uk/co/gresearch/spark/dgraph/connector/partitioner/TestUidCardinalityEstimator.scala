@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Uid, UidRange, Uids}
+import uk.co.gresearch.spark.dgraph.connector._
 
 class TestUidCardinalityEstimator extends AnyFunSpec {
 

@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector
 import org.apache.spark.sql.catalyst.expressions.{And, Expression}
 import org.apache.spark.sql.catalyst.plans.logical
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
-import org.apache.spark.sql.{Column, DataFrame, Dataset, Row}
+import org.apache.spark.sql.{Column, Dataset}
 import org.scalatest.Assertions
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PredicatePartitioner
 
