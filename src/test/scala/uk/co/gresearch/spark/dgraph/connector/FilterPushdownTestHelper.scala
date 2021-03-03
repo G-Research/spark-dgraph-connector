@@ -35,7 +35,7 @@ trait FilterPushdownTestHelper extends Assertions {
     val relationNode = plan match {
       case filter: logical.Filter =>
         val unpushedFilters = getFilterNodes(filter.condition)
-        assert(unpushedFilters.map(_.sql) === expectedUnpushed.map(_.sql))
+        assert(unpushedFilters.map(_.sql).sorted === expectedUnpushed.map(_.sql).sorted)
         filter.child
       case _ =>
         assert(expectedUnpushed.isEmpty, "some unpushed filters expected but none filters actually unpushed")
