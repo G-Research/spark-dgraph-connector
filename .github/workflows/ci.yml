@@ -221,7 +221,7 @@ jobs:
       run: |
         echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
         echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=graphframes-version::$(grep -A 1 "<artifactId>graphframes</artifactId>" pom.xml | tail -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
+        echo "::set-output name=graphframes-version::$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
         echo "::set-output name=home::$(cd ~; pwd)"
       shell: bash
 
@@ -258,8 +258,9 @@ jobs:
         SPARK_HOME: ${{ steps.params.outputs.home }}/spark
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
+      # There is no Spark 3.1 release of graphframes yet, so we use Spark 3.0 for now
       run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark3.0-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
     - name: Stop Dgraph cluster
