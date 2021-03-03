@@ -3,7 +3,7 @@
 
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector-examples_2.12</artifactId>
-  <version>0.6.0-3.0-SNAPSHOT</version>
+  <version>0.6.0-3.1-SNAPSHOT</version>
   <name>Spark Dgraph Connector Example</name>
 
   <properties>
@@ -14,8 +14,8 @@
     <scala.compat.version>2.12</scala.compat.version>
     <scala.version>${scala.compat.version}.10</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
-    <spark.compat.version>3.0</spark.compat.version>
-    <spark.version>${spark.compat.version}.2</spark.version>
+    <spark.compat.version>3.1</spark.compat.version>
+    <spark.version>${spark.compat.version}.1</spark.version>
   </properties>
 
   <repositories>
@@ -63,7 +63,8 @@
     <dependency>
       <groupId>graphframes</groupId>
       <artifactId>graphframes</artifactId>
-      <version>0.8.1-spark${spark.compat.version}-s_${scala.compat.version}</version>
+      <!-- no Spark 3.1 release for graphframes yet -->
+      <version>0.8.1-spark3.0-s_${scala.compat.version}</version>
     </dependency>
   </dependencies>
 
