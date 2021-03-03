@@ -41,7 +41,7 @@
     <scala.version>${scala.compat.version}.10</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.0</spark.compat.version>
-    <spark.version>${spark.compat.version}.0</spark.version>
+    <spark.version>${spark.compat.version}.2</spark.version>
   </properties>
 
   <!-- required to resolve GraphFrames dependency -->
@@ -91,7 +91,7 @@
     <dependency>
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
-      <version>20.03.1</version>
+      <version>20.11.0</version>
       <exclusions>
         <!-- Spark comes with a specific netty version, we want to compile against that version -->
         <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
@@ -126,11 +126,17 @@
       <version>3.11</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.8.6</version>
+    </dependency>
+
     <!-- Spark Core pulls in too old of a version -->
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.13.0</version>
+      <version>3.15.3</version>
     </dependency>
 
     <!-- Spark Core pulls in too old of a version -->
@@ -140,14 +146,14 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>30.0-jre</version>
+      <version>30.1-jre</version>
     </dependency>
 
     <!-- Test -->
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.compat.version}</artifactId>
-      <version>3.2.2</version>
+      <version>3.2.5</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -216,7 +222,7 @@
       <plugin>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
-        <version>2.0.0</version>
+        <version>2.0.2</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
           <junitxml>.</junitxml>
@@ -258,7 +264,7 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>4.4.0</version>
+        <version>4.4.1</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
