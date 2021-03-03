@@ -12,16 +12,36 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    outputs:
+      spark-version: ${{ steps.params.outputs.spark-version }}
+      spark-compat-version: ${{ steps.params.outputs.spark-compat-version }}
+      spark-version-matrix: ${{ format('["{0}"]', steps.params.outputs.spark-version) }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Parametrize Extraction
+        id: params-extract
+        run: |
+          echo "::set-output name=spark-version::$(grep --max-count=1 "<spark.version>.*</spark.version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+          echo "::set-output name=spark-compat-version::$(grep --max-count=1 "<spark.compat.version>.*</spark.compat.version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        shell: bash
+      - name: Parametrize
+        id: params
+        env:
+          SPARK_VERSION: ${{ steps.params-extract.outputs.spark-version }}
+          SPARK_COMPAT_VERSION: ${{ steps.params-extract.outputs.spark-compat-version }}
+        run: |
+          echo "::set-output name=spark-version::$(echo "$SPARK_VERSION" | sed "s/\${spark.compat.version}/$SPARK_COMPAT_VERSION/")"
+          echo "::set-output name=spark-compat-version::$SPARK_COMPAT_VERSION"
+        shell: bash
+
       - name: Cache Maven packages
         uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-mvn-build-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-mvn-build-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-mvn-build-
 
@@ -50,7 +70,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark-version: [3.0.0]
         dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.07.0, 20.07.1, 20.07.2]
         python-version: [3.6]
 
@@ -68,7 +87,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-test-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-test-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-test-
 
@@ -152,15 +171,16 @@ jobs:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
     needs: build
+    if: needs.build.outputs.spark-compat-version != '3.1'
 
     strategy:
       fail-fast: false
       matrix:
-        spark-version: [3.0.0]
+        spark-version: ${{ fromJSON(needs.build.outputs.spark-version-matrix) }}
         dgraph-version: [20.07.0]
         include:
-          - spark-version: '3.0.0'
-            spark-compat-version: '3.0'
+          - spark-version: ${{ needs.build.outputs.spark-version }}
+            spark-compat-version: ${{ needs.build.outputs.spark-compat-version }}
 
     steps:
     - name: Checkout
@@ -176,7 +196,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-integration-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-integration-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-integration-
 
