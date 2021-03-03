@@ -123,7 +123,7 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
 
   def getFilter(operator: Operator, predicateName: String, filterMode: String, andMode: Boolean): String = operator match {
     // we assume operator's predicates contain predicateName
-    case IsIn(_, values) if edges.contains(predicateName) && filterMode.eq("vals") =>
+    case IsIn(_, values) if edges.contains(predicateName) && filterMode == "vals" =>
       s"""uid(${values.map(Uid(_).toHexString).mkString(", ")})"""
     case IsIn(_, values) if edges.contains(predicateName) =>
       val filter = values.map(value => s"""uid_in(<$predicateName>, ${Uid(value).toHexString})""").mkString(" OR ")
@@ -149,7 +149,10 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
     def lang(pred: String): String = if (langPredicates.contains(pred)) "@*" else ""
     (getProperties.map(pred => pred -> s"<$pred>${lang(pred)}") ++ getEdges.map(edge => edge -> s"<$edge> { uid }"))
       .toSeq.sortBy(_._1)
-      .map { case (pred, path) => s"$path${getValueFilter(pred, "vals")}" }
+      .map { case (pred, path) =>
+        // value filters only work on edges, not properties
+        if (edges.contains(pred)) s"$path${getValueFilter(pred, "vals")}" else path
+      }
   }
 
   val resultOperatorFilters: Option[String] = {

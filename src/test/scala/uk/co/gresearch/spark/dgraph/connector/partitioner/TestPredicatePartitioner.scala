@@ -191,38 +191,16 @@ class TestPredicatePartitioner extends AnyFunSpec {
       ))
     }
 
-    it("should apply IntersectPredicateValueIsIn filter") {
-      val partitioner = PredicatePartitioner(schema, clusterState, 5)
+    it("should apply IntersectPredicateValueIsIn filter for single predicate per partition") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(IntersectPredicateValueIsIn(Set("pred3"), Set("value")))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred3"), Set.empty).eq("pred3", Set[Any]("value")).getAll))
 
       val partitions2 = partitioner.withFilters(Filters.fromPromised(IntersectPredicateValueIsIn(Set("pred2", "pred3", "pred4"), Set("value")))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred2", "pred3"), Set.empty).eq(Set("pred2", "pred3", "pred4"), Set[Any]("value")).getAll,
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"))).has(Set("pred3"), Set.empty).eq(Set("pred2", "pred3", "pred4"), Set[Any]("value")).getAll,
+        Partition(Seq(Target("host3:9080"), Target("host2:9080"))).has(Set("pred2"), Set.empty).eq(Set("pred2", "pred3", "pred4"), Set[Any]("value")).getAll,
         Partition(Seq(Target("host4:9080"), Target("host5:9080"))).has(Set("pred4"), Set.empty).eq(Set("pred2", "pred3", "pred4"), Set[Any]("value")).getAll
-      ))
-    }
-
-    it("should apply SinglePredicateValueIsIn filter (single-group cluster)") {
-      val partitioner = PredicatePartitioner(schema, simpleClusterState, schema.predicates.size)
-      val partitions1 = partitioner.withFilters(Filters.fromPromised(SinglePredicateValueIsIn("pred3", Set("value")))).getPartitions
-      assert(partitions1 === Seq(
-        Partition(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
-          .has(Set("pred3"), Set.empty)
-          .eq("pred3", Set[Any]("value"))
-          .get(schema.predicates)
-      ))
-
-      val partitions2 = partitioner.withFilters(Filters.fromPromised(SinglePredicateValueIsIn("pred2", Set("value2")), SinglePredicateValueIsIn("pred3", Set("value3")), SinglePredicateValueIsIn("pred4", Set("value4")))).getPartitions
-      assert(partitions2 === Seq(
-        Partition(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
-          .has(Set("pred2"), Set.empty)
-          .has(Set("pred3"), Set.empty)
-          .has(Set("pred4"), Set.empty)
-          .eq("pred2", Set[Any]("value2"))
-          .eq("pred3", Set[Any]("value3"))
-          .eq("pred4", Set[Any]("value4"))
-          .get(schema.predicates)
       ))
     }
 
@@ -238,37 +216,62 @@ class TestPredicatePartitioner extends AnyFunSpec {
       ))
     }
 
-    it("should apply ObjectValueIsIn with IntersectPredicateNameIsIn filter") {
+    it("should not apply ObjectValueIsIn with IntersectPredicateNameIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
+      val partitions1 = partitioner.withFilters(Filters.from(Set(IntersectPredicateNameIsIn("pred3")), Set(ObjectValueIsIn("value")))).getPartitions
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), Get(Set("pred3"), Set.empty)))))
+
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(IntersectPredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
+      assert(partitions2 === Seq(
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), Get(Set("pred4"), Set.empty)))
+      ))
+    }
+
+    it("should apply ObjectValueIsIn with IntersectPredicateNameIsIn filter for single predicate per partition") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(IntersectPredicateNameIsIn("pred3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn(Set("pred3"), Set[Any]("value")), Get(Set("pred3"), Set.empty)))))
 
       val partitions2 = partitioner.withFilters(Filters.fromPromised(IntersectPredicateNameIsIn("pred2", "pred3", "pred4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred3"), Set.empty))),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Has(Set("pred2"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2"), Set.empty))),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred4"), Set.empty)))
       ))
     }
 
-    it("should apply ObjectValueIsIn with PredicateNameIs filter (single-group cluster)") {
+    it("should not apply ObjectValueIsIn with PredicateNameIs filter (single-group cluster)") {
       val partitioner = PredicatePartitioner(schema, simpleClusterState, schema.predicates.size)
-      val partitions1 = partitioner.withFilters(Filters.fromPromised(PredicateNameIs("pred3"), ObjectValueIsIn("value"))).getPartitions
+      val partitions1 = partitioner.withFilters(Filters.from(Set(PredicateNameIs("pred3")), Set(ObjectValueIsIn("value")))).getPartitions
       assert(partitions1 === Seq(
         Partition(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")))
           .has(Set("pred3"), Set.empty)
-          .eq("pred3", Set[Any]("value"))
           .get(schema.predicates)
       ))
     }
 
-    it("should apply ObjectValueIsIn with ObjectTypeIsIn filter") {
+    it("should not apply ObjectValueIsIn with ObjectTypeIsIn filter") {
       val partitioner = PredicatePartitioner(schema, clusterState, 5)
+      val partitions1 = partitioner.withFilters(Filters.from(Set(ObjectTypeIsIn("type3")), Set(ObjectValueIsIn("value")))).getPartitions
+      assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), Get(Set("pred3"), Set.empty)))))
+
+      val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
+      assert(partitions2 === Seq(
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), Get(Set("pred4"), Set.empty)))
+      ))
+    }
+
+    it("should apply ObjectValueIsIn with ObjectTypeIsIn filter for single predicate per partition") {
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
       val partitions1 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type3"), ObjectValueIsIn("value"))).getPartitions
       assert(partitions1 === Seq(Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn("pred3", Set[Any]("value")), Get(Set("pred3"), Set.empty)))))
 
       val partitions2 = partitioner.withFilters(Filters.fromPromised(ObjectTypeIsIn("type2", "type3", "type4"), ObjectValueIsIn("value1", "value2"))).getPartitions
       assert(partitions2 === Seq(
-        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred2", "pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2", "pred3"), Set.empty))),
+        Partition(Seq(Target("host2:9080"), Target("host3:9080")), Set(Has(Set("pred3"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred3"), Set.empty))),
+        Partition(Seq(Target("host3:9080"), Target("host2:9080")), Set(Has(Set("pred2"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred2"), Set.empty))),
         Partition(Seq(Target("host4:9080"), Target("host5:9080")), Set(Has(Set("pred4"), Set.empty), IsIn(Set("pred2", "pred3", "pred4"), Set[Any]("value1", "value2")), Get(Set("pred4"), Set.empty)))
       ))
     }

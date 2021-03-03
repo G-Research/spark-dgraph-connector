@@ -17,19 +17,18 @@
 package uk.co.gresearch.spark.dgraph.connector.sources
 
 import java.sql.Timestamp
-
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, Row, SparkSession}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.{DgraphTestCluster, DgraphCluster}
+import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 import uk.co.gresearch.spark.dgraph.connector._
 
-import scala.reflect.runtime.universe._
+import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 class TestNodeSource extends AnyFunSpec
   with SparkTestSession with DgraphTestCluster
@@ -283,6 +282,16 @@ class TestNodeSource extends AnyFunSpec
         ))
         .dgraph.nodes(dgraph.target)
         .as[TypedNode]
+    lazy val typedNodesSinglePredicatePerPartition =
+      spark
+        .read
+        .options(Map(
+          NodesModeOption -> NodesModeTypedOption,
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "1"
+        ))
+        .dgraph.nodes(dgraph.target)
+        .as[TypedNode]
 
     lazy val wideNodes =
       spark
@@ -390,10 +399,24 @@ class TestNodeSource extends AnyFunSpec
         doTestFilterPushDown(typedNodes,
           $"objectString" === "Person",
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
+        )
+        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+          $"objectString" === "Person",
+          Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
         )
 
         doTestFilterPushDown(typedNodes,
+          $"objectString".isin("Person"),
+          Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
+        )
+        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
           $"objectString".isin("Person"),
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
@@ -402,10 +425,27 @@ class TestNodeSource extends AnyFunSpec
         doTestFilterPushDown(typedNodes,
           $"objectString".isin("Person", "Film"),
           Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))),
+          expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
+        )
+        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+          $"objectString".isin("Person", "Film"),
+          Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
         )
 
         doTestFilterPushDown(typedNodes,
+          $"objectString" === "Person" && $"objectLong" === 1,
+          Set(AlwaysFalse),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person")),
+            EqualTo(AttributeReference("objectLong", LongType, nullable = true)(), Literal(1L))
+          ),
+          expectedDs = Set.empty
+        )
+        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
           $"objectString" === "Person" && $"objectLong" === 1,
           Set(AlwaysFalse),
           expectedDs = Set.empty
@@ -442,28 +482,61 @@ class TestNodeSource extends AnyFunSpec
         )
 
         doTestFilterPushDown(wideNodes,
-          $"name".isin("Star Wars: Episode IV - A New Hope"),
-          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope"))),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
+          $"title" === "Star Wars: Episode IV - A New Hope",
+          Set(PredicateNameIs("title"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope"))),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+          ),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
         )
 
         doTestFilterPushDown(wideNodes,
-          $"name".isin("Star Wars: Episode IV - A New Hope", "Princess Leia"),
-          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope", "Princess Leia"))),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(Set("Star Wars: Episode IV - A New Hope", "Princess Leia").contains))
+          $"title".isin("Star Wars: Episode IV - A New Hope"),
+          Set(PredicateNameIs("title"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope"))),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+          ),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
         )
 
         doTestFilterPushDown(wideNodes,
-          $"name" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
-          Set(SinglePredicateValueIsIn("name", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L)))
+          $"title".isin("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back"),
+          Set(SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back"))),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            In(AttributeReference("title", StringType, nullable = true)(), Seq(
+              Literal("Star Wars: Episode IV - A New Hope"),
+              Literal("Star Wars: Episode V - The Empire Strikes Back")
+            )),
+          ),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(
+            Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back").contains
+          ))
+        )
+
+        doTestFilterPushDown(wideNodes,
+          $"title" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
+          Set(PredicateNameIs("title"), PredicateNameIs("running_time"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+            EqualTo(AttributeReference("running_time", LongType, nullable = true)(), Literal(121L)),
+          ),
+          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L)))
         )
 
         val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getLong(columns.indexOf("running_time")))).exists(_.equals(121)))
         assert(expected.isEmpty, "expect empty result for this query, check query")
         doTestFilterPushDown(wideNodes,
           $"name" === "Luke Skywalker" && $"running_time" === 121,
-          Set(SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
+          Set(PredicateNameIs("name"), PredicateNameIs("running_time"), SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
+          // With multiple predicates per partition, we cannot filter for object values
+          Seq(
+            EqualTo(AttributeReference("name", StringType, nullable = true)(), Literal("Luke Skywalker")),
+            EqualTo(AttributeReference("running_time", LongType, nullable = true)(), Literal(121L)),
+          ),
           expectedDs = expected
         )
       }
@@ -565,14 +638,18 @@ class TestNodeSource extends AnyFunSpec
 
       doTestFilterPushDown(wideNodes,
         $"`dgraph.type`" === "Film",
-        Set(SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
+        Set(PredicateNameIs("dgraph.type"), SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("dgraph.type", StringType, nullable = true)(), Literal("Film"))),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
       doTestFilterPushDown(wideNodes,
-      $"`dgraph.type`".isin("Film"),
-          Set(SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
+        $"`dgraph.type`".isin("Film"),
+        Set(PredicateNameIs("dgraph.type"), SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("dgraph.type", StringType, nullable = true)(), Literal("Film"))),
+        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
     }
