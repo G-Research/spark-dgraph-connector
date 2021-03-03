@@ -167,6 +167,9 @@ object FilterTranslator {
     val promisedSimplified = simplify(filters.promised)
     val optionalSimplified = simplify(filters.optional)
 
+    // we could use allSimplified filters even if some are not supported,
+    // as long as it is guaranteed that they fully cover the promised filters
+    // but we have no way to indicate this here, which would add a bit of extra logic
     if (supported(allSimplified)) {
       Filters.from(allSimplified)
     } else {

@@ -184,7 +184,7 @@ class TestPartitionQuery extends AnyFunSpec {
           |    uid
           |    <edge1> { uid }
           |    <edge2> { uid } @filter(uid(0x1, 0x2))
-          |    <prop1> @filter(eq(<prop1>, "one") OR eq(<prop1>, "two"))
+          |    <prop1>
           |    <prop2>
           |  }
           |}""".stripMargin)
@@ -342,32 +342,22 @@ class TestPartitionQuery extends AnyFunSpec {
         ))
       }
 
-      it("should filter values") {
+      it("should filter edge values, not properties") {
         val query = PartitionQuery("result", hasPredicates ++ filters)
         assert(query.predicatePaths === Seq(
           "<edge1> { uid }",
           "<edge2> { uid } @filter(uid(0x1))",
-          "<prop1> @filter(eq(<prop1>, \"value\"))",
+          "<prop1>",
           "<prop2>",
         ))
       }
 
-      it("should filter multiple values") {
+      it("should filter multiple edge values, not properties") {
         val query = PartitionQuery("result", hasPredicates ++ multiValueFilters)
         assert(query.predicatePaths === Seq(
           "<edge1> { uid }",
           "<edge2> { uid } @filter(uid(0x1, 0x2))",
-          "<prop1> @filter(eq(<prop1>, \"one\") OR eq(<prop1>, \"two\"))",
-          "<prop2>",
-        ))
-      }
-
-      it("should filter multiple values per predicate") {
-        val query = PartitionQuery("result", hasPredicates ++ multiFilters)
-        assert(query.predicatePaths === Seq(
-          "<edge1> { uid }",
-          "<edge2> { uid }",
-          "<prop1> @filter(ge(<prop1>, \"1\") AND lt(<prop1>, \"2\"))",
+          "<prop1>",
           "<prop2>",
         ))
       }
@@ -380,27 +370,6 @@ class TestPartitionQuery extends AnyFunSpec {
           "<prop1>@*",
           "<prop2>",
         ))
-      }
-
-      predicateValueOperators.foreach { op =>
-        it(s"should support predicate value ${op.filter} with single predicate") {
-          val query = PartitionQuery("result", hasProp + op)
-          assert(query.predicatePaths === Seq(
-            s"""<${op.predicates.head}> @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
-          ))
-        }
-      }
-
-      predicatesValueOperators.foreach { op =>
-        it(s"should support predicate value ${op.filter} with multiple predicates") {
-          val query = PartitionQuery("result", hasPredicates + op)
-          assert(query.predicatePaths === Seq(
-            "<edge1> { uid }",
-            "<edge2> { uid }",
-            s"""<${op.predicates.head}> @filter(${op.filter}(<${op.predicates.head}>, "${op.value}"))""",
-            s"""<${op.predicates.drop(1).head}> @filter(${op.filter}(<${op.predicates.drop(1).head}>, "${op.value}"))""",
-          ))
-        }
       }
 
     }

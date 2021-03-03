@@ -16,9 +16,9 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.types.{LongType, StringType}
 import org.apache.spark.sql.{Column, DataFrame, Encoders, Row, SparkSession}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
@@ -209,6 +209,14 @@ class TestEdgeSource extends AnyFunSpec
           PredicatePartitionerPredicatesOption -> "2"
         ))
         .dgraph.edges(dgraph.target)
+    lazy val edgesSinglePredicatePerPartition =
+      spark
+        .read
+        .options(Map(
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "1"
+        ))
+        .dgraph.edges(dgraph.target)
 
     it("should push subject filters") {
       doTestFilterPushDown(
@@ -251,22 +259,49 @@ class TestEdgeSource extends AnyFunSpec
     }
 
     it("should push object value filters") {
-      doTestFilterPushDown(
+      doTestFilterPushDownDf(
+        edges,
         $"objectUid" === dgraph.leia,
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(dgraph.leia))),
+        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+      )
+      doTestFilterPushDownDf(
+        edgesSinglePredicatePerPartition,
+        $"objectUid" === dgraph.leia,
+        Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
+        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
       )
 
-      doTestFilterPushDown(
+      doTestFilterPushDownDf(
+        edges,
         $"objectUid".isin(dgraph.leia),
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(dgraph.leia))),
+        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+      )
+      doTestFilterPushDownDf(
+        edgesSinglePredicatePerPartition,
+        $"objectUid".isin(dgraph.leia),
+        Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
+        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
       )
 
-      doTestFilterPushDown(
+      doTestFilterPushDownDf(
+        edges,
         $"objectUid".isin(dgraph.leia, dgraph.lucas),
         Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
-        expectedDf = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
+        // With multiple predicates per partition, we cannot filter for object values
+        Seq(In(AttributeReference("objectUid", LongType, nullable = true)(), Seq(Literal(dgraph.leia), Literal(dgraph.lucas)))),
+        expectedDs = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
+      )
+      doTestFilterPushDownDf(
+        edgesSinglePredicatePerPartition,
+        $"objectUid".isin(dgraph.leia, dgraph.lucas),
+        Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
+        expectedDs = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
       )
     }
 

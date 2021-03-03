@@ -45,10 +45,12 @@ case class PredicatePartitioner(schema: Schema,
     case _: AlwaysFalse => true
     case _: SubjectIsIn => true
     case _: PredicateNameIsIn => true
-    case _: PredicateValueIsIn => true
+    // with multiple predicates in a partition we cannot filter for predicate value
+    case _: PredicateValueIsIn => predicatesPerPartition == 1
     case _: ObjectTypeIsIn => true
     // only supported together with PredicateNameIsIn or ObjectTypeIsIn
-    case _: ObjectValueIsIn => filters.exists {
+    // with multiple predicates in a partition we cannot filter for predicate value
+    case _: ObjectValueIsIn => predicatesPerPartition == 1 && filters.exists {
       case _: PredicateNameIsIn => true
       case _: ObjectTypeIsIn => true
       case _ => false
