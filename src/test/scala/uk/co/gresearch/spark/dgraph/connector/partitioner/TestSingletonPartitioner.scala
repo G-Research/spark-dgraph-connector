@@ -16,7 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import io.dgraph.DgraphProto.TxnContext
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder

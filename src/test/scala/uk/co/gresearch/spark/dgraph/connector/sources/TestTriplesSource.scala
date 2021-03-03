@@ -16,7 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import java.sql.Timestamp
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
@@ -29,6 +28,7 @@ import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
+import java.sql.Timestamp
 import scala.reflect.runtime.universe._
 
 class TestTriplesSource extends AnyFunSpec

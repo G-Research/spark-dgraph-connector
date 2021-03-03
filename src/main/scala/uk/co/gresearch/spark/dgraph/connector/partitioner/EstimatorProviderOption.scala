@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, ConfigParser, MaxLeaseIdEstimatorOption, _}
+import uk.co.gresearch.spark.dgraph.connector._
 
 trait EstimatorProviderOption extends ConfigParser with ClusterStateHelper with Logging {
 

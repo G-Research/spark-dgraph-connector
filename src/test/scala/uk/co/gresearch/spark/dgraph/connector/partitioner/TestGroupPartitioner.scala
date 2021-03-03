@@ -16,13 +16,13 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.util.UUID
-
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+
+import java.util.UUID
 
 class TestGroupPartitioner extends AnyFunSpec {
 

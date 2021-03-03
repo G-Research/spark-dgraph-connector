@@ -16,15 +16,14 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.util.UUID
-
-import io.dgraph.DgraphProto.TxnContext
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Filters, ObjectTypeIsIn, ObjectValueIsIn, Partition, Predicate, Schema, SubjectIsIn, Target, Uid, UidRange, _}
+
+import java.util.UUID
 
 class TestUidRangePartitioner extends AnyFunSpec {
 
@@ -69,7 +68,6 @@ class TestUidRangePartitioner extends AnyFunSpec {
           val uidPartitioner = UidRangePartitioner(partitioner, size, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
           val partitions = partitioner.getPartitions
           val uidPartitions = uidPartitioner.getPartitions
-          println(uidPartitions)
 
           val ranges = (0 until (10000 / size)).map(idx => UidRange(Uid(1 + idx * size), Uid(1 + (idx+1) * size)))
           assert(uidPartitions.length === partitions.length * ranges.length)

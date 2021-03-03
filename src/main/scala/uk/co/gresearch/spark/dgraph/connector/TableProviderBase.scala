@@ -19,4 +19,10 @@ package uk.co.gresearch.spark.dgraph.connector
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.sources.v2.{DataSourceV2, ReadSupport}
 
-trait TableProviderBase extends DataSourceV2 with ReadSupport with DataSourceRegister with TargetsConfigParser
+trait TableProviderBase
+  extends DataSourceV2
+    with ReadSupport
+    with DataSourceRegister
+    with TargetsConfigParser {
+
+}

@@ -16,16 +16,14 @@
 
 package uk.co.gresearch.spark.dgraph
 
-import java.sql.Timestamp
-import java.util.Optional
-
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.grpc.netty.NettyChannelBuilder
 import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 import org.apache.spark.sql.DataFrameReader
-import org.apache.spark.sql.sources.v2.DataSourceOptions
+
+import java.sql.Timestamp
 
 package object connector {
 

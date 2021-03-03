@@ -16,13 +16,12 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import java.sql.Timestamp
+import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, Row, SparkSession}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
@@ -31,6 +30,7 @@ import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
+import java.sql.Timestamp
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 class TestNodeSource extends AnyFunSpec
