@@ -34,6 +34,7 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
     with Logging {
 
   var requiredSchema: Option[StructType] = None
+  var appliedPartitioner: Partitioner = partitioner
 
   override def pruneColumns(requiredSchema: StructType): Unit = {
     if (log.isDebugEnabled) {
@@ -41,14 +42,7 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
       log.debug(s"required columns: $columns")
     }
     this.requiredSchema = Some(requiredSchema)
-  }
 
-  // apply optional schema to model
-  def modelWithOptionalSchema: GraphTableModel = requiredSchema.fold(model)(model.withSchema)
-
-  override def readSchema(): StructType = modelWithOptionalSchema.readSchema()
-
-  override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] = {
     // get optional projection (projected predicates) from model's encoder
     val projection: Option[Seq[Predicate]] =
       Some(modelWithOptionalSchema.encoder)
@@ -56,15 +50,20 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
         .flatMap(_.asInstanceOf[ProjectedSchema].readPredicates)
 
     // apply optional projection to partitioner
-    val partitionerWithOptionalProjection =
-      projection.foldLeft(partitioner)((part, proj) => part.withProjection(proj))
+    appliedPartitioner = projection.foldLeft(partitioner)((part, proj) => part.withProjection(proj))
+  }
 
-    partitionerWithOptionalProjection
+  // apply optional schema to model
+  def modelWithOptionalSchema: GraphTableModel = requiredSchema.fold(model)(model.withSchema)
+
+  override def readSchema(): StructType = modelWithOptionalSchema.readSchema()
+
+  override def planInputPartitions(): java.util.List[InputPartition[InternalRow]] =
+    appliedPartitioner
       .withFilters(filters)
       .getPartitions(modelWithOptionalSchema)
       .map(_.asInstanceOf[InputPartition[InternalRow]])
       .toList.asJava
-  }
 
   val pushed: mutable.Set[sql.sources.Filter] = mutable.Set.empty
   var filters: Filters = EmptyFilters

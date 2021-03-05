@@ -42,6 +42,24 @@ class DgraphTest(DgraphClusterTest):
         df = DataFrame(jdf, cls.spark._wrapped)
         return df.collect()
 
+    @classmethod
+    def remove_dgraph_nodes(cls, triples):
+        dgraph_node_uids = triples \
+            .where((triples.predicate == 'dgraph.type') & triples.objectString.startswith('dgraph.')) \
+            .select(triples.subject) \
+            .rdd.flatMap(lambda x: x) \
+            .collect()
+        return triples.where(~triples.subject.isin(dgraph_node_uids))
+
+    @classmethod
+    def remove_dgraph_wide_nodes(cls, nodes):
+        dgraph_node_uids = nodes \
+            .where(nodes['`dgraph.type`'].startswith('dgraph.')) \
+            .select(nodes.subject) \
+            .rdd.flatMap(lambda x: x) \
+            .collect()
+        return nodes.where(~nodes.subject.isin(dgraph_node_uids))
+
     def assertTypedTriples(self, data):
         self.assertEqual(sorted(data), sorted(DgraphTest.get_expected_typed_triples()))
 
@@ -49,25 +67,25 @@ class DgraphTest(DgraphClusterTest):
         self.assertEqual(sorted(data), sorted(DgraphTest.get_expected_string_triples()))
 
     def test_read_load_triples(self):
-        self.assertTypedTriples(self.spark.read.format(TriplesSource).load(self.dgraph.target).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.format(TriplesSource).load(self.dgraph.target)).collect())
 
     def test_read_load_typed_triples(self):
-        self.assertTypedTriples(self.spark.read.format(TriplesSource).option(TriplesModeOption, TriplesModeTypedOption).load(self.dgraph.target).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.format(TriplesSource).option(TriplesModeOption, TriplesModeTypedOption).load(self.dgraph.target)).collect())
 
     def test_read_load_string_triples(self):
-        self.assertStringTriples(self.spark.read.format(TriplesSource).option(TriplesModeOption, TriplesModeStringOption).load(self.dgraph.target).collect())
+        self.assertStringTriples(self.remove_dgraph_nodes(self.reader.format(TriplesSource).option(TriplesModeOption, TriplesModeStringOption).load(self.dgraph.target)).collect())
 
     def test_read_dgraph_triples(self):
-        self.assertTypedTriples(self.spark.read.dgraph.triples(self.dgraph.target).collect())
-        self.assertTypedTriples(self.spark.read.dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.dgraph.triples(self.dgraph.target)).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     def test_read_dgraph_typed_triples(self):
-        self.assertTypedTriples(self.spark.read.option(TriplesModeOption, TriplesModeTypedOption).dgraph.triples(self.dgraph.target).collect())
-        self.assertTypedTriples(self.spark.read.option(TriplesModeOption, TriplesModeTypedOption).dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.option(TriplesModeOption, TriplesModeTypedOption).dgraph.triples(self.dgraph.target)).collect())
+        self.assertTypedTriples(self.remove_dgraph_nodes(self.reader.option(TriplesModeOption, TriplesModeTypedOption).dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     def test_read_dgraph_string_triples(self):
-        self.assertStringTriples(self.spark.read.option(TriplesModeOption, TriplesModeStringOption).dgraph.triples(self.dgraph.target).collect())
-        self.assertStringTriples(self.spark.read.option(TriplesModeOption, TriplesModeStringOption).dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertStringTriples(self.remove_dgraph_nodes(self.reader.option(TriplesModeOption, TriplesModeStringOption).dgraph.triples(self.dgraph.target)).collect())
+        self.assertStringTriples(self.remove_dgraph_nodes(self.reader.option(TriplesModeOption, TriplesModeStringOption).dgraph.triples(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     @classmethod
     def get_expected_nodes(cls):
@@ -93,25 +111,25 @@ class DgraphTest(DgraphClusterTest):
         self.assertEqual(sorted(data), sorted(DgraphTest.get_expected_wide_nodes()))
 
     def test_read_load_nodes(self):
-        self.assertTypedNodes(self.spark.read.format(NodesSource).load(self.dgraph.target).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.format(NodesSource).load(self.dgraph.target)).collect())
 
     def test_read_load_typed_nodes(self):
-        self.assertTypedNodes(self.spark.read.format(NodesSource).option(NodesModeOption, NodesModeTypedOption).load(self.dgraph.target).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.format(NodesSource).option(NodesModeOption, NodesModeTypedOption).load(self.dgraph.target)).collect())
 
     def test_read_load_wide_nodes(self):
-        self.assertWideNodes(self.spark.read.format(NodesSource).option(NodesModeOption, NodesModeWideOption).load(self.dgraph.target).collect())
+        self.assertWideNodes(self.remove_dgraph_wide_nodes(self.reader.format(NodesSource).option(NodesModeOption, NodesModeWideOption).load(self.dgraph.target)).collect())
 
     def test_read_dgraph_nodes(self):
-        self.assertTypedNodes(self.spark.read.dgraph.nodes(self.dgraph.target).collect())
-        self.assertTypedNodes(self.spark.read.dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.dgraph.nodes(self.dgraph.target)).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     def test_read_dgraph_typed_nodes(self):
-        self.assertTypedNodes(self.spark.read.option(NodesModeOption, NodesModeTypedOption).dgraph.nodes(self.dgraph.target).collect())
-        self.assertTypedNodes(self.spark.read.option(NodesModeOption, NodesModeTypedOption).dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.option(NodesModeOption, NodesModeTypedOption).dgraph.nodes(self.dgraph.target)).collect())
+        self.assertTypedNodes(self.remove_dgraph_nodes(self.reader.option(NodesModeOption, NodesModeTypedOption).dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     def test_read_dgraph_wide_nodes(self):
-        self.assertWideNodes(self.spark.read.option(NodesModeOption, NodesModeWideOption).dgraph.nodes(self.dgraph.target).collect())
-        self.assertWideNodes(self.spark.read.option(NodesModeOption, NodesModeWideOption).dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertWideNodes(self.remove_dgraph_wide_nodes(self.reader.option(NodesModeOption, NodesModeWideOption).dgraph.nodes(self.dgraph.target)).collect())
+        self.assertWideNodes(self.remove_dgraph_wide_nodes(self.reader.option(NodesModeOption, NodesModeWideOption).dgraph.nodes(self.dgraph.target, self.dgraph.targetLocalIp)).collect())
 
     @classmethod
     def get_expected_edges(cls):
@@ -130,11 +148,11 @@ class DgraphTest(DgraphClusterTest):
         self.assertEqual(sorted(data), sorted(DgraphTest.get_expected_edges()))
 
     def test_read_load_edges(self):
-        self.assertEdges(self.spark.read.format(EdgesSource).load(self.dgraph.target).collect())
+        self.assertEdges(self.reader.format(EdgesSource).load(self.dgraph.target).collect())
 
     def test_read_dgraph_edges(self):
-        self.assertEdges(self.spark.read.dgraph.edges(self.dgraph.target).collect())
-        self.assertEdges(self.spark.read.dgraph.edges(self.dgraph.target, self.dgraph.target, self.dgraph.targetLocalIp).collect())
+        self.assertEdges(self.reader.dgraph.edges(self.dgraph.target).collect())
+        self.assertEdges(self.reader.dgraph.edges(self.dgraph.target, self.dgraph.target, self.dgraph.targetLocalIp).collect())
 
 
 if __name__ == '__main__':

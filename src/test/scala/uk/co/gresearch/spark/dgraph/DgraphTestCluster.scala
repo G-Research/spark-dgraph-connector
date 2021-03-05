@@ -69,7 +69,6 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
     if (!DgraphTestCluster.isDockerInstalled)
       throw new IllegalStateException("docker must be installed")
 
-  lazy val graphQlSchema: Long = instance.uids("dgraph.graphql.schema")
   lazy val han: Long = instance.uids("han")
   lazy val irvin: Long = instance.uids("irvin")
   lazy val leia: Long = instance.uids("leia")
@@ -80,7 +79,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
   lazy val sw1: Long = instance.uids("sw1")
   lazy val sw2: Long = instance.uids("sw2")
   lazy val sw3: Long = instance.uids("sw3")
-  lazy val allUids: Seq[Long] = Seq(graphQlSchema, han, irvin, leia, lucas, luke, richard, st1, sw1, sw2, sw3).sorted
+  lazy val allUids: Seq[Long] = Seq(han, irvin, leia, lucas, luke, richard, st1, sw1, sw2, sw3).sorted
   lazy val highestUid: Long = instance.uids.values.max
 
   def runningDockerDgraphCluster: List[String] =

@@ -17,11 +17,14 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import io.dgraph.DgraphProto.TxnContext
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
+
+import scala.collection.JavaConverters._
 
 class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluster {
 
@@ -32,8 +35,9 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
       // test that a partition works with N predicates
       // the query grows linearly with N, so does the processing time
       it(s"should read $predicates predicates") {
+        val options = new CaseInsensitiveStringMap(Map(IncludeReservedPredicatesOption -> "dgraph.type").asJava)
         val targets = Seq(Target(dgraph.target))
-        val existingPredicates = getSchema(targets).predicates.slice(0, predicates)
+        val existingPredicates = getSchema(targets, options).predicates.slice(0, predicates)
         val syntheticPredicates =
           (1 to (predicates - existingPredicates.size)).map(pred =>
             Predicate(s"predicate$pred", if (pred % 2 == 0) "string" else "uid")
@@ -44,8 +48,10 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
         val execution = DgraphExecutorProvider(transaction)
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
         val partition = Partition(targets)(model).has(schema.predicates).langs(existingPredicates.filter(_.isLang).map(_.predicateName))
-        val res = model.modelPartition(partition).toList
-        assert(model.modelPartition(partition).length === 64)
+        val rows = model.modelPartition(partition).toList
+        val dgraphNodeUids = rows.filter(row => row.getString(1) == "dgraph.type" && row.getString(3).startsWith("dgraph.")).map(_.getLong(0)).toSet
+        val res = rows.filter(rows => !dgraphNodeUids.contains(rows.getLong(0)))
+        assert(res.length === 61)
       }
 
     }

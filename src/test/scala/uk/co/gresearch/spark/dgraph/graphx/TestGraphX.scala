@@ -16,46 +16,56 @@
 
 package uk.co.gresearch.spark.dgraph.graphx
 
-import java.sql.Timestamp
-
 import org.apache.spark.graphx
-import org.apache.spark.graphx.{Edge, Graph}
+import org.apache.spark.graphx.{Edge, EdgeRDD, Graph, VertexId, VertexRDD}
 import org.apache.spark.rdd.RDD
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
+import uk.co.gresearch.spark.dgraph.connector.{ConnectorSparkTestSession, Target}
+import uk.co.gresearch.spark.dgraph.graphx.TestGraphX.dgraphVertex
+
+import java.sql.Timestamp
 
 class TestGraphX extends AnyFunSpec
-  with SparkTestSession with DgraphTestCluster {
+  with ConnectorSparkTestSession with DgraphTestCluster {
+
+  def removeDgraphEdges[E](edges: RDD[Edge[E]], dgraphVertexIds: Set[Long]): RDD[Edge[E]] =
+    edges.filter(e => !dgraphVertexIds.contains(e.srcId) && !dgraphVertexIds.contains(e.dstId))
+
+  def removeDgraphVertices(vertices: RDD[(VertexId, VertexProperty)]): RDD[(VertexId, VertexProperty)] =
+    vertices.filter(v => !dgraphVertex(v._2))
+
+  def removeDgraphNodes(graph: Graph[VertexProperty, EdgeProperty]): Graph[VertexProperty, EdgeProperty] = {
+    val droppedVertexIds = graph.vertices.filter(v => dgraphVertex(v._2)).collect().map(_._1).toSet
+    val filteredVertexes = graph.vertices.filter(v => !dgraphVertex(v._2))
+    val filteredEdges = removeDgraphEdges(graph.edges, droppedVertexIds)
+    Graph(filteredVertexes, filteredEdges)
+  }
 
   describe("GraphX") {
 
     def doGraphTest(load: () => Graph[VertexProperty, EdgeProperty]): Unit = {
-      val graph = load()
+      val graph = removeDgraphNodes(load())
       val pageRank = graph.pageRank(0.0001)
-      val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).toSet
-      val expected = Set(
-        (dgraph.graphQlSchema,0.8118081180811808),
-        (dgraph.st1,0.8118081180811808),
-        (dgraph.leia,1.3293357933579335),
-        (dgraph.lucas,0.9843173431734319),
-        (dgraph.irvin,0.9843173431734319),
-        (dgraph.sw1,0.8118081180811808),
-        (dgraph.sw2,0.8118081180811808),
-        (dgraph.luke,1.3293357933579335),
-        (dgraph.han,1.3293357933579335),
-        (dgraph.richard,0.9843173431734319),
-        (dgraph.sw3,0.8118081180811808),
-      ).map(t => (t._1, t._2.toFloat))
+      val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).sortBy(_._1)
+      val expected = Seq(
+        (dgraph.st1,0.7968128f),
+        (dgraph.leia,1.3047808f),
+        (dgraph.lucas,0.96613544f),
+        (dgraph.irvin,0.96613544f),
+        (dgraph.sw1,0.7968128f),
+        (dgraph.sw2,0.7968128f),
+        (dgraph.luke,1.3047808f),
+        (dgraph.han,1.3047808f),
+        (dgraph.richard,0.96613544f),
+        (dgraph.sw3,0.7968128f),
+      ).sortBy(_._1)
       assert(vertices === expected)
     }
 
     def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
-      val vertices = load().collect().toSet
-      val expected = Set(
-        (dgraph.graphQlSchema,StringVertexProperty("dgraph.type", "dgraph.graphql")),
-        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.xid", "dgraph.graphql.schema")),
-        (dgraph.graphQlSchema,StringVertexProperty("dgraph.graphql.schema", "")),
+      val vertices = removeDgraphVertices(load()).collect().sortBy(v => (v._1, v._2.property))
+      val expected = Seq(
         (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
         (dgraph.st1, StringVertexProperty("title@en", "Star Trek: The Motion Picture")),
         (dgraph.st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
@@ -105,13 +115,14 @@ class TestGraphX extends AnyFunSpec
         (dgraph.sw3, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
         (dgraph.sw3, DoubleVertexProperty("revenue", 5.72E8)),
         (dgraph.sw3, LongVertexProperty("running_time", 131)),
-      )
+      ).sortBy(v => (v._1, v._2.property))
       assert(vertices === expected)
     }
 
     def doEdgeTest(load: () => RDD[Edge[EdgeProperty]]): Unit = {
-      val edges = load().collect().toSet
-      val expected = Set(
+      val dgraphVertexIds = reader.dgraph.vertices(dgraph.target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
+      val edges = removeDgraphEdges(load(), dgraphVertexIds).collect().sortBy(e => (e.srcId, e.dstId))
+      val expected = Seq(
         Edge(dgraph.sw1, dgraph.leia, EdgeProperty("starring")),
         Edge(dgraph.sw1, dgraph.lucas, EdgeProperty("director")),
         Edge(dgraph.sw1, dgraph.luke, EdgeProperty("starring")),
@@ -124,7 +135,7 @@ class TestGraphX extends AnyFunSpec
         Edge(dgraph.sw3, dgraph.luke, EdgeProperty("starring")),
         Edge(dgraph.sw3, dgraph.han, EdgeProperty("starring")),
         Edge(dgraph.sw3, dgraph.richard, EdgeProperty("director")),
-      )
+      ).sortBy(e => (e.srcId, e.dstId))
       assert(edges === expected)
     }
 
@@ -134,31 +145,38 @@ class TestGraphX extends AnyFunSpec
     ).foreach{case (test, targets) =>
 
       it(s"should load dgraph from $test via implicit session") {
-        doGraphTest(() => loadGraph(targets(): _*))
+        doGraphTest(() => loadGraph(reader, targets().map(Target): _*))
       }
 
       it(s"should load dgraph from $test via reader") {
-        doGraphTest(() => spark.read.dgraph.graphx(targets(): _*))
+        doGraphTest(() => reader.dgraph.graphx(targets(): _*))
       }
 
       it(s"should load vertices from $test via implicit session") {
-        doVertexTest(() => loadVertices(targets(): _*))
+        doVertexTest(() => loadVertices(reader, targets().map(Target): _*))
       }
 
       it(s"should load vertices from $test via reader") {
-        doVertexTest(() => spark.read.dgraph.vertices(targets(): _*))
+        doVertexTest(() => reader.dgraph.vertices(targets(): _*))
       }
 
       it(s"should load edges from $test via implicit session") {
-        doEdgeTest(() => loadEdges(targets(): _*))
+        doEdgeTest(() => loadEdges(reader, targets().map(Target): _*))
       }
 
       it(s"should load edges from $test via reader") {
-        doEdgeTest(() => spark.read.dgraph.edges(targets(): _*))
+        doEdgeTest(() => reader.dgraph.edges(targets(): _*))
       }
 
     }
 
   }
+
+}
+
+object TestGraphX {
+
+  def dgraphVertex(property: VertexProperty): Boolean =
+    property.property == "dgraph.type" && Option(property.value).exists(_.toString.startsWith("dgraph."))
 
 }
