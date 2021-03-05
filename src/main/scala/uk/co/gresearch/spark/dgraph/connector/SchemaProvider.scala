@@ -19,17 +19,20 @@ package uk.co.gresearch.spark.dgraph.connector
 import com.google.gson.{Gson, JsonObject}
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
-import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
+import io.grpc.ManagedChannel
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import java.util.regex.Pattern
 
-import scala.annotation.tailrec
 import scala.collection.JavaConverters._
 
 trait SchemaProvider {
 
   private val query = "schema { predicate type lang }"
 
-  def getSchema(targets: Seq[Target]): Schema = {
+  def getSchema(targets: Seq[Target], options: CaseInsensitiveStringMap): Schema = {
     val channels: Seq[ManagedChannel] = targets.map(toChannel)
+    val reservedPredicateFilter = ReservedPredicateFilter(options)
+
     try {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
@@ -42,6 +45,7 @@ trait SchemaProvider {
           o.get("type").getAsString,
           o.has("lang") && o.get("lang").getAsBoolean
         ))
+        .filter(p => reservedPredicateFilter.apply(p.predicateName))
         .toSet
       Schema(schema)
     } catch {

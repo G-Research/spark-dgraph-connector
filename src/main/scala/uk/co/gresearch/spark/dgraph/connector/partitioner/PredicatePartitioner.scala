@@ -65,12 +65,11 @@ case class PredicatePartitioner(schema: Schema,
     val processedFilters = replaceObjectTypeIsInFilter(filters)
     val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
     val cState = filter(clusterState, simplifiedFilters)
-    val partitionsPerGroup = cState.groupPredicates.mapValues(getPartitionsForPredicates)
 
     log.trace(s"replaced filters: $processedFilters")
     log.trace(s"simplified filters: $simplifiedFilters")
 
-    PredicatePartitioner.getPartitions(schema, cState, partitionsPerGroup, simplifiedFilters, projection)
+    PredicatePartitioner.getPartitions(schema, cState, (_, predicates) => getPartitionsForPredicates(predicates), simplifiedFilters, projection)
   }
 
   /**
@@ -210,27 +209,36 @@ object PredicatePartitioner extends ClusterStateHelper {
 
   def getPartitions(schema: Schema,
                     clusterState: ClusterState,
-                    partitionsInGroup: (String) => Int,
+                    partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
                     filters: Set[Filter],
                     projection: Option[Seq[Predicate]]): Seq[Partition] =
-    clusterState.groupPredicates.keys.flatMap { group =>
-      val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
-      val partitions = partitionsInGroup(group)
-      val groupPredicates = getGroupPredicates(clusterState, group, schema)
-      val predicatesPartitions = partition(groupPredicates, partitions)
-      val langPartitions = getLangDirectives(schema, predicatesPartitions)
-      val (props, edges) = schema.predicates.partition(_.isProperty)
-      val propNames = props.map(_.predicateName)
-      val edgeNames = edges.map(_.predicateName)
+    clusterState.groupPredicates.keys.flatMap(
+      getPartition(schema, clusterState, partitionsForGroupAndPredicates, filters, projection)
+    ).toSeq
 
-      predicatesPartitions.indices.map { index =>
-        Partition(
-          targets.rotateLeft(index),
-          getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
-        )
-          .langs(langPartitions(index))
-          .get(projection.foldLeft(predicatesPartitions(index))((preds, proj) => preds.intersect(proj.toSet)))
-      }
-    }.toSeq
+  def getPartition(schema: Schema,
+                   clusterState: ClusterState,
+                   partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
+                   filters: Set[Filter],
+                   projection: Option[Seq[Predicate]])
+                  (group: String): Seq[Partition] = {
+    val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
+    val groupPredicates = getGroupPredicates(clusterState, group, schema)
+    val partitions = partitionsForGroupAndPredicates(group, groupPredicates)
+    val predicatesPartitions = partition(groupPredicates, partitions)
+    val langPartitions = getLangDirectives(schema, predicatesPartitions)
+    val (props, edges) = schema.predicates.partition(_.isProperty)
+    val propNames = props.map(_.predicateName)
+    val edgeNames = edges.map(_.predicateName)
+
+    predicatesPartitions.indices.map { index =>
+      Partition(
+        targets.rotateLeft(index),
+        getFilterOperators(filters, predicatesPartitions(index), propNames, edgeNames)
+      )
+        .langs(langPartitions(index))
+        .get(projection.foldLeft(predicatesPartitions(index))((preds, proj) => preds.intersect(proj.toSet)))
+    }
+  }
 
 }

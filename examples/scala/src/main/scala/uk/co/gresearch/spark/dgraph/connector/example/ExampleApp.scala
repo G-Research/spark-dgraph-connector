@@ -18,10 +18,15 @@ package uk.co.gresearch.spark.dgraph.connector.example
 
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql._
 import org.graphframes.GraphFrame
+import uk.co.gresearch.spark.dgraph.connector.{IncludeReservedPredicatesOption, TypedNode}
+import uk.co.gresearch.spark.dgraph.graphx.{EdgeProperty, VertexProperty}
 
 object ExampleApp {
+
+  def dgraphVertex(property: VertexProperty): Boolean =
+    property.property == "dgraph.type" && Option(property.value).exists(_.toString.startsWith("dgraph."))
 
   def main(args: Array[String]): Unit = {
 
@@ -36,41 +41,88 @@ object ExampleApp {
     }
     import spark.implicits._
 
+    def reader: DataFrameReader = spark.read.option(IncludeReservedPredicatesOption, "dgraph.type")
+
     val target = "localhost:9080"
 
     {
+      def removeDgraphEdges[E](edges: RDD[Edge[E]], dgraphVertexIds: Set[Long]): RDD[Edge[E]] =
+        edges.filter(e => !dgraphVertexIds.contains(e.srcId) && !dgraphVertexIds.contains(e.dstId))
+
+      def removeDgraphVertices(vertices: RDD[(VertexId, VertexProperty)]): RDD[(VertexId, VertexProperty)] =
+        vertices.filter(v => !dgraphVertex(v._2))
+
+      def removeDgraphNodes(graph: Graph[VertexProperty, EdgeProperty]): Graph[VertexProperty, EdgeProperty] = {
+        val droppedVertexIds = graph.vertices.filter(v => dgraphVertex(v._2)).collect().map(_._1).toSet
+        val filteredVertexes = graph.vertices.filter(v => !dgraphVertex(v._2))
+        val filteredEdges = removeDgraphEdges(graph.edges, droppedVertexIds)
+        Graph(filteredVertexes, filteredEdges)
+      }
+
       import uk.co.gresearch.spark.dgraph.graphx._
-      val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph.graphx(target)
-      val edges: RDD[Edge[EdgeProperty]] = spark.read.dgraph.edges(target)
-      val vertices: RDD[(VertexId, VertexProperty)] = spark.read.dgraph.vertices(target)
+      val graph: Graph[VertexProperty, EdgeProperty] = removeDgraphNodes(reader.dgraph.graphx(target))
+      val vertices: RDD[(VertexId, VertexProperty)] = removeDgraphVertices(reader.dgraph.vertices(target))
+      val dgraphVertexIds = reader.dgraph.vertices(target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
+      val edges: RDD[Edge[EdgeProperty]] = removeDgraphEdges(reader.dgraph.edges(target), dgraphVertexIds)
 
       assert(graph.edges.count() == 12, graph.edges.count())
-      assert(graph.vertices.count() == 11, graph.vertices.count())
+      assert(graph.vertices.count() == 10, graph.vertices.count())
       assert(edges.count() == 12, edges.count())
-      assert(vertices.count() == 52, vertices.count())
+      assert(vertices.count() == 49, vertices.count())
     }
 
     {
+      val isDgraphNode: Column = $"`dgraph.type`".startsWith("dgraph.")
+      def isDgraphEdge(dgraphVertexIds: Set[Long]): Column = $"`src`".isin(dgraphVertexIds.toSeq: _*) || $"dst".isin(dgraphVertexIds.toSeq: _*)
+
+      def removeDgraphEdges(edges: DataFrame, dgraphVertexIds: Set[Long]): DataFrame =
+        edges.where(!isDgraphEdge(dgraphVertexIds))
+
+      def removeDgraphVertices(vertices: DataFrame): DataFrame =
+        vertices.where(!isDgraphNode)
+
+      def removeDgraphNodes(graph: GraphFrame): GraphFrame = {
+        val droppedVertexIds = graph.vertices.where(isDgraphNode).select($"id").as[Long].collect().toSet
+        val filteredVertexes = graph.vertices.where(!isDgraphNode)
+        val filteredEdges = removeDgraphEdges(graph.edges, droppedVertexIds)
+        GraphFrame(filteredVertexes, filteredEdges)
+      }
+
       import uk.co.gresearch.spark.dgraph.graphframes._
-      val graph: GraphFrame = spark.read.dgraph.graphframes(target)
-      val edges: DataFrame = spark.read.dgraph.edges(target)
-      val vertices: DataFrame = spark.read.dgraph.vertices(target)
+      val graph: GraphFrame = removeDgraphNodes(reader.dgraph.graphframes(target))
+      val vertices: DataFrame = removeDgraphVertices(reader.dgraph.vertices(target))
+      val dgraphNodes = reader.dgraph.vertices(target).where(isDgraphNode).select($"id").as[Long].collect().toSet
+      val edges: DataFrame = removeDgraphEdges(reader.dgraph.edges(target), dgraphNodes)
 
       val triangles = graph.triangleCount.run().select($"id", $"count").orderBy($"id").as[(Long, Long)].collect().toSeq
-      assert(triangles == Range(1, 12).map(i => (i, 0)), triangles)
-      assert(edges.count() == 12)
-      assert(vertices.count() == 11)
+      assert(triangles.length == 10, triangles)
+      assert(edges.count() == 12, edges.count())
+      assert(vertices.count() == 10, vertices.count())
     }
 
     {
-      import uk.co.gresearch.spark.dgraph.connector._
-      val triples: DataFrame = spark.read.dgraph.triples(target)
-      val edges: DataFrame = spark.read.dgraph.edges(target)
-      val nodes: DataFrame = spark.read.dgraph.nodes(target)
+      def removeDgraphTriples[T](triples: Dataset[T]): Dataset[T] = {
+        import triples.sparkSession.implicits._
+        val dgraphNodeUids = triples.where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph.")).select($"subject").distinct().as[Long].collect()
+        triples.where(!$"subject".isin(dgraphNodeUids: _*))
+      }
 
-      assert(triples.count() == 64, triples.count())
+      def removeDgraphTypedNodes(nodes: Dataset[TypedNode]): Dataset[TypedNode] = {
+        val dgraphNodeUids =
+          nodes
+            .where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph."))
+            .select($"subject").distinct().as[Long].collect()
+        nodes.where(!$"subject".isin(dgraphNodeUids: _*))
+      }
+
+      import uk.co.gresearch.spark.dgraph.connector._
+      val triples: DataFrame = removeDgraphTriples(reader.dgraph.triples(target))
+      val edges: DataFrame = reader.dgraph.edges(target)
+      val nodes: DataFrame = removeDgraphTypedNodes(reader.dgraph.nodes(target).as[TypedNode]).toDF()
+
+      assert(triples.count() == 61, triples.count())
       assert(edges.count() == 12, edges.count())
-      assert(nodes.count() == 52, nodes.count())
+      assert(nodes.count() == 49, nodes.count())
     }
 
   }

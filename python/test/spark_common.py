@@ -19,7 +19,8 @@ import subprocess
 import unittest
 
 from pyspark import SparkConf
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, DataFrameReader
+from gresearch.spark.dgraph.connector import IncludeReservedPredicatesOption
 
 
 @contextlib.contextmanager
@@ -78,6 +79,10 @@ class SparkTest(unittest.TestCase):
     logging.info('found {} JVM dependencies'.format(len(dependencies.split(':'))))
     conf = get_spark_config.__func__(path, dependencies)
     spark: SparkSession = None
+
+    @property
+    def reader(self) -> DataFrameReader:
+        return self.spark.read.option(IncludeReservedPredicatesOption, "dgraph.type")
 
     @classmethod
     def setUpClass(cls):

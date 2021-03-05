@@ -32,6 +32,9 @@ NodesModeOption: str = "dgraph.nodes.mode"
 NodesModeTypedOption: str = "typed"
 NodesModeWideOption: str = "wide"
 
+IncludeReservedPredicatesOption: str = "dgraph.include.reserved-predicates"
+ExcludeReservedPredicatesOption: str = "dgraph.exclude.reserved-predicates"
+
 ChunkSizeOption: str = "dgraph.chunkSize"
 ChunkSizeDefault: int = 100000
 

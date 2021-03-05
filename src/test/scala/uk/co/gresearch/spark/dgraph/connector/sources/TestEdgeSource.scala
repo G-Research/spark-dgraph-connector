@@ -21,14 +21,13 @@ import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, E
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.LongType
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import scala.reflect.runtime.universe._
 
 class TestEdgeSource extends AnyFunSpec
-  with SparkTestSession with DgraphTestCluster
+  with ConnectorSparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {
 
@@ -46,8 +45,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should load edges via path") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .load(dgraph.target)
       )
@@ -55,8 +53,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should load edges via paths") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .load(dgraph.target, dgraph.targetLocalIp)
       )
@@ -64,8 +61,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should load edges via target option") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .option(TargetOption, dgraph.target)
           .load()
@@ -74,8 +70,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should load edges via targets option") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .option(TargetsOption, s"""["${dgraph.target}","${dgraph.targetLocalIp}"]""")
           .load()
@@ -84,24 +79,21 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should load edges via implicit dgraph target") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .dgraph.edges(dgraph.target)
       )
     }
 
     it("should load edges via implicit dgraph targets") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .dgraph.edges(dgraph.target)
       )
     }
 
     it("should load edges in chunks") {
       doTestLoadEdges(() =>
-        spark
-          .read
+        reader
           .options(Map(
             PartitionerOption -> PredicatePartitionerOption,
             PredicatePartitionerPredicatesOption -> "2",
@@ -113,8 +105,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should encode Edge") {
       val rows =
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .load(dgraph.target)
           .as[Edge]
@@ -124,8 +115,7 @@ class TestEdgeSource extends AnyFunSpec
 
     it("should fail without target") {
       assertThrows[IllegalArgumentException] {
-        spark
-          .read
+        reader
           .format(EdgesSource)
           .load()
       }
@@ -135,8 +125,7 @@ class TestEdgeSource extends AnyFunSpec
       val target = dgraph.target
       val targets = Seq(Target(target))
       val partitions =
-        spark
-          .read
+        reader
           .option(PartitionerOption, SingletonPartitionerOption)
           .dgraph.edges(target)
           .rdd
@@ -150,8 +139,7 @@ class TestEdgeSource extends AnyFunSpec
     it("should load as a predicate partitions") {
       val target = dgraph.target
       val partitions =
-        spark
-          .read
+        reader
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.edges(target)
@@ -162,8 +150,7 @@ class TestEdgeSource extends AnyFunSpec
         }
 
       val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("starring")).getAll)
+        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll)
       )
 
       assert(partitions.toSet === expected)
@@ -172,8 +159,7 @@ class TestEdgeSource extends AnyFunSpec
     it("should partition data") {
       val target = dgraph.target
       val partitions =
-        spark
-          .read
+        reader
           .options(Map(
             PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
@@ -191,8 +177,7 @@ class TestEdgeSource extends AnyFunSpec
     }
 
     lazy val edges =
-      spark
-        .read
+      reader
         .options(Map(
           PartitionerOption -> PredicatePartitionerOption,
           PredicatePartitionerPredicatesOption -> "2"
