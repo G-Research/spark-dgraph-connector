@@ -171,7 +171,6 @@ jobs:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
     needs: build
-    if: needs.build.outputs.spark-compat-version != '3.1'
 
     strategy:
       fail-fast: false
