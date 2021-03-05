@@ -3,17 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [UNRELEASED] - YYYY-MM-DD
+## [0.6.0] - 2021-03-05
 
 ### Added
 - Adds support to read string predicates with language tags like `<http://www.w3.org/2000/01/rdf-schema#label@en>` ([issue #63](https://github.com/G-Research/spark-dgraph-connector/issues/63)).
   This works with any source and mode except the node source in wide mode.
   Note that reading into GraphFrames is based on the wide mode, so only the untagged
   language strings can be read there.
-  Filter pushdown is not supported yet for multi-language predicates ([issue #68](https://github.com/G-Research/spark-dgraph-connector/issues/68)).
+  Filter pushdown is not supported for multi-language predicates yet ([issue #68](https://github.com/G-Research/spark-dgraph-connector/issues/68)).
+- Adds readable exception and suggests next steps when GRPC fails with `RESOURCE_EXHAUSTED` code.
+- Missing `maxLeaseId` in cluster state response defaults to `1000L` to avoid an exception.
 
 ### Changed
-- Upgraded all dependencies to latest versions
+- Improves predicate partitioning on projection pushdown as it creates full partitions.
+- Fixes bug that did not push predicate value filter correctly down to Dgraph causing incorrect results ([issue #82](https://github.com/G-Research/spark-dgraph-connector/pull/82))
+- Fixes bug in reading `geo` and `password` data types.
+- Tests against Dgraph 20.03, 20.07 and 20.11.
+- Moved Java Dgraph client to 20.11.0.
+- Upgraded all dependencies to latest versions.
 
 ## [0.5.0] - 2020-10-21
 
@@ -27,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 - Refactored connector API, renamed `spark.read.dgraph*` methods to `spark.read.dgraph.*`.
 - Moved `triples`, `edges` and `nodes` sources from package `uk.co.gresearch.spark.dgraph.connector` to `uk.co.gresearch.spark.dgraph`.
-- Moved Dgraph client to 20.03.1 and Dgraph test cluster to 20.07.0.
+- Moved Java Dgraph client to 20.03.1 and Dgraph test cluster to 20.07.0.
 
 ## [0.4.0] - 2020-07-24
 
