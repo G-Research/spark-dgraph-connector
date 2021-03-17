@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "maven"
+    directory: "/examples/scala"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "pip"
+    directory: "/python"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "pip"
+    directory: "/examples/python"
+    schedule:
+      interval: "daily"
