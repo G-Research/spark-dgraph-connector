@@ -142,31 +142,6 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
-  publish-test-results:
-    name: Publish Unit Tests Results
-    needs: test
-
-    runs-on: ubuntu-latest
-    # the workflow is useless on pull_request events from fork repositories
-    # as it can not create check runs or pull request comments
-    if: >
-      ( success() || failure() ) &&
-      ( github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository )
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1
-        with:
-          github_token: ${{ github.token }}
-          files: "artifacts/Unit Test Results*/**/*.xml"
-          comment_on_pr: ${{ github.event_name != 'push' }}
-          log_level: DEBUG
-
   integration:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
