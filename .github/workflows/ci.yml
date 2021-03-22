@@ -24,10 +24,12 @@ jobs:
       - name: Debug
         env:
           REF: ${{ github.ref }}
+          HEAD_REF: ${{ github.head_ref }}
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           PR_GEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
         run: |
           echo "REF=$REF"
+          echo "HEAD_REF=$HEAD_REF"
           echo "PR_HEAD_REF=$PR_HEAD_REF"
           echo "PR_GEAD_REPO_FULL_NAME=$PR_GEAD_REPO_FULL_NAME"
         shell: bash
@@ -162,9 +164,8 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       ( success() || failure() ) &&
-      ! startsWith(github.ref, 'refs/heads/dependabot/') && (
-        github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-      )
+      github.event.sender.login != 'dependabot[bot]' &&
+      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
 
     steps:
       - name: Download Artifacts
