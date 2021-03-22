@@ -18,6 +18,19 @@ jobs:
       spark-version-matrix: ${{ format('["{0}"]', steps.params.outputs.spark-version) }}
 
     steps:
+      - name: Debug Action
+        uses: hmarr/debug-action@v1.0.0
+
+      - name: Debug
+        env:
+          REF: ${{ github.ref }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_GEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          echo "REF=$REF"
+          echo "PR_HEAD_REF=$PR_HEAD_REF"
+          echo "PR_GEAD_REPO_FULL_NAME=$PR_GEAD_REPO_FULL_NAME"
+        shell: bash
       - name: Checkout
         uses: actions/checkout@v2
 
