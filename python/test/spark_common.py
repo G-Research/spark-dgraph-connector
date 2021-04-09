@@ -64,6 +64,7 @@ class SparkTest(unittest.TestCase):
         master = 'local[2]'
         conf = SparkConf().setAppName('unit test').setMaster(master)
         return conf.setAll([
+            ('spark.driver.bindAddress', '127.0.0.1'),
             ('spark.ui.showConsoleProgress', 'false'),
             ('spark.test.home', os.environ.get('SPARK_HOME')),
             ('spark.locality.wait', '0'),
