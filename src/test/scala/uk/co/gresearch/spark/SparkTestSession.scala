@@ -27,6 +27,7 @@ trait SparkTestSession {
       .builder()
       .master(s"local[$cores]")
       .appName("spark test example")
+      .config("spark.driver.bindAddress", "127.0.0.1")
       .config("spark.sql.shuffle.partitions", 2)
       .config("spark.local.dir", ".")
       .getOrCreate()
