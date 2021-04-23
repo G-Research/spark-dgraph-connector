@@ -92,7 +92,7 @@
     <dependency>
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
-      <version>21.03.0</version>
+      <version>21.03.1</version>
       <exclusions>
         <!-- Spark comes with a specific netty version, we want to compile against that version -->
         <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
