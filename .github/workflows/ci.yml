@@ -73,7 +73,8 @@ jobs:
         with:
           name: Binaries
           path: |
-            target
+            .
+            !.git
             !target/*-javadoc.jar
             !target/site
 
@@ -116,7 +117,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Binaries
-        path: target
+        path: .
 
     - name: Cache Maven packages
       uses: actions/cache@v2
@@ -238,7 +239,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Binaries
-        path: target
+        path: .
 
     - name: Cache Maven packages
       uses: actions/cache@v2
