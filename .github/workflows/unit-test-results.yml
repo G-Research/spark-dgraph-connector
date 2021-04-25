@@ -17,6 +17,11 @@ jobs:
       )
 
     steps:
+      - name: Delete Binaries Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Binaries
+
       - name: Download Artifacts
         uses: actions/github-script@v3
         with:

@@ -41,10 +41,13 @@ object ClusterState {
     val groupMembers = groupMap.mapValues(getMembersFromGroup)
       .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
-    val maxLeaseId = Some(root)
-      .filter(_.has("maxLeaseId"))
-      .map(_.getAsJsonPrimitive("maxLeaseId").getAsLong)
-      .getOrElse(1000L)
+    val maxLeaseId = if (root.has("maxUID")) {
+      root.getAsJsonPrimitive("maxUID").getAsLong
+    } else if (root.has("maxLeaseId")) {
+      root.getAsJsonPrimitive("maxLeaseId").getAsLong
+    } else {
+      1000L
+    }
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
     ClusterState(groupMembers, groupPredicates, maxLeaseId, cid)
@@ -65,7 +68,7 @@ object ClusterState {
       .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
       .map(_.getAsJsonPrimitive("predicate"))
-      .map(_.getAsString)
+      .map(_.getAsString.replace("\u0000", ""))
       .toSet
 
 }
