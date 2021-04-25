@@ -210,7 +210,7 @@ jobs:
           path: artifacts
 
       - name: Publish Unit Test Results
-        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1
+        uses: EnricoMi/publish-unit-test-result-action@v1
         with:
           github_token: ${{ github.token }}
           files: "artifacts/Unit Test Results*/**/*.xml"
