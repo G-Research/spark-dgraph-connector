@@ -73,7 +73,8 @@ jobs:
         with:
           name: Binaries
           path: |
-            target
+            .
+            !.git
             !target/*-javadoc.jar
             !target/site
 
@@ -85,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.03.7, 20.07.0, 20.07.1, 20.07.2, 20.11.0, 20.11.1, 20.11.2]
+        dgraph-version: [20.03.4, 20.03.5, 20.03.6, 20.03.7, 20.07.0, 20.07.1, 20.07.2, 20.07.3, 20.11.0, 20.11.1, 20.11.2, 20.11.3, 21.03.0]
         python-version: [3.6]
         include:
           - dgraph-version: 20.03.7
@@ -93,14 +94,19 @@ jobs:
           - dgraph-version: 20.03.7
             python-version: 3.8
 
-          - dgraph-version: 20.07.2
+          - dgraph-version: 20.07.3
             python-version: 3.7
-          - dgraph-version: 20.07.2
+          - dgraph-version: 20.07.3
             python-version: 3.8
 
-          - dgraph-version: 20.11.2
+          - dgraph-version: 20.11.3
             python-version: 3.7
-          - dgraph-version: 20.11.2
+          - dgraph-version: 20.11.3
+            python-version: 3.8
+
+          - dgraph-version: 21.03.0
+            python-version: 3.7
+          - dgraph-version: 21.03.0
             python-version: 3.8
 
     steps:
@@ -111,7 +117,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Binaries
-        path: target
+        path: .
 
     - name: Cache Maven packages
       uses: actions/cache@v2
@@ -125,6 +131,21 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+
+    - name: Start Dgraph cluster
+      id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: |
+        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        sleep 10
+        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
+        then
+          ./dgraph-instance.drop-all.sh
+        fi
+        ./dgraph-instance.schema.sh
+        ./dgraph-instance.insert.sh
+      shell: bash
 
     - name: Scala Test
       env:
@@ -172,30 +193,6 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
-  publish-test-results:
-    name: Publish Unit Tests Results
-    needs: test
-
-    runs-on: ubuntu-latest
-    if: >
-      ( success() || failure() ) &&
-      github.event.sender.login != 'dependabot[bot]' &&
-      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: docker://ghcr.io/enricomi/publish-unit-test-result-action:v1
-        with:
-          github_token: ${{ github.token }}
-          files: "artifacts/Unit Test Results*/**/*.xml"
-          comment_on_pr: ${{ github.event_name != 'push' }}
-          log_level: DEBUG
-
   integration:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
@@ -205,7 +202,7 @@ jobs:
       fail-fast: false
       matrix:
         spark-version: ${{ fromJSON(needs.build.outputs.spark-version-matrix) }}
-        dgraph-version: [20.03.7, 20.07.2, 20.11.2]
+        dgraph-version: [20.03.7, 20.07.3, 20.11.3, 21.03.0]
         include:
           - spark-version: ${{ needs.build.outputs.spark-version }}
             spark-compat-version: ${{ needs.build.outputs.spark-compat-version }}
@@ -218,7 +215,7 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: Binaries
-        path: target
+        path: .
 
     - name: Cache Maven packages
       uses: actions/cache@v2
@@ -240,7 +237,7 @@ jobs:
       run: |
         if [[ ! -e ~/spark ]]
         then
-          wget --progress=dot:giga https://archive.apache.org/dist/spark/${SPARK_PACKAGE} -O - | tar -xzC "${{ runner.temp }}"
+          wget --progress=dot:giga "https://www.apache.org/dyn/closer.lua/spark/${SPARK_PACKAGE}?action=download" -O - | tar -xzC "${{ runner.temp }}"
           archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
         fi
       shell: bash
@@ -297,3 +294,32 @@ jobs:
       run: |
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
+
+  publish-test-results:
+    name: Publish Unit Tests Results
+    needs: [test, integration]
+
+    runs-on: ubuntu-latest
+    if: >
+      ( success() || failure() ) &&
+      github.event.sender.login != 'dependabot[bot]' &&
+      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
+
+    steps:
+      - name: Delete Binaries Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Binaries
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          github_token: ${{ github.token }}
+          files: "artifacts/Unit Test Results*/**/*.xml"
+          comment_on_pr: ${{ github.event_name != 'push' }}
+          log_level: DEBUG
