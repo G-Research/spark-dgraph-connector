@@ -131,6 +131,21 @@ jobs:
       with:
         java-version: 1.8
 
+    - name: Start Dgraph cluster
+      id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
+      run: |
+        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        sleep 10
+        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
+        then
+          ./dgraph-instance.drop-all.sh
+        fi
+        ./dgraph-instance.schema.sh
+        ./dgraph-instance.insert.sh
+      shell: bash
+
     - name: Scala Test
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
