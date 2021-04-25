@@ -129,5 +129,154 @@ class TestClusterState extends AnyFunSpec {
       assert(state.maxLeaseId === 10000)
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
+
+    it("should ignore null characters") {
+      val json =
+        """{
+          |  "counter": "25",
+          |  "groups": {
+          |    "1": {
+          |      "members": {
+          |        "1": {
+          |          "id": "1",
+          |          "groupId": 1,
+          |          "addr": "localhost:7081",
+          |          "leader": true,
+          |          "amDead": false,
+          |          "lastUpdate": "1619348857",
+          |          "learner": false,
+          |          "clusterInfoOnly": false,
+          |          "forceGroupId": false
+          |        },
+          |        "2": {
+          |          "id": "2",
+          |          "groupId": 1,
+          |          "addr": "localhost:7082",
+          |          "leader": true,
+          |          "amDead": false,
+          |          "lastUpdate": "1619348857",
+          |          "learner": false,
+          |          "clusterInfoOnly": false,
+          |          "forceGroupId": false
+          |        }
+          |      },
+          |      "tablets": {
+          |        "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dgraph.graphql.schema": {
+          |          "groupId": 1,
+          |          "predicate": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dgraph.graphql.schema",
+          |          "force": false,
+          |          "onDiskBytes": "0",
+          |          "remove": false,
+          |          "readOnly": false,
+          |          "moveTs": "0",
+          |          "uncompressedBytes": "0"
+          |        },
+          |        "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dgraph.type": {
+          |          "groupId": 1,
+          |          "predicate": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000dgraph.type",
+          |          "force": false,
+          |          "onDiskBytes": "0",
+          |          "remove": false,
+          |          "readOnly": false,
+          |          "moveTs": "0",
+          |          "uncompressedBytes": "0"
+          |        }
+          |      },
+          |      "snapshotTs": "8",
+          |      "checksum": "7101184639612340275",
+          |      "checkpointTs": "0"
+          |    },
+          |    "2": {
+          |      "members": {
+          |        "1": {
+          |          "id": "1",
+          |          "groupId": 2,
+          |          "addr": "127.0.0.1:7081",
+          |          "leader": true,
+          |          "amDead": false,
+          |          "lastUpdate": "1619348857",
+          |          "learner": false,
+          |          "clusterInfoOnly": false,
+          |          "forceGroupId": false
+          |        },
+          |        "2": {
+          |          "id": "2",
+          |          "groupId": 2,
+          |          "addr": "127.0.0.1:7082",
+          |          "leader": true,
+          |          "amDead": false,
+          |          "lastUpdate": "1619348857",
+          |          "learner": false,
+          |          "clusterInfoOnly": false,
+          |          "forceGroupId": false
+          |        }
+          |      },
+          |      "tablets": {
+          |        "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000director": {
+          |          "groupId": 2,
+          |          "predicate": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000director",
+          |          "force": false,
+          |          "onDiskBytes": "0",
+          |          "remove": false,
+          |          "readOnly": false,
+          |          "moveTs": "0",
+          |          "uncompressedBytes": "0"
+          |        },
+          |        "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000name": {
+          |          "groupId": 2,
+          |          "predicate": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000name",
+          |          "force": false,
+          |          "onDiskBytes": "0",
+          |          "remove": false,
+          |          "readOnly": false,
+          |          "moveTs": "0",
+          |          "uncompressedBytes": "0"
+          |        }
+          |      },
+          |      "snapshotTs": "8",
+          |      "checksum": "7101184639612340275",
+          |      "checkpointTs": "0"
+          |    }
+          |  },
+          |  "zeros": {
+          |    "1": {
+          |      "id": "1",
+          |      "groupId": 0,
+          |      "addr": "localhost:5081",
+          |      "leader": true,
+          |      "amDead": false,
+          |      "lastUpdate": "0",
+          |      "learner": false,
+          |      "clusterInfoOnly": false,
+          |      "forceGroupId": false
+          |    }
+          |  },
+          |  "maxUID": "10000",
+          |  "maxTxnTs": "10000",
+          |  "maxNsID": "0",
+          |  "maxRaftId": "1",
+          |  "removed": [],
+          |  "cid": "350fd4f5-771d-4021-8ef9-cd1b79aa6ea0",
+          |  "license": {
+          |    "user": "",
+          |    "maxNodes": "18446744073709551615",
+          |    "expiryTs": "1621940859",
+          |    "enabled": true
+          |  }
+          |}""".stripMargin
+
+      val state = ClusterState.fromJson(Json(json))
+
+      assert(state.groupMembers === Map(
+        "1" -> Set(Target("localhost:9081"), Target("localhost:9082")),
+        "2" -> Set(Target("127.0.0.1:9081"), Target("127.0.0.1:9082"))
+      ))
+      assert(state.groupPredicates === Map(
+        "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
+        "2" -> Set("director", "name")
+      ))
+      assert(state.maxLeaseId === 10000)
+      assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
+    }
   }
 }
