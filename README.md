@@ -129,6 +129,11 @@ The connection to Dgraph can be established via a `target`, which is the [hostna
 Dgraph Alpha node](https://dgraph.io/docs/deploy/#cluster-setup) in the form `<hostname>:<port>`.
 With our example instance started above, we can use `localhost:9080` as the target.
 
+### Dgraph UI
+
+The Dgraph UI Ratel can be used to query your local Dgraph instance. Open a browser and
+got to https://play.dgraph.io/?latest. Connect to your local Dgraph via http://localhost:8080.
+
 ### GraphX
 
 You can load the entire Dgraph database into an
