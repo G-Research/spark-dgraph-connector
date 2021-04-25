@@ -193,30 +193,6 @@ jobs:
           !target/surefire-reports/TEST-org.scalatest*.xml
           target/site/surefire-report.html
 
-  publish-test-results:
-    name: Publish Unit Tests Results
-    needs: test
-
-    runs-on: ubuntu-latest
-    if: >
-      ( success() || failure() ) &&
-      github.event.sender.login != 'dependabot[bot]' &&
-      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
-
-    steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        with:
-          github_token: ${{ github.token }}
-          files: "artifacts/Unit Test Results*/**/*.xml"
-          comment_on_pr: ${{ github.event_name != 'push' }}
-          log_level: DEBUG
-
   integration:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
@@ -319,3 +295,32 @@ jobs:
       run: |
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
+
+  publish-test-results:
+    name: Publish Unit Tests Results
+    needs: [test, integration]
+
+    runs-on: ubuntu-latest
+    if: >
+      ( success() || failure() ) &&
+      github.event.sender.login != 'dependabot[bot]' &&
+      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
+
+    steps:
+      - name: Delete Binaries Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Binaries
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: artifacts
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          github_token: ${{ github.token }}
+          files: "artifacts/Unit Test Results*/**/*.xml"
+          comment_on_pr: ${{ github.event_name != 'push' }}
+          log_level: DEBUG
