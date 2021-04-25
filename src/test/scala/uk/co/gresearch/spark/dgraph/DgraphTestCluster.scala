@@ -57,7 +57,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
   // Set this environment variable to a dgraph version to run all unit tests against that cluster version
   // keep env var name and value in-sync with dgraph-instance.start.sh
   val DgraphVersionEnvVar = "DGRAPH_TEST_CLUSTER_VERSION"
-  val DgraphDefaultVersion = "20.07.0"
+  val DgraphDefaultVersion = "21.03.0"
   val clusterVersion: String = sys.env.getOrElse(DgraphVersionEnvVar, DgraphDefaultVersion)
 
   private val instance: DgraphDockerContainer = DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
@@ -251,6 +251,7 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
       s"$actualPort:$actualPort"
     }
 
+    val whitelist = if (version < "21.03.0") "--whitelist 0.0.0.0/0" else "--security whitelist=0.0.0.0/0"
     val process =
       Process(Seq(
         "docker", "run",
@@ -262,7 +263,7 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
         s"dgraph/dgraph:v${version}",
         "/bin/bash", "-c",
         s"dgraph zero --port_offset $portOffset &" +
-          s"dgraph alpha --port_offset $portOffset --lru_mb 1024 --whitelist 0.0.0.0/0 --zero localhost:${5080 + portOffset}"
+          s"dgraph alpha --port_offset $portOffset ${whitelist} --zero localhost:${5080 + portOffset}"
       )).run(logger)
 
     sync.synchronized {
