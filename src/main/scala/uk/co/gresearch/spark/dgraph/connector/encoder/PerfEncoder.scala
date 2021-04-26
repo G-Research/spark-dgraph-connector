@@ -17,14 +17,16 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
-import collection.JavaConverters._
 import com.google.gson.{Gson, JsonArray}
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import uk.co.gresearch.spark.dgraph.connector.{Json, Perf, PerfJson}
+import uk.co.gresearch.spark.dgraph.connector.{Perf, PerfJava}
+import uk.co.gresearch.spark.dgraph.connector.sources.PerfSource
+
+import scala.collection.JavaConverters._
 
 /**
  * Encodes a perf json response.
@@ -52,16 +54,27 @@ case class PerfEncoder() extends JsonNodeInternalRowEncoder {
    * @return internal rows
    */
   override def fromJson(result: JsonArray): Iterator[InternalRow] = {
-    // look into first element, it will have extra perf payload
-    // drop the array and only encode that payload
-    result.iterator().asScala
-      .map(_.asInstanceOf[PerfJson])
-      .map(perf =>
+    if (result.size() == 0) {
+      Iterator.empty
+    } else {
+      // look into first element, it will have extra perf payload
+      // drop the array and only encode that payload
+      val perfJson = result.iterator().asScala
+        .next().getAsJsonObject
+        .get(PerfSource.perfElementName)
+      val perf = new Gson().fromJson(perfJson, classOf[PerfJava])
+
+      Iterator.single(
         InternalRow(
           new GenericArrayData(perf.partitionTargets.map(UTF8String.fromString)),
           Option(perf.partitionPredicates).map(p => new GenericArrayData(p.map(UTF8String.fromString))).orNull,
-          perf.partitionUidsFirst,
-          perf.partitionUidsLength,
+          perf.partitionFirstUid,
+          perf.partitionUidLength,
+
+          perf.chunkAfterUid,
+          perf.chunkUidLength,
+          perf.chunkBytes,
+          perf.chunkNodes,
 
           perf.sparkStageId,
           perf.sparkStageAttemptNumber,
@@ -69,13 +82,16 @@ case class PerfEncoder() extends JsonNodeInternalRowEncoder {
           perf.sparkAttemptNumber,
           perf.sparkTaskAttemptId,
 
-          perf.dgraphAssignTimestamp,
-          perf.dgraphParsing,
-          perf.dgraphProcessing,
-          perf.dgraphEncoding,
-          perf.dgraphTotal
+          perf.dgraphAssignTimestampNanos,
+          perf.dgraphParsingNanos,
+          perf.dgraphProcessingNanos,
+          perf.dgraphEncodingNanos,
+          perf.dgraphTotalNanos,
+          perf.connectorWireNanos,
+          perf.connectorDecodeNanos
         )
       )
+    }
   }
 
   /**

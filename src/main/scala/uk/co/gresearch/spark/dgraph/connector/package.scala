@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph
 
+import com.google.gson.JsonElement
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
@@ -153,12 +154,17 @@ package object connector {
   // typed strings
   // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
   case class GraphQl(string: String, resultName: String, chunk: Option[connector.Chunk] = None)
-  case class Json(string: String)
+  case class Json(string: String, bytes: Option[Long] = None)
 
   case class Perf(partitionTargets: Seq[String],
                   partitionPredicates: Option[Seq[String]],
-                  partitionUidsFirst: Option[Long],
-                  partitionUidsLength: Option[Long],
+                  partitionFirstUid: Option[Long],
+                  partitionUidLength: Option[Long],
+
+                  chunkAfterUid: Long,
+                  chunkUidLength: Long,
+                  chunkBytes: Long,
+                  chunkNodes: Int,
 
                   sparkStageId: Int,
                   sparkStageAttemptNumber: Int,
@@ -166,20 +172,26 @@ package object connector {
                   sparkAttemptNumber: Int,
                   sparkTaskAttemptId: Long,
 
-                  dgraphAssignTimestamp: Option[Long],
-                  dgraphParsing: Option[Long],
-                  dgraphProcessing: Option[Long],
-                  dgraphEncoding: Option[Long],
-                  dgraphTotal: Option[Long]
-                 )
+                  dgraphAssignTimestampNanos: Option[Long],
+                  dgraphParsingNanos: Option[Long],
+                  dgraphProcessingNanos: Option[Long],
+                  dgraphEncodingNanos: Option[Long],
+                  dgraphTotalNanos: Option[Long],
 
-  class PerfJson(val partitionTargets: Array[String],
+                  connectorWireNanos: Long,
+                  connectorDecodeNanos: Long)
+
+  // this is a Java version of Perf so that Gson can generate proper JSON for it
+  // java.lang.Long are used for null-able Longs, scala Long for non-nullable Longs
+  class PerfJava(val partitionTargets: Array[String],
                  val partitionPredicates: Array[String],
-                 val partitionUidsFirst: java.lang.Long,
-                 val partitionUidsLength: java.lang.Long,
+                 val partitionFirstUid: java.lang.Long,
+                 val partitionUidLength: java.lang.Long,
 
-                 val chunkAfter: java.lang.Long,
-                 val chunkLength: java.lang.Long,
+                 val chunkAfterUid: java.lang.Long,
+                 val chunkUidLength: java.lang.Long,
+                 val chunkBytes: Long,
+                 val chunkNodes: Int,
 
                  val sparkStageId: Int,
                  val sparkStageAttemptNumber: Int,
@@ -187,12 +199,14 @@ package object connector {
                  val sparkAttemptNumber: Int,
                  val sparkTaskAttemptId: Long,
 
-                 val dgraphAssignTimestamp: java.lang.Long,
-                 val dgraphParsing: java.lang.Long,
-                 val dgraphProcessing: java.lang.Long,
-                 val dgraphEncoding: java.lang.Long,
-                 val dgraphTotal: java.lang.Long
-                )
+                 val dgraphAssignTimestampNanos: java.lang.Long,
+                 val dgraphParsingNanos: java.lang.Long,
+                 val dgraphProcessingNanos: java.lang.Long,
+                 val dgraphEncodingNanos: java.lang.Long,
+                 val dgraphTotalNanos: java.lang.Long,
+
+                 val connectorWireNanos: Long,
+                 val connectorDecodeNanos: Long)
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"

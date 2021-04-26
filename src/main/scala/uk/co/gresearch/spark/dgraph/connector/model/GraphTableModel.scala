@@ -98,7 +98,7 @@ trait GraphTableModel extends Logging {
       Option(TaskContext.get()).map(tc =>
         s"in stage ${loggingFormat.format(tc.stageId())} partition ${loggingFormat.format(tc.partitionId())} "
       ).getOrElse("") +
-      s"of ${loggingFormat.format(json.string.length)} bytes " +
+      s"of ${loggingFormat.format(json.bytes.getOrElse(json.string.getBytes.length))} bytes " +
       s"with ${loggingFormat.format(partition.predicates.size)} predicates " +
       s"for ${loggingFormat.format(chunk.length)} uids " +
       s"after ${chunk.after.toHexString} " +

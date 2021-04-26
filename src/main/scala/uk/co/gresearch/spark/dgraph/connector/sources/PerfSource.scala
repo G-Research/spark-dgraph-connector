@@ -28,6 +28,11 @@ import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, 
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
+/**
+ * Source that does not provide the actual Dgraph data but per-chunk performance metrics.
+ * The real data are retrieved from Dgraph and decoded. Metrics are not available for
+ * empty chunks / partitions.
+ */
 class PerfSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider
@@ -57,4 +62,8 @@ class PerfSource() extends TableProviderBase
     TripleTable(partitioner, model, clusterState.cid)
   }
 
+}
+
+object PerfSource {
+  val perfElementName = "_spark_dgraph_connector_perf"
 }
