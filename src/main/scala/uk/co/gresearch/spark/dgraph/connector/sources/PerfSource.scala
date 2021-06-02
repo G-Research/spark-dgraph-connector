@@ -52,7 +52,8 @@ class PerfSource() extends TableProviderBase
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
     val transaction = getTransaction(targets, options)
-    val schema = getSchema(targets, options)
+    val predicates = Some(options).filter(_.containsKey(PerfPredicatesOption)).map(_.get(PerfPredicatesOption).split(","))
+    val schema = predicates.foldLeft(getSchema(targets, options)) { case (schema, predicates) => schema.filter(p => predicates.contains(p.predicateName)) }
     val clusterState = getClusterState(targets, options)
     val partitioner = getPartitioner(schema, clusterState, transaction, options)
     val encoder = PerfEncoder()

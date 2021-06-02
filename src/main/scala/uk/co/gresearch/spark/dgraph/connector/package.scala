@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph
 
+import scala.collection.mutable
 import com.google.gson.JsonElement
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
@@ -219,6 +220,8 @@ package object connector {
   val NodesModeTypedOption: String = "typed"
   val NodesModeWideOption: String = "wide"
 
+  val PerfPredicatesOption: String = "dgraph.perf.predicates"
+
   val IncludeReservedPredicatesOption: String = "dgraph.include.reserved-predicates"
   val ExcludeReservedPredicatesOption: String = "dgraph.exclude.reserved-predicates"
 
@@ -236,6 +239,7 @@ package object connector {
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
   val UidRangePartitionerOption: String = "uid-range"
+  val FirstPartitionerOption: String = "first"
   val PartitionerDefault: String = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
 
   val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
@@ -249,6 +253,7 @@ package object connector {
   val UidRangePartitionerEstimatorDefault: String = MaxLeaseIdEstimatorOption
   // for testing purposes only
   val MaxLeaseIdEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxLeaseIdEstimatorOption.id"
+  val FirstPartitionerPartitionsOption: String = "dgraph.partitioner.first.partitions"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 
