@@ -325,4 +325,17 @@ package object connector {
       throwable.getCause != null && isCausedByResourceExhausted(throwable.getCause)
   }
 
+
+  implicit class ExtendedSeq[T](s: Seq[TraversableOnce[T]]) {
+    def roundrobin(): Seq[T] = {
+      var iterators = mutable.Seq(s.map(_.toIterator): _*)
+      val values: mutable.ListBuffer[T] = mutable.ListBuffer()
+      while (iterators.nonEmpty) {
+        iterators = iterators.filter(_.nonEmpty)
+        values.append(iterators.map(_.next()): _*)
+      }
+      values
+    }
+  }
+
 }
