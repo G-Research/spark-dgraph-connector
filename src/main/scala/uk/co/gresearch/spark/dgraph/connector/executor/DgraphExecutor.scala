@@ -45,12 +45,13 @@ case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]
     try {
       val client = getClientFromChannel(channels)
       val response = getTransaction(client).query(query.string)
-      val json = response.getJson.toStringUtf8
+      val bytes = response.getJson
+      val json = bytes.toStringUtf8
 
       if (log.isTraceEnabled)
         log.trace(s"retrieved response of ${loggingFormat.format(json.getBytes.length)} bytes: ${abbreviate(json)}")
 
-      Json(json)
+      Json(json, Some(bytes.size()))
     } catch {
       case e: Throwable =>
         // this is potentially an async exception which does not include any useful stacktrace, so we add it here

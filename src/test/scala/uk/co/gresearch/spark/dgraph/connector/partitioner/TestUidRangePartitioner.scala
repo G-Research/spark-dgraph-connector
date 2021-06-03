@@ -65,11 +65,11 @@ class TestUidRangePartitioner extends AnyFunSpec {
 
           val ranges = (0 until (10000 / size)).map(idx => UidRange(Uid(1 + idx * size), Uid(1 + (idx+1) * size)))
           assert(uidPartitions.length === partitions.length * ranges.length)
-          val expectedPartitions = partitions.flatMap( partition =>
+          val expectedPartitions = partitions.map( partition =>
             ranges.zipWithIndex.map { case (range, idx) =>
               Partition(partition.targets.rotateLeft(idx), partition.operators + range)
             }
-          )
+          ).roundrobin()
 
           assert(uidPartitions === expectedPartitions)
         }
@@ -160,8 +160,8 @@ class TestUidRangePartitioner extends AnyFunSpec {
       val partitions = uidPartitioner.getPartitions
       assert(partitions === Seq(
         Partition(Seq(Target("host1:9080"), Target("host2:9080"))).has(Set("pred1"), Set.empty).range(1, 501).getAll,
-        Partition(Seq(Target("host2:9080"), Target("host1:9080"))).has(Set("pred1"), Set.empty).range(501, 1001).getAll,
         Partition(Seq(Target("host3:9080"))).has(Set("pred2"), Set.empty).langs(Set("pred2")).range(1, 501).getAll,
+        Partition(Seq(Target("host2:9080"), Target("host1:9080"))).has(Set("pred1"), Set.empty).range(501, 1001).getAll,
         Partition(Seq(Target("host3:9080"))).has(Set("pred2"), Set.empty).langs(Set("pred2")).range(501, 1001).getAll,
       ))
     }
