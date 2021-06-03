@@ -139,7 +139,7 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.17.1</version>
+      <version>3.17.2</version>
     </dependency>
 
     <!-- Spark Core pulls in too old of a version -->
