@@ -18,11 +18,12 @@
     <spark.version>${spark.compat.version}.1</spark.version>
   </properties>
 
+  <!-- required to resolve GraphFrames dependency -->
   <repositories>
     <repository>
-      <id>bintray</id>
-      <name>Bintray</name>
-      <url>https://dl.bintray.com/spark-packages/maven/</url>
+      <id>spark-packages</id>
+      <name>Spark Packages</name>
+      <url>https://repos.spark-packages.org</url>
     </repository>
   </repositories>
 
