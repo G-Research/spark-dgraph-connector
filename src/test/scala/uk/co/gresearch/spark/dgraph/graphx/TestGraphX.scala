@@ -16,7 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.graphx
 
-import org.apache.spark.graphx
 import org.apache.spark.graphx.{Edge, EdgeRDD, Graph, VertexId, VertexRDD}
 import org.apache.spark.rdd.RDD
 import org.scalatest.funspec.AnyFunSpec
@@ -63,7 +62,7 @@ class TestGraphX extends AnyFunSpec
       assert(vertices === expected)
     }
 
-    def doVertexTest(load: () => RDD[(graphx.VertexId, VertexProperty)]): Unit = {
+    def doVertexTest(load: () => RDD[(VertexId, VertexProperty)]): Unit = {
       val vertices = removeDgraphVertices(load()).collect().sortBy(v => (v._1, v._2.property))
       val expected = Seq(
         (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
