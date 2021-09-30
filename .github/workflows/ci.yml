@@ -72,6 +72,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Binaries
+          retention-days: 1
           path: |
             .
             !.git
@@ -294,6 +295,17 @@ jobs:
       run: |
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
+
+  delete_binaries:
+    name: "Delete Binaries"
+    runs-on: ubuntu-latest
+    needs: [test, integration]
+    if: always()
+    steps:
+      - name: Delete Binaries Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Binaries
 
   event_file:
     name: "Event File"
