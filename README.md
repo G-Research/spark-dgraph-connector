@@ -18,16 +18,19 @@ import org.apache.spark.sql.DataFrame
 
 val target = "localhost:9080"
 
+import org.apache.spark.graphx._
 import uk.co.gresearch.spark.dgraph.graphx._
 val graph: Graph[VertexProperty, EdgeProperty] = spark.read.dgraph.graphx(target)
 val edges: RDD[Edge[EdgeProperty]] = spark.read.dgraph.edges(target)
 val vertices: RDD[(VertexId, VertexProperty)] = spark.read.dgraph.vertices(target)
 
+import org.graphframes.GraphFrame
 import uk.co.gresearch.spark.dgraph.graphframes._
 val graph: GraphFrame = spark.read.dgraph.graphframes(target)
 val edges: DataFrame = spark.read.dgraph.edges(target)
 val vertices: DataFrame = spark.read.dgraph.vertices(target)
 
+import org.apache.spark.sql.DataFrame
 import uk.co.gresearch.spark.dgraph.connector._
 val triples: DataFrame = spark.read.dgraph.triples(target)
 val edges: DataFrame = spark.read.dgraph.edges(target)
