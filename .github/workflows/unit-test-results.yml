@@ -13,11 +13,6 @@ jobs:
     if: github.event.workflow_run.conclusion != 'skipped'
 
     steps:
-      - name: Delete Binaries Artifact
-        uses: geekyeggo/delete-artifact@v1
-        with:
-          name: Binaries
-
       - name: Download and Extract Artifacts
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
