@@ -296,31 +296,12 @@ jobs:
         docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
 
-  publish-test-results:
-    name: Publish Unit Tests Results
-    needs: [test, integration]
-
+  event_file:
+    name: "Event File"
     runs-on: ubuntu-latest
-    if: >
-      ( success() || failure() ) &&
-      github.event.sender.login != 'dependabot[bot]' &&
-      ( github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository )
-
     steps:
-      - name: Delete Binaries Artifact
-        uses: geekyeggo/delete-artifact@v1
+      - name: Upload
+        uses: actions/upload-artifact@v2
         with:
-          name: Binaries
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
-
-      - name: Publish Unit Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
-        with:
-          github_token: ${{ github.token }}
-          files: "artifacts/Unit Test Results*/**/*.xml"
-          comment_on_pr: ${{ github.event_name != 'push' }}
-          log_level: DEBUG
+          name: Event File
+          path: ${{ github.event_path }}
