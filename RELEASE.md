@@ -1,6 +1,10 @@
 # Releasing Spark Dgraph Connector
 
 This provides instructions on how to release a version of `spark-dgraph-connector`.
+These steps are codified by these release scripts (run in this order):
+
+- release.prepare.sh
+- release.release.sh or release.drop.sh
 
 ## Releasing from default branch
 
