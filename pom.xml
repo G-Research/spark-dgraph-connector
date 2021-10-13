@@ -292,10 +292,12 @@
               <include>io.grpc:*</include>
               <include>io.opencensus:*</include>
               <include>io.perfmark:perfmark-api</include>
+              <include>org.codehaus.mojo:animal-sniffer-annotations</include>
               <include>com.google.android:annotations</include>
               <include>com.google.api.grpc:proto-google-common-protos</include>
               <include>com.google.guava:guava</include>
               <include>com.google.protobuf:protobuf-java</include>
+              <include>javax.annotation:javax.annotation-api</include>
             </includes>
           </artifactSet>
           <relocations>
@@ -307,11 +309,12 @@
               </includes>
             </relocation>
             <relocation>
-              <pattern>com.google.</pattern>
-              <shadedPattern>uk.co.gresearch.thirdparty.com.google.</shadedPattern>
+              <pattern>com.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.com.</shadedPattern>
               <includes>
                 <include>com.google.api.**</include>
                 <include>com.google.cloud.audit.**</include>
+                <include>com.google.geo.**</include>
                 <include>com.google.logging.type.**</include>
                 <include>com.google.longrunning.**</include>
                 <include>com.google.rpc.**</include>
@@ -327,8 +330,10 @@
               <includes>
                 <include>google.api.**</include>
                 <include>google.cloud.audit.**</include>
+                <include>google.geo.**</include>
                 <include>google.logging.type.**</include>
                 <include>google.longrunning.**</include>
+                <include>google.protobuf.**</include>
                 <include>google.rpc.**</include>
                 <include>google.type.**</include>
               </includes>
@@ -343,12 +348,27 @@
                 <include>io.perfmark.**</include>
               </includes>
             </relocation>
+            <relocation>
+              <pattern>javax.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.javax.</shadedPattern>
+              <includes>
+                <include>javax.annotation.**</include>
+              </includes>
+            </relocation>
+            <relocation>
+              <pattern>org.</pattern>
+              <shadedPattern>uk.co.gresearch.thirdparty.org.</shadedPattern>
+              <includes>
+                <include>org.codehaus.mojo.**</include>
+              </includes>
+            </relocation>
           </relocations>
           <filters>
             <filter>
               <artifact>*:*</artifact>
               <excludes>
                 <exclude>META-INF/maven/**</exclude>
+                <exclude>META-INF/MANIFEST.MF</exclude>
               </excludes>
             </filter>
           </filters>
