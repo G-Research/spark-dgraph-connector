@@ -68,7 +68,11 @@ object ClusterState {
       .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
       .map(_.getAsJsonPrimitive("predicate"))
-      .map(_.getAsString.replace("\u0000", ""))
+      .map(_.getAsString)
+      // v21.03 introduced these zero characters in the predicate name
+      .map(_.replace("\u0000", ""))
+      // v21.09 replaced them with a 0- prefix
+      .map(_.replaceAll("^[0-9]+-", ""))
       .toSet
 
 }
