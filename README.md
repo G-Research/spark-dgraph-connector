@@ -519,7 +519,7 @@ to (selected predicates and nodes only):
       }
     }
 
-The response is faster as only relevant data are transfered between Dgraph and Spark.
+The response is faster as only relevant data are transferred between Dgraph and Spark.
 
 |subject|dgraph.type|revenue|
 |:-----:|:---------:|:-----:|
@@ -595,7 +595,7 @@ locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 #### Partitioning by Uids
 
-A `uid` represents a node or vertice in Dgraph terminology. A "Uid Range" partitioning splits
+A `uid` represents a node or vertex in Dgraph terminology. An "Uid Range" partitioning splits
 the graph by the subject of the graph triples. This can be combined with predicate partitioning,
 which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
 induces internal Dgraph cluster communication across the groups.
