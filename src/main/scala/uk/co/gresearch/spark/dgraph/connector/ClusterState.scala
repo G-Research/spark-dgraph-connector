@@ -67,12 +67,17 @@ object ClusterState {
       .map(_.entrySet().asScala)
       .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
-      .map(_.getAsJsonPrimitive("predicate"))
-      .map(_.getAsString)
-      // v21.03 introduced these zero characters in the predicate name
-      .map(_.replace("\u0000", ""))
-      // v21.09 replaced them with a 0- prefix
-      .map(_.replaceAll("^[0-9]+-", ""))
+      .map(_.getAsJsonPrimitive("predicate").getAsString)
+
+      // v21.03 prefixes predicates with namespace id as binary
+      // this only fixes the default namespace, all other namespaces' predicates won't match the schema
+      .map(_.replaceAll("⁺\u0000+", ""))
+
+      // v21.09 prefixes predicates with namespace id plus '-'
+      // here we filter for the default or no namespace and then remove the prefix
+      .filter(predicate => predicate.startsWith("0-") || !predicate.matches("^[0-9]+-"))
+      .map(_.replaceAll("^0-", ""))
+
       .toSet
 
 }
