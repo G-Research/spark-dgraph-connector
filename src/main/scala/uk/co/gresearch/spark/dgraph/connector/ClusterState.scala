@@ -68,16 +68,18 @@ object ClusterState {
       .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
       .map(_.getAsJsonPrimitive("predicate").getAsString)
-
-      // v21.03 prefixes predicates with namespace id as binary
-      // this only fixes the default namespace, all other namespaces' predicates won't match the schema
-      .map(_.replaceAll("⁺\u0000+", ""))
-
-      // v21.09 prefixes predicates with namespace id plus '-'
-      // here we filter for the default or no namespace and then remove the prefix
-      .filter(predicate => predicate.startsWith("0-") || !predicate.matches("^[0-9]+-"))
-      .map(_.replaceAll("^0-", ""))
-
+      .flatMap(getPredicateFromJsonString)
       .toSet
+
+  def getPredicateFromJsonString(predicate: String): Option[String] = predicate match {
+    // ≥v21.09
+    case _ if predicate.startsWith("0-") => Some(predicate.replaceAll("^0-", ""))
+    // =v21.03, non-default namespace predicates will be returned but won't match to the schema
+    case _ if predicate.startsWith("\u0000") => Some(predicate.replaceAll("^\u0000+", ""))
+    // <v21.03
+    case _ if !predicate.matches("^[0-9]+-.*") => Some(predicate)
+    // non-default namespace in ≥v21.09
+    case _ => None
+  }
 
 }
