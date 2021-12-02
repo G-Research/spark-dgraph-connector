@@ -26,7 +26,7 @@ trait ClusterStateProvider extends Logging {
     val clusterStates = targets.map(getClusterState).flatten
     val cids = clusterStates.map(_.cid).toSet
     if (cids.size > 1)
-      throw new RuntimeException(s"Retrived multiple cluster ids from " +
+      throw new RuntimeException(s"Retrieved multiple cluster ids from " +
         s"Dgraph alphas (${targets.map(_.target).mkString(", ")}): ${cids.mkString(", ")}")
     val clusterState = clusterStates.headOption.getOrElse(
       throw new RuntimeException(s"Could not retrieve cluster state from Dgraph alphas (${targets.map(_.target).mkString(", ")})")
