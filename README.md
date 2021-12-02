@@ -53,6 +53,8 @@ nodes: DataFrame = spark.read.dgraph.nodes("localhost:9080")
 The connector is under continuous development. It has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
+- **Namespaces**: The connector can only read the default namespace ([issue #148](https://github.com/G-Research/spark-dgraph-connector/issues/148)).
+- **Authorization**: No authorization against Dgraph supported ([issue #149](https://github.com/G-Research/spark-dgraph-connector/issues/149)).
 - **Limited Lifetime of Transactions**: The connector optionally reads all partitions within the same transaction, but concurrent mutations [reduce the lifetime of that transaction](#transactions).
 - **Language tags**: The node source in wide mode cannot read string values with [language tags](https://dgraph.io/docs/tutorial-4/#strings-and-languages). All other sources and modes can read language strings.
 - **Filtering on language string**: The connector does not support filtering predicates with [Dgraph `@lang` directives](https://dgraph.io/docs/tutorial-4/#strings-and-languages).
@@ -519,7 +521,7 @@ to (selected predicates and nodes only):
       }
     }
 
-The response is faster as only relevant data are transfered between Dgraph and Spark.
+The response is faster as only relevant data are transferred between Dgraph and Spark.
 
 |subject|dgraph.type|revenue|
 |:-----:|:---------:|:-----:|
@@ -595,7 +597,7 @@ locally to the alpha nodes and induce no Dgraph cluster internal communication.
 
 #### Partitioning by Uids
 
-A `uid` represents a node or vertice in Dgraph terminology. A "Uid Range" partitioning splits
+A `uid` represents a node or vertex in Dgraph terminology. An "Uid Range" partitioning splits
 the graph by the subject of the graph triples. This can be combined with predicate partitioning,
 which serves as an orthogonal partitioning. Without predicate partitioning, `uid` partitioning
 induces internal Dgraph cluster communication across the groups.
