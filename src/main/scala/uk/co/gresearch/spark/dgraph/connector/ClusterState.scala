@@ -67,8 +67,19 @@ object ClusterState {
       .map(_.entrySet().asScala)
       .getOrElse(Set.empty)
       .map(_.getValue.getAsJsonObject)
-      .map(_.getAsJsonPrimitive("predicate"))
-      .map(_.getAsString.replace("\u0000", ""))
+      .map(_.getAsJsonPrimitive("predicate").getAsString)
+      .flatMap(getPredicateFromJsonString)
       .toSet
+
+  def getPredicateFromJsonString(predicate: String): Option[String] = predicate match {
+    // ≥v21.09
+    case _ if predicate.startsWith("0-") => Some(predicate.replaceAll("^0-", ""))
+    // =v21.03, non-default namespace predicates will be returned but won't match to the schema
+    case _ if predicate.startsWith("\u0000") => Some(predicate.replaceAll("^\u0000+", ""))
+    // <v21.03
+    case _ if !predicate.matches("^[0-9]+-.*") => Some(predicate)
+    // non-default namespace in ≥v21.09
+    case _ => None
+  }
 
 }
