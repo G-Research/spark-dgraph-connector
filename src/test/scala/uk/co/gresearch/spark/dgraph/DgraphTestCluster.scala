@@ -57,7 +57,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
   // Set this environment variable to a dgraph version to run all unit tests against that cluster version
   // keep env var name and value in-sync with dgraph-instance.start.sh
   val DgraphVersionEnvVar = "DGRAPH_TEST_CLUSTER_VERSION"
-  val DgraphDefaultVersion = "21.03.0"
+  val DgraphDefaultVersion = "21.12.0"
   val clusterVersion: String = sys.env.getOrElse(DgraphVersionEnvVar, DgraphDefaultVersion)
 
   private val instance: DgraphDockerContainer = DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
