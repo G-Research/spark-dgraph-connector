@@ -32,7 +32,7 @@ This project and everyone participating in it is governed by the [SDC Code of Co
 
 ### The Spark Dgraph Connector
 
-The SDC is an open source project that supports databases in both Python and Scala. When considering a contribution to SDC, you might be unsure where to start or how to report a bug. This document should help you with that.
+The SDC is an open source project that supports Spark for Python and Scala. When considering a contribution to SDC, you might be unsure where to start or how to report a bug. This document should help you with that.
 
 We plan to document all significant decisions regarding project maintenance, support, and future features in Github Discussions under [announcements](https://github.com/G-Research/spark-dgraph-connector/discussions/categories/announcements). If you have a question around how we do things, and it is *not* documented there, please open a new topic on Github Discussions under [questions](https://github.com/G-Research/spark-dgraph-connector/discussions/categories/q-a) and ask your question.
 
@@ -66,11 +66,6 @@ Bugs are tracked as [GitHub issues](https://github.com/G-Research/spark-dgraph-c
 
 * **Can you reliably reproduce the issue?** If not, provide details about how often the problem happens and under which conditions it normally happens.
 * If the problem is related to working with files (e.g. opening and editing files), **does the problem happen for all files and projects or only some?** Does the problem happen only when working with local or remote files (e.g. on network drives), with files of a specific type (e.g. only Scala or Python files), with large files or files in a specific encoding? Is there anything else special about the files you are using?
-
-4. Include details about your configuration and environment:
-
-* **What's the name and version of the OS you're using**?
-* **Are you running SDC in a virtual machine?** If so, which VM software are you using and which operating systems and versions are used for the host and the guest?
 
 ### Feature requests
 
