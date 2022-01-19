@@ -99,7 +99,7 @@ If there is no bug-fix branch yet, create it:
 Merge your bug fixes into this branch as you would normally do for the default branch `spark-3.2`, use PRs for that.
 
 Remember to also merge the bug-fix into the default branch `spark-3.2`. Also consider [backporting the bug-fix](#backporting-commits-from-default-branch)
-(e.g. into `spark-2.4`) and releasing backport bug-fix releases.
+(e.g. into `spark-3.0`) and releasing backport bug-fix releases.
 
 ### Release from a bug-fix branch
 
@@ -126,8 +126,8 @@ but the version increment occurs on [patch level](https://semver.org/):
   - Push all local commits to origin.
 - Otherwise drop it with `mvn nexus-staging:drop`. Remove the last two commits from your local history.
 
-After successfully releasing from a `spark-3.2` bug-fix branch, merge the bug-fixes into other bug-fix branches like `spark-2.4_v1.1`.
-Repeat above release process for those branches with the same versions, e.g. version `1.1.1-2.4` and tag `v1.1.1_spark-2.4`.
+After successfully releasing from a `spark-3.2` bug-fix branch, merge the bug-fixes into other bug-fix branches like `spark-3.0_v1.1`.
+Repeat above release process for those branches with the same versions, e.g. version `1.1.1-3.0` and tag `v1.1.1_spark-3.0`.
 
 ## Git cheat sheet
 
