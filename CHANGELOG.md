@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [UNRELEASED] - YYYY-MM-DD
+## [0.8.0] - 2022-01-19
 
 ### Changed
 - Moved Java Dgraph client to 21.12.0.
