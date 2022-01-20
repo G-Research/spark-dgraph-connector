@@ -30,7 +30,8 @@ jobs:
         uses: pmd/pmd-github-action@6d98898be0d59f46ec37dafcea33d8f8f55acfd1
         with:
           rulesets: 'rulesets/java/quickstart.xml'
-          sourcePath: 'src/main/java'
+          sourcePath: '.'
+          analyzeModifiedFilesOnly: 'false'
 
       - name: Upload PMD sarif file
         uses: actions/upload-artifact@v2
