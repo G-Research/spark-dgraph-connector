@@ -33,12 +33,6 @@ jobs:
           sourcePath: '.'
           analyzeModifiedFilesOnly: 'false'
 
-      - name: Upload PMD sarif file
-        uses: actions/upload-artifact@v2
-        with:
-          name: PMD
-          path: pmd-report.sarif
-
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v1
         with:
