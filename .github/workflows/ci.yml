@@ -168,7 +168,7 @@ jobs:
           ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
 
