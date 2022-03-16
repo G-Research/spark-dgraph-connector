@@ -48,9 +48,26 @@ edges: DataFrame = spark.read.dgraph.edges("localhost:9080")
 nodes: DataFrame = spark.read.dgraph.nodes("localhost:9080")
 ```
 
+## Features
+
+The connector provides the following features:
+
+- **Scala, Java, and Python API**: Supports Spark's Scala, Java, and Python Dataset API.
+- **Spark Graph API support**: Supports Spark Graph APIs [GraphX](#graphx) and [GraphFrames](#graphframes).
+- **Various graph representations**: Graph data are available as [Spark Datasets in various formats](#dataframe):
+  Triples, Nodes and Edge Datasets, fully typed, wide or long format.
+- **Filter Pushdown**: Many filters applied to the Graph Datasets will be [pushed down to Dgraph](#filter-pushdown)
+  so that only the relevant sub-graph is read from the cluster.
+- **Projection Pushdown**: Only [actually used columns of the Graph Datasets](#projection-pushdown) will be read from the Dgraph cluster.
+- **Multi-language strings**: Strings values of the same predicate can be stored in [multiple languages](#language-strings).
+- **Spark metrics**: The connector collects [Spark metrics](#metrics) per partition providing insights in throughout
+  and timing of the communication to the Dgraph cluster.
+- **Graph Partitioning and Streaming**: Graph data are partitioned and streamed in small chunks from Dgraph into Spark.
+  This guarantees that graphs of any size can be read into Spark.
+
 ## Limitations
 
-The connector is under continuous development. It has the following known limitations:
+The connector has the following known limitations:
 
 - **Read-only**: The connector does not support mutating the graph ([issue #8](https://github.com/G-Research/spark-dgraph-connector/issues/8)).
 - **Namespaces**: The connector can only read the default namespace ([issue #148](https://github.com/G-Research/spark-dgraph-connector/issues/148)).
