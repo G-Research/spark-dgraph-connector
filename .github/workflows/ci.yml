@@ -158,14 +158,16 @@ jobs:
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: |
-        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        cp -v dgraph-instance.*.sh /tmp/
+        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
         sleep 10
         if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
         then
-          ./dgraph-instance.drop-all.sh
+          /tmp/dgraph-instance.drop-all.sh
         fi
-        ./dgraph-instance.schema.sh
-        ./dgraph-instance.insert.sh
+        /tmp/dgraph-instance.schema.sh
+        /tmp/dgraph-instance.insert.sh
+        ls -lah /tmp/
       shell: bash
 
     - run: echo "${{ hashFiles('**/requirements.txt') }}"
