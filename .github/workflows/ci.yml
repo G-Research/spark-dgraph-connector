@@ -36,20 +36,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - run: |
-          find
-
-      - run: |
-          find . -name requirements.txt
-
-      - name: Cache Pip packages
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-build-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-build-
-
       - name: Parametrize Extraction
         id: params-extract
         run: |
@@ -133,11 +119,48 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
+    - run: |
+        find
+
+    - run: |
+        find . -name requirements.txt
+
+    - run: echo "${{ hashFiles('**/requirements.txt') }}"
+
+    - name: Cache Pip packages
+      if: always()
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-build-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-
+
+    - name: Cache Pip packages
+      if: always()
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-build-${{ hashFiles("**/requirements.txt") }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-
+
+    - name: Cache Pip packages
+      if: always()
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-build-${{ hashFiles("python/requirements.txt") }}
+        restore-keys: |
+          ${{ runner.os }}-pip-build-
+
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v2
       with:
         name: Binaries
         path: .
+
+    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Cache Maven packages
       uses: actions/cache@v2
@@ -172,6 +195,8 @@ jobs:
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: mvn --batch-mode test
+
+    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Cache Pip packages
       uses: actions/cache@v2
