@@ -119,21 +119,11 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - run: |
-        find
-
-    - run: |
-        find . -name requirements.txt
-
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
-
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v2
       with:
         name: Binaries
         path: .
-
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Cache Maven packages
       uses: actions/cache@v2
@@ -143,15 +133,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-mvn-test-
 
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
-
     - name: Setup JDK 1.8
       uses: actions/setup-java@v2
       with:
         java-version: '8'
         distribution: 'zulu'
-
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Start Dgraph cluster
       id: dgraph
@@ -167,17 +153,12 @@ jobs:
         fi
         /tmp/dgraph-instance.schema.sh
         /tmp/dgraph-instance.insert.sh
-        ls -lah /tmp/
       shell: bash
-
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Scala Test
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: mvn --batch-mode test
-
-    - run: echo "${{ hashFiles('**/requirements.txt') }}"
 
     - name: Cache Pip packages
       uses: actions/cache@v2
