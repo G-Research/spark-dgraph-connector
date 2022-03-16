@@ -144,14 +144,15 @@ jobs:
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: |
-        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        cp -v dgraph-instance.*.sh /tmp/
+        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
         sleep 10
         if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
         then
-          ./dgraph-instance.drop-all.sh
+          /tmp/dgraph-instance.drop-all.sh
         fi
-        ./dgraph-instance.schema.sh
-        ./dgraph-instance.insert.sh
+        /tmp/dgraph-instance.schema.sh
+        /tmp/dgraph-instance.insert.sh
       shell: bash
 
     - name: Scala Test
@@ -276,14 +277,15 @@ jobs:
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: |
-        echo "::set-output name=docker::$(./dgraph-instance.background.sh)"
+        cp -v dgraph-instance.*.sh /tmp/
+        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
         sleep 10
         if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
         then
-          ./dgraph-instance.drop-all.sh
+          /tmp/dgraph-instance.drop-all.sh
         fi
-        ./dgraph-instance.schema.sh
-        ./dgraph-instance.insert.sh
+        /tmp/dgraph-instance.schema.sh
+        /tmp/dgraph-instance.insert.sh
       shell: bash
 
     - name: Integration Tests
@@ -294,12 +296,6 @@ jobs:
         VERSION: ${{ steps.params.outputs.version }}
       run: |
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark${{ matrix.spark-compat-version }}-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
-      shell: bash
-
-    - name: Stop Dgraph cluster
-      if: always() && steps.dgraph.outcome == 'success'
-      run: |
-        docker stop ${{ steps.dgraph.outputs.docker }}
       shell: bash
 
   delete_binaries:
