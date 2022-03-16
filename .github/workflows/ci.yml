@@ -307,7 +307,6 @@ jobs:
     name: "Delete Binaries"
     runs-on: ubuntu-latest
     needs: [test, integration]
-    if: always()
     steps:
       - name: Delete Binaries Artifact
         uses: geekyeggo/delete-artifact@v1
