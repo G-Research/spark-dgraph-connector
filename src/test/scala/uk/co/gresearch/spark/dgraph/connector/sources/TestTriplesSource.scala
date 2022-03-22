@@ -18,12 +18,16 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
+import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark._
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
+import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.{ExtendedRow, removeDgraphTriples}
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import java.sql.Timestamp
@@ -850,6 +854,176 @@ class TestTriplesSource extends AnyFunSpec
       )
     }
 
+    it("should report single partitioning") {
+      val target = dgraph.target
+      val df =
+        reader
+          .option(PartitionerOption, SingletonPartitionerOption)
+          .dgraph.triples(target)
+          .repartition(1)
+      df.queryExecution.optimizedPlan
+      print()
+    }
+
+    def containsShuffleExchangeExec(plan: SparkPlan): Boolean = plan match {
+      case _: ShuffleExchangeExec => true
+      case p => p.children.exists(containsShuffleExchangeExec)
+    }
+
+    val predicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"predicate").distinct(), Seq(
+        Row("dgraph.type"), Row("director"), Row("name"), Row("release_date"),
+        Row("revenue"), Row("running_time"), Row("starring"), Row("title")
+      )),
+      ("groupBy", (df: DataFrame) => df.groupBy($"predicate").count(), Seq(
+        Row("dgraph.type", 10), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      )),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"predicate", count(lit(1)) over Window.partitionBy($"predicate")), Seq(
+        Row("dgraph.type", 10), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      ).flatMap(row => row * row.getInt(1))),  // all rows occur with cardinality of their count
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject")), Seq(
+        Row("dgraph.type", 10), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      ).flatMap(row => row ++ row.getInt(1))),  // each row occurs with row_number up to their cardinality
+    )
+
+    def testPartitioning(df: () => DataFrame,
+                         tests: Seq[(String, DataFrame => DataFrame, Seq[Row])],
+                         shuffleExpected: Boolean): Unit = {
+      testPartitioning2(df, tests.map(test => (test._1, test._2, () => test._3)), shuffleExpected = shuffleExpected)
+    }
+
+    def testPartitioning2(df: () => DataFrame,
+                         tests: Seq[(String, DataFrame => DataFrame, () => Seq[Row])],
+                         shuffleExpected: Boolean): Unit = {
+      val label = if (shuffleExpected) "shuffle" else "reuse partitioning"
+      tests.foreach {
+        case (test, op, expected) =>
+          it(f"should $label for $test") {
+            val data = op(removeDgraphTriples(df()))
+            val plan = data.queryExecution.executedPlan
+            assert(containsShuffleExchangeExec(plan) === shuffleExpected, plan)
+            assert(data.sort(data.columns.map(col): _*).collect() === expected())
+          }
+      }
+    }
+
+    describe("without predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$UidRangePartitionerOption",
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+          .where(!$"predicate".contains("@"))
+
+      testPartitioning(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .where(!$"predicate".contains("@"))
+
+      testPartitioning(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+    }
+
+    val subjectPartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => dgraph.allUids.sorted.map(Row(_))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => Seq(
+        Row(dgraph.han, 2), Row(dgraph.irvin, 2), Row(dgraph.leia, 2), Row(dgraph.luke, 2),
+        Row(dgraph.lucas, 2), Row(dgraph.richard, 2),
+        Row(dgraph.st1, 4), Row(dgraph.sw1, 9), Row(dgraph.sw2, 9), Row(dgraph.sw3, 9)
+      ).sortBy(_.getLong(0))),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")), () => Seq(
+        Row(dgraph.han, 2), Row(dgraph.irvin, 2), Row(dgraph.leia, 2), Row(dgraph.luke, 2),
+        Row(dgraph.lucas, 2), Row(dgraph.richard, 2),
+        Row(dgraph.st1, 4), Row(dgraph.sw1, 9), Row(dgraph.sw2, 9), Row(dgraph.sw3, 9)
+      ).sortBy(_.getLong(0)).flatMap(row => row * row.getInt(1))),  // all rows occur with cardinality of their count
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"predicate")), () => Seq(
+        Row(dgraph.han, 2), Row(dgraph.irvin, 2), Row(dgraph.leia, 2), Row(dgraph.luke, 2),
+        Row(dgraph.lucas, 2), Row(dgraph.richard, 2),
+        Row(dgraph.st1, 4), Row(dgraph.sw1, 9), Row(dgraph.sw2, 9), Row(dgraph.sw3, 9)
+      ).sortBy(_.getLong(0)).flatMap(row => row ++ row.getInt(1))),  // each row occurs with row_number up to their cardinality
+    )
+
+    describe("without subject partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .where(!$"predicate".contains("@"))
+
+      testPartitioning2(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$UidRangePartitionerOption",
+            UidRangePartitionerUidsPerPartOption -> "7",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+          .where(!$"predicate".contains("@"))
+
+      testPartitioning2(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+    }
+
+    // Array([3,dgraph.type], [3,release_date], [3,revenue], [3,running_time], [4,dgraph.type], [4,name], [5,dgraph.type], [5,name], [6,dgraph.type], [6,director], [6,release_date], [6,revenue], [6,running_time], [6,starring], [6,title], [7,dgraph.type], [7,name], [8,dgraph.type], [8,director], [8,release_date], [8,revenue], [8,running_time], [8,starring], [8,title], [9,dgraph.type], [9,director], [9,release_date], [9,revenue], [9,running_time], [9,starring], [9,title], [10,dgraph.type], [10,name], [11,dgraph.type], [11,name], [12,dgraph.type], [12,name])
+
+    val subjectAndPredicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject", $"predicate").distinct(),
+        () => TriplesSourceExpecteds(dgraph).getExpectedTypedTriples.map(t => Row(t.subject, t.predicate))
+          .toSeq.sortBy(row => (row.getLong(0), row.getString(1)))
+      ),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject", $"predicate").count(), () => Seq(
+        Row("dgraph.type", 11), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      )),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", $"predicate", count(lit(1)) over Window.partitionBy($"subject", $"predicate")), () => Seq(
+        Row("dgraph.type", 11), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      ).flatMap(row => row * row.getInt(1))),  // all rows occur with cardinality of their count
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", $"predicate", row_number() over Window.partitionBy($"subject", $"predicate").orderBy($"objectType")), () => Seq(
+        Row("dgraph.type", 11), Row("director", 3), Row("name", 6), Row("release_date", 4),
+        Row("revenue", 4), Row("running_time", 4), Row("starring", 9), Row("title", 3)
+      ).flatMap(row => row ++ row.getInt(1))),  // each row occurs with row_number up to their cardinality
+    )
+
+    describe("without subject and predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+
+      testPartitioning2(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject and predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PredicatePartitionerPredicatesOption -> "2",
+            UidRangePartitionerUidsPerPartOption -> "5",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+
+      testPartitioning2(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
+    }
+
   }
 
 }
@@ -1003,6 +1177,11 @@ object TestTriplesSource {
     import triples.sparkSession.implicits._
     val dgraphNodeUids = triples.where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph.")).select($"subject").distinct().as[Long].collect()
     triples.where(!$"subject".isin(dgraphNodeUids: _*))
+  }
+
+  implicit class ExtendedRow(row: Row) {
+    def *(n: Int): Seq[Row] = Seq.fill(n)(row)
+    def ++(n: Int): Seq[Row] = Seq.fill(n)(row).zipWithIndex.map { case (row, idx) => Row(row.get(0), idx+1) }
   }
 
 }

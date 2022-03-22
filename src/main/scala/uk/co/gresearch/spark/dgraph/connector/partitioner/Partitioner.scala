@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition, PartitionMetrics, Predicate}
+import uk.co.gresearch.spark.dgraph.connector.{Filters, Partition, Predicate}
 
 trait Partitioner {
 
@@ -25,6 +25,12 @@ trait Partitioner {
    * Gets the partitions.
    */
   def getPartitions: Seq[Partition]
+
+  /**
+   * Get the column names that represent the partitioning.
+   * @return
+   */
+  def getPartitionColumns: Option[Seq[String]]
 
   /**
    * Indicates whether this partitioner supports all given filters.
