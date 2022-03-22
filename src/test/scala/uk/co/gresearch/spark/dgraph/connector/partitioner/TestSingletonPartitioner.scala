@@ -35,6 +35,13 @@ class TestSingletonPartitioner extends AnyFunSpec {
       assert(partitions.toSet === Set(Partition(targets).has(predicates)))
     }
 
+    it("should not partition by any column") {
+      val predicates = Set(Predicate("pred", "type", "type"))
+      val schema = Schema(predicates)
+      val partitioner = SingletonPartitioner(targets, schema)
+      assert(partitioner.getPartitionColumns === None)
+    }
+
     it("should provide lang directives") {
       val predicates = Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2", isLang = true))
       val schema = Schema(predicates)

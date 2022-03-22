@@ -52,6 +52,11 @@ class TestGroupPartitioner extends AnyFunSpec {
       ))
     }
 
+    it("should partition by predicate column") {
+      val partitioner = GroupPartitioner(schema, clusterState)
+      assert(partitioner.getPartitionColumns === Some(Seq("predicate")))
+    }
+
     it("should provide lang directives") {
       val langPreds = Set("pred3", "pred4")
       val langSchema = Schema(schema.predicates.map(p => if (langPreds.contains(p.predicateName)) p.copy(isLang = true) else p))

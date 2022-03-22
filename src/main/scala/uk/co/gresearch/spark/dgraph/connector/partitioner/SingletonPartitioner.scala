@@ -25,4 +25,6 @@ case class SingletonPartitioner(targets: Seq[Target], schema: Schema) extends Pa
     Seq(Partition(targets).has(schema.predicates).langs(langs))
   }
 
+  override def getPartitionColumns: Option[Seq[String]] = None
+
 }

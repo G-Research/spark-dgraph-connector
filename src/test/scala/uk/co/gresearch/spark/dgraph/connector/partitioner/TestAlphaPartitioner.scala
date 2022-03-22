@@ -83,6 +83,11 @@ class TestAlphaPartitioner extends AnyFunSpec {
       assertThrows[IllegalArgumentException]{ AlphaPartitioner(schema, clusterState, 0) }
     }
 
+    it("should partition by predicate column") {
+      val partitioner = AlphaPartitioner(schema, clusterState, 10)
+      assert(partitioner.getPartitionColumns === Some(Seq("predicate")))
+    }
+
     it("should partition reduced schema") {
       // take the odd predicates from schema only, index is 0 based
       val reducedSchema = Schema(schema.predicates.toSeq.sortBy(_.predicateName).zipWithIndex.filter(_._2 % 2 == 0).map(_._1).toSet)

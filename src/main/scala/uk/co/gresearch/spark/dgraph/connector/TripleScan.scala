@@ -16,13 +16,14 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
+import org.apache.spark.sql.connector.read.partitioning.{ClusteredDistribution, Distribution, Partitioning}
+import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan, SupportsReportPartitioning}
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
-import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
+import uk.co.gresearch.spark.dgraph.connector.partitioner.{Partitioner, PredicatePartitioner}
 
 case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
-  extends Scan
+  extends Scan with SupportsReportPartitioning
     with Batch {
 
   override def readSchema(): StructType = model.readSchema()
@@ -34,4 +35,13 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
   override def createReaderFactory(): PartitionReaderFactory =
     TriplePartitionReaderFactory(model.withMetrics(AccumulatorPartitionMetrics()))
 
+  override def outputPartitioning(): Partitioning = new Partitioning {
+    def numPartitions: Int = planInputPartitions().length
+
+    def satisfy(distribution: Distribution): Boolean = distribution match {
+      case c: ClusteredDistribution =>
+        partitioner.getPartitionColumns.exists(_.toSet.equals(c.clusteredColumns.toSet))
+      case _ => false
+    }
+  }
 }

@@ -72,6 +72,8 @@ case class PredicatePartitioner(schema: Schema,
     PredicatePartitioner.getPartitions(schema, cState, (_, predicates) => getPartitionsForPredicates(predicates), simplifiedFilters, projection)
   }
 
+  override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
+
   /**
    * Replaces ObjectTypeIsIn filter in required and optional filters
    * using replaceObjectTypeIsInFilter(filters: Seq[Filter]).
