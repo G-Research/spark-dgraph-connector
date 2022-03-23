@@ -771,7 +771,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
           reader
             .options(Map(
               NodesModeOption -> NodesModeTypedOption,
-              PartitionerOption -> s"$UidRangePartitionerOption",
+              PartitionerOption -> UidRangePartitionerOption,
               UidRangePartitionerUidsPerPartOption -> "7",
               UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
               MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -834,7 +834,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
           reader
             .options(Map(
               NodesModeOption -> NodesModeTypedOption,
-              PartitionerOption -> s"$UidRangePartitionerOption",
+              PartitionerOption -> UidRangePartitionerOption,
               UidRangePartitionerUidsPerPartOption -> "7",
               UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
               MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -1056,6 +1056,38 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
           Some(expectedPredicates.filter(p => Set("uid", "dgraph.type", "name").contains(p.predicateName))),
           expectedWideNodes.filter(row => !row.isNullAt(0) && !row.isNullAt(1) && !row.isNullAt(2)).map(select(0, 1, 2))
         )
+      }
+
+      lazy val expectedSubjectCounts = expectedWideNodes.toSeq.groupBy(_.getLong(0))
+        .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+      val subjectPartitioningTests = Seq(
+        ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+        ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+        ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+          () => expectedSubjectCounts.flatMap(row => row * row.getInt(1)) // all rows occur with cardinality of their count
+        ),
+        ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"title")),
+          () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1)) // each row occurs with row_number up to their cardinality
+        )
+      )
+
+      // NOTE: there is no partitioning for wide nodes that does not support subject partitioning
+      // describe("without subject partitioning") { ... }
+
+      describe("with subject partitioning") {
+        val withPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeWideOption,
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(dgraph.target)
+            .transform(removeDgraphWideNodes)
+
+        testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
       }
 
     }
