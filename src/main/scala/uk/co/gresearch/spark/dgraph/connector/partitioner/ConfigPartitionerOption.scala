@@ -37,7 +37,7 @@ class ConfigPartitionerOption extends PartitionerProviderOption
                      transaction: Option[Transaction],
                      options: CaseInsensitiveStringMap): Partitioner =
     partitionerName match {
-      case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState), schema)
+      case SingletonPartitionerOption => SingletonPartitioner(schema, clusterState)
       case GroupPartitionerOption => GroupPartitioner(schema, clusterState)
       case AlphaPartitionerOption =>
         AlphaPartitioner(schema, clusterState,
@@ -48,14 +48,13 @@ class ConfigPartitionerOption extends PartitionerProviderOption
       case UidRangePartitionerOption =>
         val uidsPerPartition = getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
         val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
-        val targets = getAllClusterTargets(clusterState)
-        val singleton = SingletonPartitioner(targets, schema)
+        val singleton = getPartitioner(SingletonPartitionerOption, schema, clusterState, transaction, options)
         UidRangePartitioner(singleton, uidsPerPartition, estimator, innerPartitionerIsDefault = true)
-      case option if option.endsWith(s"+${UidRangePartitionerOption}") =>
+      case option if option.endsWith(s"+$UidRangePartitionerOption") =>
         val name = option.substring(0, option.indexOf('+'))
         val partitioner = getPartitioner(name, schema, clusterState, transaction, options)
         getPartitioner(UidRangePartitionerOption, schema, clusterState, transaction, options)
-          .asInstanceOf[UidRangePartitioner].copy(partitioner = partitioner)
+          .asInstanceOf[UidRangePartitioner].copy(partitioner = partitioner, innerPartitionerIsDefault = false)
       case unknown => throw new IllegalArgumentException(s"Unknown partitioner: $unknown")
     }
 
