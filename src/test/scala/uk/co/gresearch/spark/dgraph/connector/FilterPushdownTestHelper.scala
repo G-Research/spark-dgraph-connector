@@ -38,7 +38,7 @@ trait FilterPushdownTestHelper extends Assertions {
                                 condition: Column,
                                 expectedFilters: Set[Filter],
                                 expectedUnpushed: Seq[Expression] = Seq.empty,
-                                expectedDs: Set[T] = Set.empty): Unit = {
+                                expecteds: Set[T] = Set.empty): Unit = {
     val conditionedDs = ds.where(condition)
     val plan = conditionedDs.queryExecution.optimizedPlan
     val relationNode = plan match {
@@ -62,8 +62,8 @@ trait FilterPushdownTestHelper extends Assertions {
     assert(partitioner.filters === expectedFilters)
 
     val actual = conditionedDs.collect()
-    assert(actual.toSet === expectedDs)
-    assert(actual.length === expectedDs.size)
+    assert(actual.toSet === expecteds)
+    assert(actual.length === expecteds.size)
   }
 
   def getFilterNodes(node: Expression): Seq[Expression] = node match {
