@@ -27,8 +27,6 @@ class TestSingletonPartitioner extends AnyFunSpec {
 
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
     val predicates = Set(Predicate("pred", "type", "type"))
-    val schema = Schema(predicates)
-    val state = getState(predicates)
 
     def getState(predicates: Set[Predicate]): ClusterState = ClusterState(
       Map("1" -> targets.toSet),
@@ -36,6 +34,9 @@ class TestSingletonPartitioner extends AnyFunSpec {
       10000,
       UUID.randomUUID()
     )
+
+    val schema = Schema(predicates)
+    val state = getState(predicates)
 
     it("should partition") {
       val partitioner = SingletonPartitioner(schema, state)
