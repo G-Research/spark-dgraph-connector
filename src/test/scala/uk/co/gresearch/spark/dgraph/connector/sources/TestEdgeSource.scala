@@ -310,6 +310,115 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
         expectedRows
       )
     }
+
+    lazy val expectedPredicateCounts = expectedEdges.toSeq.groupBy(_.predicate)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val predicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"predicate").distinct(), () => expectedPredicateCounts.map(row => Row(row.getString(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"predicate").count(), () => expectedPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"predicate", count(lit(1)) over Window.partitionBy($"predicate")),
+        () => expectedPredicateCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject")),
+        () => expectedPredicateCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$UidRangePartitionerOption",
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectCounts = expectedEdges.toSeq.groupBy(_.subject)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val subjectPartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+        () => expectedSubjectCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"predicate")),
+        () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without subject partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$UidRangePartitionerOption",
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectAndPredicateCounts = expectedEdges.toSeq.groupBy(t => (t.subject, t.predicate))
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1._1, e._1._2, e._2))
+    val subjectAndPredicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject", $"predicate").distinct(), () => expectedSubjectAndPredicateCounts.map(row => Row(row.getLong(0), row.getString(1)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject", $"predicate").count(), () => expectedSubjectAndPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", $"predicate", count(lit(1)) over Window.partitionBy($"subject", $"predicate")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row * row.getInt(2))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", $"predicate", row_number() over Window.partitionBy($"subject", $"predicate").orderBy($"objectUid")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row ++ row.getInt(2))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without subject and predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject and predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PredicatePartitionerPredicatesOption -> "1",
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
+    }
   }
 
 }
