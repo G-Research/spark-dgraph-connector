@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [UNRELEASED] - YYYY-MM-DD
 
+### Added
+- All sources report their partitioning to Spark so that Spark can exploit that partitioning.
+
 ### Changed
 - Node source in wide mode does not allow for any predicate partitioning.
 - SingletonPartitioner now provides all features (filter and projection pushdown)
