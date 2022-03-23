@@ -21,7 +21,7 @@ trait ShuffleExchangeTests {
     val label = if (shuffleExpected) "shuffle" else "reuse partitioning"
     tests.foreach {
       case (test, op, expected) =>
-        it(f"should $label for $test") {
+        it(s"should $label for $test") {
           val data = op(df())
           val plan = data.queryExecution.executedPlan match {
             case p: AdaptiveSparkPlanExec => p.executedPlan
