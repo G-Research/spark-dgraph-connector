@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Node source in wide mode does not allow for any predicate partitioning.
+- SingletonPartitioner now provides all features (filter and projection pushdown)
+  of predicate partitioning, but as a single partition.
 
 ## [0.9.0] - 2022-07-14
 

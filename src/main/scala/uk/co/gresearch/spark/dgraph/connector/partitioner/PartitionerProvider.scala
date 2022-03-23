@@ -18,7 +18,7 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider.{configPartitionProvider, defaultPartitionProvider}
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, SingletonPartitionerOption, Transaction}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, Transaction}
 
 trait PartitionerProvider {
 

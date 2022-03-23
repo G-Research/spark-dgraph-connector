@@ -136,11 +136,14 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
-      assert(partitions === Seq(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid")))))
+      assert(partitions === Seq(
+        Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))).getAll
+      ))
     }
 
     it("should load as a predicate partitions") {
       val target = dgraph.target
+      val targets = Seq(Target(target))
       val partitions =
         reader
           .option(PartitionerOption, PredicatePartitionerOption)
@@ -152,8 +155,8 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll
+      val expected = Set(
+        Partition(targets).has(Set.empty, Set("director", "starring")).getAll
       )
 
       assert(partitions === expected)
