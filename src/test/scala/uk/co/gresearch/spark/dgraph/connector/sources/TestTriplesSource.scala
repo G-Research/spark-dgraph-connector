@@ -18,10 +18,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
-import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType}
@@ -41,7 +38,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
 
   import spark.implicits._
 
-  describe("TriplesDataSource") {
+  describe("TriplesSource") {
 
     lazy val expecteds = TriplesSourceExpecteds(dgraph)
     lazy val expectedTypedTriples = expecteds.getExpectedTypedTriples

@@ -36,7 +36,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
 
   import spark.implicits._
 
-  describe("EdgeDataSource") {
+  describe("EdgeSource") {
 
     lazy val expecteds = EdgesSourceExpecteds(dgraph)
     lazy val expectedRows = expecteds.getExpectedEdgeDf(spark).collect().toSet
