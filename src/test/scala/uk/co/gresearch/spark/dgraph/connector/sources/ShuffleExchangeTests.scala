@@ -1,0 +1,37 @@
+package uk.co.gresearch.spark.dgraph.connector.sources
+
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
+import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{DataFrame, Row}
+import org.scalatest.funspec.AnyFunSpec
+import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
+
+trait ShuffleExchangeTests {
+  this: AnyFunSpec =>
+
+  def containsShuffleExchangeExec(plan: SparkPlan): Boolean = plan match {
+    case _: ShuffleExchangeExec => true
+    case p => p.children.exists(containsShuffleExchangeExec)
+  }
+
+  def testForShuffleExchange(df: () => DataFrame,
+                             tests: Seq[(String, DataFrame => DataFrame, () => Seq[Row])],
+                             shuffleExpected: Boolean): Unit = {
+    val label = if (shuffleExpected) "shuffle" else "reuse partitioning"
+    tests.foreach {
+      case (test, op, expected) =>
+        it(f"should $label for $test") {
+          val data = op(removeDgraphTriples(df()))
+          val plan = data.queryExecution.executedPlan match {
+            case p: AdaptiveSparkPlanExec => p.executedPlan
+            case p => p
+          }
+          assert(containsShuffleExchangeExec(plan) === shuffleExpected, plan)
+          assert(data.sort(data.columns.map(col): _*).collect() === expected())
+        }
+    }
+  }
+
+}

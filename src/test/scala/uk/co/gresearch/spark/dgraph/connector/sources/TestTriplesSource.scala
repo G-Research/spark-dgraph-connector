@@ -854,29 +854,6 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       )
     }
 
-    def containsShuffleExchangeExec(plan: SparkPlan): Boolean = plan match {
-      case _: ShuffleExchangeExec => true
-      case p => p.children.exists(containsShuffleExchangeExec)
-    }
-
-    def testPartitioning(df: () => DataFrame,
-                         tests: Seq[(String, DataFrame => DataFrame, () => Seq[Row])],
-                         shuffleExpected: Boolean): Unit = {
-      val label = if (shuffleExpected) "shuffle" else "reuse partitioning"
-      tests.foreach {
-        case (test, op, expected) =>
-          it(f"should $label for $test") {
-            val data = op(removeDgraphTriples(df()))
-            val plan = data.queryExecution.executedPlan match {
-              case p: AdaptiveSparkPlanExec => p.executedPlan
-              case p => p
-            }
-            assert(containsShuffleExchangeExec(plan) === shuffleExpected, plan)
-            assert(data.sort(data.columns.map(col): _*).collect() === expected())
-          }
-      }
-    }
-
     lazy val expectedPredicateCounts = expectedTypedTriples.toSeq.groupBy(_.predicate)
       .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
     val predicatePartitioningTests = Seq(
@@ -900,7 +877,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           ))
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+      testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
     }
 
     describe("with predicate partitioning") {
@@ -910,7 +887,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+      testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
     }
 
     lazy val expectedSubjectCounts = expectedTypedTriples.toSeq.groupBy(_.subject)
@@ -933,7 +910,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+      testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
     }
 
     describe("with subject partitioning") {
@@ -946,7 +923,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           ))
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+      testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
     }
 
     lazy val expectedSubjectAndPredicateCounts = expectedTypedTriples.toSeq.groupBy(t => (t.subject, t.predicate))
@@ -969,7 +946,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+      testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
     }
 
     describe("with subject and predicate partitioning") {
@@ -983,7 +960,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           ))
           .dgraph.triples(dgraph.target)
 
-      testPartitioning(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
+      testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
     }
 
   }
@@ -1139,11 +1116,6 @@ object TestTriplesSource {
     import triples.sparkSession.implicits._
     val dgraphNodeUids = triples.where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph.")).select($"subject").distinct().as[Long].collect()
     triples.where(!$"subject".isin(dgraphNodeUids: _*))
-  }
-
-  implicit class ExtendedRow(row: Row) {
-    def *(n: Int): Seq[Row] = Seq.fill(n)(row)
-    def ++(n: Int): Seq[Row] = Seq.fill(n)(row).zipWithIndex.map { case (row, idx) => Row(row.toSeq.init :+ (idx+1): _*) }
   }
 
 }
