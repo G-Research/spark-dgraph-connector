@@ -874,9 +874,11 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .options(Map(
             PartitionerOption -> s"$UidRangePartitionerOption",
             UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
     }
@@ -887,6 +889,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
     }
@@ -910,6 +913,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
     }
@@ -920,9 +924,11 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .options(Map(
             PartitionerOption -> s"$UidRangePartitionerOption",
             UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
     }
@@ -946,6 +952,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
     }
@@ -957,9 +964,11 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
 
       testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
     }

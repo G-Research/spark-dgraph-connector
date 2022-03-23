@@ -6,7 +6,6 @@ import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Row}
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
 
 trait ShuffleExchangeTests {
   this: AnyFunSpec =>
@@ -23,7 +22,7 @@ trait ShuffleExchangeTests {
     tests.foreach {
       case (test, op, expected) =>
         it(f"should $label for $test") {
-          val data = op(removeDgraphTriples(df()))
+          val data = op(df())
           val plan = data.queryExecution.executedPlan match {
             case p: AdaptiveSparkPlanExec => p.executedPlan
             case p => p
