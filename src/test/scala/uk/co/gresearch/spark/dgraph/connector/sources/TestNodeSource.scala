@@ -397,31 +397,37 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
       )
     }
 
-    it("should load wide nodes with predicate partitioner") {
-      doTestLoadWideNodes(() =>
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "1"
-          ))
-          .dgraph.nodes(dgraph.target)
-      )
+    Seq(
+      AlphaPartitionerOption,
+      GroupPartitionerOption,
+      PredicatePartitionerOption,
+      PredicateAndUidRangePartitionerOption
+    ).foreach { partitioner =>
+      it(s"should not load wide nodes with predicate $partitioner partitioner") {
+        val exception = intercept[RuntimeException] {
+          reader
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(PartitionerOption, partitioner)
+            .dgraph.nodes(dgraph.target)
+        }
+        assert(exception.getMessage === f"Dgraph nodes cannot be read in wide mode with " +
+          f"any kind of predicate partitioning: $partitioner")
+      }
     }
 
-    it("should load wide nodes with predicate partitioner and uid ranges") {
-      doTestLoadWideNodes(() =>
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
-            PredicatePartitionerPredicatesOption -> "1",
-            UidRangePartitionerUidsPerPartOption -> "1",
-            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.nodes(dgraph.target)
-      )
+    Seq(
+      SingletonPartitionerOption,
+      UidRangePartitionerOption,
+      s"$SingletonPartitionerOption+$UidRangePartitionerOption"
+    ).foreach { partitioner =>
+      it(s"should load wide nodes with $partitioner partitioner") {
+        doTestLoadWideNodes(() =>
+          reader
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(PartitionerOption, partitioner)
+            .dgraph.nodes(dgraph.target)
+        )
+      }
     }
 
     it("should load typed nodes in chunks") {
@@ -586,10 +592,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
 
     lazy val wideNodes =
       reader
-        .options(Map(
-          NodesModeOption -> NodesModeWideOption,
-          PartitionerOption -> PredicatePartitionerOption
-        ))
+        .option(NodesModeOption, NodesModeWideOption)
         .dgraph.nodes(dgraph.target)
         .transform(removeDgraphWideNodes)
 
@@ -880,7 +883,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
           reader
             .options(Map(
               NodesModeOption -> NodesModeTypedOption,
-              PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+              PartitionerOption -> PredicateAndUidRangePartitionerOption,
               PredicatePartitionerPredicatesOption -> "2",
               UidRangePartitionerUidsPerPartOption -> "7",
               UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,

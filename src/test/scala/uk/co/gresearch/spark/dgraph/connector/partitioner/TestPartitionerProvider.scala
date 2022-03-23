@@ -52,7 +52,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       ("alpha", alpha),
       ("predicate", pred),
 
-      ("uid-range", uidRange),
+      ("uid-range", uidRange.copy(innerPartitionerIsDefault = true)),
       ("singleton+uid-range", uidRange),
       ("group+uid-range", uidRange.copy(partitioner = group)),
       ("alpha+uid-range", uidRange.copy(partitioner = alpha)),
@@ -64,6 +64,7 @@ class TestPartitionerProvider extends AnyFunSpec {
         val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> partOption).asJava)
         val partitioner = provider.getPartitioner(schema, state, transaction, options)
         assert(partitioner === expected)
+        assert(partitioner.configOption === partOption)
       }
 
     }
