@@ -16,10 +16,12 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, GroupPartitionerOption, Partition, Schema}
 
 case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
   extends Partitioner with ClusterStateHelper {
+
+  override def configOption: String = GroupPartitionerOption
 
   override def getPartitions: Seq[Partition] =
     clusterState.groupMembers.map { case (group, alphas) =>

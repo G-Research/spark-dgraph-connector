@@ -182,7 +182,8 @@ package object connector {
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
   val UidRangePartitionerOption: String = "uid-range"
-  val PartitionerDefault: String = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
+  val PredicateAndUidRangePartitionerOption: String = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
+  val PartitionerDefault: String = PredicateAndUidRangePartitionerOption
 
   val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
   val AlphaPartitionerPartitionsDefault: Int = 1
