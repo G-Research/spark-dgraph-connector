@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.expressions.Window
@@ -866,7 +867,10 @@ class TestTriplesSource extends AnyFunSpec
         case (test, op, expected) =>
           it(f"should $label for $test") {
             val data = op(removeDgraphTriples(df()))
-            val plan = data.queryExecution.executedPlan
+            val plan = data.queryExecution.executedPlan match {
+              case p: AdaptiveSparkPlanExec => p.executedPlan
+              case p => p
+            }
             assert(containsShuffleExchangeExec(plan) === shuffleExpected, plan)
             assert(data.sort(data.columns.map(col): _*).collect() === expected())
           }
