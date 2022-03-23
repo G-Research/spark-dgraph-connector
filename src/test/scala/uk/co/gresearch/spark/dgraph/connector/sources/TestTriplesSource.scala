@@ -27,13 +27,13 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.{ExtendedRow, removeDgraphTriples}
+import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import java.sql.Timestamp
 import scala.reflect.runtime.universe._
 
-class TestTriplesSource extends AnyFunSpec
+class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
   with ConnectorSparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {
@@ -657,12 +657,12 @@ class TestTriplesSource extends AnyFunSpec
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull,
         Set(ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.isDefined)
+        expecteds = expectedTypedTriples.filter(_.objectString.isDefined)
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull && $"objectUid".isNotNull,
         Set(AlwaysFalse),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -670,12 +670,12 @@ class TestTriplesSource extends AnyFunSpec
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person",
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -683,24 +683,24 @@ class TestTriplesSource extends AnyFunSpec
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person", "Film"),
         Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString".isin("Person"),
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString".isin("Person", "Film"),
         Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -711,12 +711,12 @@ class TestTriplesSource extends AnyFunSpec
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person")),
           EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(1L))
         ),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person" && $"objectUid" === 1,
         Set(AlwaysFalse),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
     }
 
@@ -727,7 +727,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person"))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person" && $"objectType" === "string",
@@ -737,7 +737,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
       )
 
       doTestFilterPushDownDf(stringTriples,
@@ -746,7 +746,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person"))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person") && $"objectType" === "string",
@@ -756,7 +756,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
       )
 
       doTestFilterPushDownDf(stringTriples,
@@ -765,7 +765,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
-        expectedDs = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString))
+        expecteds = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film") && $"objectType" === "string",
@@ -775,7 +775,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
-        expectedDs = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString) && t.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString) && t.objectType.equals("string"))
       )
     }
 
@@ -793,13 +793,13 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person" && $"predicate".isin("dgraph.type", "name"),
         Set(IntersectPredicateValueIsIn(Set("dgraph.type", "name"), Set("Person")), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
     }
 
@@ -813,7 +813,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
       )
       doTestFilterPushDownDf(stringTriplesSinglePredicatePartitions,
         $"objectString".isin("Person") && $"predicate".isin("dgraph.type", "name"),
@@ -826,7 +826,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
       )
     }
 
