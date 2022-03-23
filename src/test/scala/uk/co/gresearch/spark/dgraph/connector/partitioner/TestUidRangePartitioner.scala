@@ -40,7 +40,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
       UUID.randomUUID()
     )
 
-    val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")), schema)
+    val singleton = SingletonPartitioner(schema, clusterState)
     val group = GroupPartitioner(schema, clusterState)
     val alpha = AlphaPartitioner(schema, clusterState, 1)
     val pred = PredicatePartitioner(schema, clusterState, 1)

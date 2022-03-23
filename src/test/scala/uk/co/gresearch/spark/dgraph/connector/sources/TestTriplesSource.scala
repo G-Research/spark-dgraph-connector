@@ -442,9 +442,9 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .rdd
           .partitions.flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _ => None
           }
-      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
+      assert(partitions.toSet === Seq(Partition(targets).has(predicates).getAll.langs(Set("title"))))
     }
 
     it("should load as predicate partitions") {
@@ -459,14 +459,15 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(Set("release_date"), Set("starring")).getAll,
+        Partition(targets).has(Set("running_time"), Set("director")).getAll,
+        Partition(targets).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(targets).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should load as uid-range partitions") {
@@ -484,12 +485,13 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(1), Uid(8)))),
-        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(8), Uid(15))))
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(predicates).getAll.langs(Set("title")).range(1, 8),
+        Partition(targets).has(predicates).getAll.langs(Set("title")).range(8, 15),
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should load as predicate uid-range partitions") {
@@ -510,14 +512,15 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
 
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
+        Partition(targets).has(Set("release_date"), Set("starring")).getAll,
+        Partition(targets).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(targets).has(Set("running_time"), Set("director")).getAll
       ).flatMap(partition => ranges.map(range => partition.copy(operators = partition.operators + range)))
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {

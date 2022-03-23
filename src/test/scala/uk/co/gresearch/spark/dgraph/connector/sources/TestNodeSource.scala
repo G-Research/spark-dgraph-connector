@@ -494,7 +494,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
         Predicate("running_time", "int"),
         Predicate("title", "string"),
       )
-      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
+      assert(partitions === Seq(Partition(targets).has(predicates).getAll.langs(Set("title"))))
     }
 
     it("should load as predicate partitions") {
@@ -538,9 +538,10 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
             case _ => Seq.empty
           }
 
+      val properties = Set("dgraph.type", "name", "release_date", "revenue", "running_time", "title")
       val expected = Set(
-        Partition(targets).has(Set("dgraph.type", "name", "release_date", "revenue", "running_time", "title"), Set.empty).langs(Set("title")).range(1, 8),
-        Partition(targets).has(Set("dgraph.type", "name", "release_date", "revenue", "running_time", "title"), Set.empty).langs(Set("title")).range(8, 15),
+        Partition(targets).has(properties, Set.empty).getAll.langs(Set("title")).range(1, 8),
+        Partition(targets).has(properties, Set.empty).getAll.langs(Set("title")).range(8, 15),
       )
 
       assert(partitions.toSet === expected)
