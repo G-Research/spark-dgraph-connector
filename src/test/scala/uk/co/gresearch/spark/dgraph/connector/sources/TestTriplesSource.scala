@@ -473,7 +473,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       val partitions =
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
@@ -496,7 +496,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       val partitions =
         reader
           .options(Map(
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -869,7 +869,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       val withoutPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
             UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -919,7 +919,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       val withPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
             UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -958,7 +958,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
       val withPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
             UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,

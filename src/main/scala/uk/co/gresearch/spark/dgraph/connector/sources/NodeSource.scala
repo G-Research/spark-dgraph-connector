@@ -16,8 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import java.util
-
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.StructType
@@ -26,46 +24,21 @@ import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.encoder.{TypedNodeEncoder, WideNodeEncoder}
 import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, TransactionProvider}
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
-import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
+import uk.co.gresearch.spark.dgraph.connector.partitioner.{PartitionerOption, PartitionerProvider, PartitionerProviderOption}
 
-import scala.collection.JavaConverters._
+import java.util
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider
   with TransactionProvider with Logging {
 
-  /**
-   * Sets the number of predicates per partition to max int when predicate partitioner is used
-   * in conjunction with wide node mode. Otherwise wide nodes cannot be properly loaded.
-   *
-   * @param options original options
-   * @return modified options
-   */
-  def adjustOptions(options: CaseInsensitiveStringMap): CaseInsensitiveStringMap = {
-    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
-      getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))) {
-      if (getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)) {
-        log.warn("predicate partitioner enforced to a single partition to support wide node source")
-      }
-
-      new CaseInsensitiveStringMap(
-        (options.asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
-          Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
-          ).asJava
-      )
-    } else {
-      options
-    }
-  }
-
   override def shortName(): String = "dgraph-nodes"
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
-    val adjustedOptions = adjustOptions(options)
-    val targets = getTargets(adjustedOptions)
+    val targets = getTargets(options)
     val schema = getSchema(targets, options).filter(_.isProperty)
-    getNodeMode(adjustedOptions) match {
+    getNodeMode(options) match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder.schema
       case Some(NodesModeWideOption) => WideNodeEncoder.schema(schema.predicateMap)
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
@@ -80,24 +53,34 @@ class NodeSource() extends TableProviderBase
                         partitioning: Array[Transform],
                         properties: util.Map[String, String]): Table = {
     val options = new CaseInsensitiveStringMap(properties)
-    val adjustedOptions = adjustOptions(options)
-
-    val targets = getTargets(adjustedOptions)
+    val targets = getTargets(options)
     val transaction = getTransaction(targets, options)
     val execution = DgraphExecutorProvider(transaction)
     val schema = getSchema(targets, options).filter(_.isProperty)
     val clusterState = getClusterState(targets, options)
-    val partitioner = getPartitioner(schema, clusterState, transaction, adjustedOptions)
-    val nodeMode = getNodeMode(adjustedOptions)
+    val nodeMode = getNodeMode(options)
     val encoder = nodeMode match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
       case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicates)
       case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
       case None => TypedNodeEncoder(schema.predicateMap)
     }
-    val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
+    val defaultPartitionerProvider = nodeMode.filter(_.equals(NodesModeWideOption))
+      .map(_ => NodeSource.wideNodeDefaultPartitionProvider)
+      .getOrElse(PartitionerProvider.defaultPartitionProvider)
+    val partitioner = getPartitioner(schema, clusterState, transaction, options, defaultPartitionerProvider)
+    if (nodeMode.exists(_.equals(NodesModeWideOption)) &&
+      partitioner.getPartitionColumns.exists(_.contains("predicate"))) {
+      throw new RuntimeException(s"Dgraph nodes cannot be read in wide mode " +
+        s"with any kind of predicate partitioning: ${partitioner.configOption}")
+    }
+    val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)
     TripleTable(partitioner, model, clusterState.cid)
   }
 
+}
+
+object NodeSource {
+  val wideNodeDefaultPartitionProvider: PartitionerProviderOption = new PartitionerOption(SingletonPartitionerOption)
 }

@@ -16,15 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 
-class DefaultPartitionerOption extends ConfigPartitionerOption {
-
-  override def getPartitioner(schema: Schema,
-                              clusterState: ClusterState,
-                              transaction: Option[Transaction],
-                              options: CaseInsensitiveStringMap): Option[Partitioner] =
-    Some(getPartitioner(PartitionerDefault, schema, clusterState, transaction, options))
-
-}
+class DefaultPartitionerOption extends PartitionerOption(PartitionerDefault)

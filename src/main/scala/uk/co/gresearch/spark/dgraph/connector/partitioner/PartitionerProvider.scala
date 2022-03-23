@@ -17,22 +17,24 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, Transaction}
+import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider.{configPartitionProvider, defaultPartitionProvider}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, SingletonPartitionerOption, Transaction}
 
 trait PartitionerProvider {
-
-  val partitionerOptions = Seq(
-    new ConfigPartitionerOption(),
-    new DefaultPartitionerOption()
-  )
 
   def getPartitioner(schema: Schema,
                      clusterState: ClusterState,
                      transaction: Option[Transaction],
-                     options: CaseInsensitiveStringMap): Partitioner =
-    partitionerOptions
+                     options: CaseInsensitiveStringMap,
+                     defaultPartitionProvider: PartitionerProviderOption = defaultPartitionProvider): Partitioner =
+    Seq(configPartitionProvider, defaultPartitionProvider)
       .flatMap(_.getPartitioner(schema, clusterState, transaction, options))
       .headOption
       .getOrElse(throw new RuntimeException("Could not find any suitable partitioner"))
 
+}
+
+object PartitionerProvider {
+  val defaultPartitionProvider: PartitionerProviderOption = new DefaultPartitionerOption()
+  val configPartitionProvider: PartitionerProviderOption = new ConfigPartitionerOption()
 }

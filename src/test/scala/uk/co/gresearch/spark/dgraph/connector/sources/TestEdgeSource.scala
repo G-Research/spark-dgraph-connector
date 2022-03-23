@@ -329,7 +329,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
       val withoutPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
@@ -375,7 +375,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
       val withPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "2",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
@@ -411,7 +411,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
       val withPartitioning = () =>
         reader
           .options(Map(
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
             PredicatePartitionerPredicatesOption -> "1",
             UidRangePartitionerUidsPerPartOption -> "2",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
