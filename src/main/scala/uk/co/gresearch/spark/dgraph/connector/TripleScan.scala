@@ -42,7 +42,7 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
 
     def satisfy(distribution: Distribution): Boolean = distribution match {
       case c: ClusteredDistribution =>
-        partitioner.getPartitionColumns.exists(_.toSet.equals(c.clusteredColumns.toSet))
+        partitioner.getPartitionColumns.exists(_.forall(c.clusteredColumns.contains))
       case _ => false
     }
   }
