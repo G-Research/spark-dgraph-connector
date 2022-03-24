@@ -11,6 +11,7 @@ trait ShuffleExchangeTests {
   this: AnyFunSpec =>
 
   def containsShuffleExchangeExec(plan: SparkPlan): Boolean = plan match {
+    case p: AdaptiveSparkPlanExec => containsShuffleExchangeExec(p.executedPlan)
     case _: ShuffleExchangeExec => true
     case p => p.children.exists(containsShuffleExchangeExec)
   }
@@ -23,10 +24,7 @@ trait ShuffleExchangeTests {
       case (test, op, expected) =>
         it(s"should $label for $test") {
           val data = op(df())
-          val plan = data.queryExecution.executedPlan match {
-            case p: AdaptiveSparkPlanExec => p.executedPlan
-            case p => p
-          }
+          val plan = data.queryExecution.executedPlan
           assert(containsShuffleExchangeExec(plan) === shuffleExpected, plan)
           assert(data.sort(data.columns.map(col): _*).collect() === expected())
         }
