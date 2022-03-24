@@ -33,6 +33,10 @@ case class PredicatePartitioner(schema: Schema,
   if (predicatesPerPartition <= 0)
     throw new IllegalArgumentException(s"predicatesPerPartition must be larger than zero: $predicatesPerPartition")
 
+  private val processedFilters = replaceObjectTypeIsInFilter(filters)
+  private val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
+  private val filteredClusterState = filter(clusterState, simplifiedFilters)
+
   override def configOption: String = PredicatePartitionerOption
 
   def getPartitionsForPredicates(predicates: Set[_]): Int =
@@ -63,17 +67,26 @@ case class PredicatePartitioner(schema: Schema,
   override def withProjection(projection: Seq[Predicate]): Partitioner = copy(projection = Some(projection))
 
   override def getPartitions: Seq[Partition] = {
-    val processedFilters = replaceObjectTypeIsInFilter(filters)
-    val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
-    val cState = filter(clusterState, simplifiedFilters)
-
     log.trace(s"replaced filters: $processedFilters")
     log.trace(s"simplified filters: $simplifiedFilters")
-
-    PredicatePartitioner.getPartitions(schema, cState, (_, predicates) => getPartitionsForPredicates(predicates), simplifiedFilters, projection)
+    PredicatePartitioner.getPartitions(
+      schema,
+      filteredClusterState,
+      (_, predicates) => getPartitionsForPredicates(predicates),
+      simplifiedFilters,
+      projection
+    )
   }
 
   override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
+
+  override def getOrderColumns: Option[Seq[String]] =
+    // when there is only one group and one predicate per partition,
+    // partitions are ordered by predicate, partitions are ordered by subject inside
+    if (filteredClusterState.groupPredicates.keys.size == 1 && predicatesPerPartition == 1)
+      Some(Seq("predicate", "subject"))
+    else
+      None
 
   /**
    * Replaces ObjectTypeIsIn filter in required and optional filters
@@ -139,8 +152,8 @@ object PredicatePartitioner extends ClusterStateHelper {
   }
 
   /**
-   * Shards a set of predicates based on the MD5 hash. Shards are probably even-sized,
-   * but this is not guaranteed.
+   * Shards a set of predicates based on the MD5 hash.
+   * Shards are probably even-sized, but this is not guaranteed.
    * @param predicates set of predicates
    * @param shards number of shards
    * @return predicates shard
@@ -151,8 +164,11 @@ object PredicatePartitioner extends ClusterStateHelper {
   }
 
   /**
-   * Partitions a set of predicates in equi-sized partitions. Predicates get sorted by MD5 hash and
-   * then round-robin assigned to partitions.
+   * Partitions a set of predicates in equi-sized partitions. When there are as many partitions
+   * as predicates (or more), predicates are sorted alphabetically while one predicate is
+   * assigned each partition. When there are less partitions, predicates are sorted by MD5 hash
+   * and then round-robin assigned to partitions.
+   *
    * @param predicates set of predicates
    * @param partitions number of partitions
    * @return partitions
@@ -161,17 +177,26 @@ object PredicatePartitioner extends ClusterStateHelper {
     if (partitions < 1)
       throw new IllegalArgumentException(s"partitions must be larger than zero: $partitions")
 
-    predicates
-      // turn into seq and sort by hash (consistently randomize)
-      .toSeq.sortBy(hash)
-      // add index to predicates
-      .zipWithIndex
-      // group by predicate index % partitions
-      .groupBy(_._2 % partitions)
-      // sort by partition id
-      .toSeq.sortBy(_._1)
-      // drop keys and remove index from (predicate, index) tuple, restore set
-      .map(_._2.map(_._1).toSet)
+    if (partitions >= predicates.size)
+      predicates
+        // sort alphabetically
+        .toSeq.sortBy(_.predicateName)
+        // put one predicate in each partition
+        .grouped(1)
+        // turn groups into Seq of Sets
+        .map(_.toSet).toList
+    else
+      predicates
+        // turn into seq and sort by hash (consistently randomize)
+        .toSeq.sortBy(hash)
+        // add index to predicates
+        .zipWithIndex
+        // group by predicate index % partitions
+        .groupBy(_._2 % partitions)
+        // sort by partition id
+        .toSeq.sortBy(_._1)
+        // drop keys and remove index from (predicate, index) tuple, restore set
+        .map(_._2.map(_._1).toSet)
   }
 
   /**
@@ -214,10 +239,11 @@ object PredicatePartitioner extends ClusterStateHelper {
                     clusterState: ClusterState,
                     partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
                     filters: Set[Filter],
-                    projection: Option[Seq[Predicate]]): Seq[Partition] =
-    clusterState.groupPredicates.keys.flatMap(
+                    projection: Option[Seq[Predicate]]): Seq[Partition] = {
+    clusterState.groupPredicates.keys.toSeq.flatMap(
       getPartition(schema, clusterState, partitionsForGroupAndPredicates, filters, projection)
-    ).toSeq
+    )
+  }
 
   def getPartition(schema: Schema,
                    clusterState: ClusterState,

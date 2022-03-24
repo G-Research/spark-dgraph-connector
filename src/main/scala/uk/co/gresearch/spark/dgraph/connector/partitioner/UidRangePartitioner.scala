@@ -80,4 +80,8 @@ case class UidRangePartitioner(partitioner: Partitioner,
     partitioner.getPartitionColumns.map(_ :+ "subject")
       .orElse(Some(Seq("subject")))
 
+  // whatever order the inner partitioner has, this one additionally orders partitions by subject
+  override def getOrderColumns: Option[Seq[String]] =
+    partitioner.getOrderColumns.map(columns => columns :+ "subject")
+
 }

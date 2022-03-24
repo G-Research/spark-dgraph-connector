@@ -33,4 +33,6 @@ case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
 
   override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
 
+  override def getOrderColumns: Option[Seq[String]] = None
+
 }

@@ -18,6 +18,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
+import org.apache.spark.sql.execution.{SortExec, SparkPlan}
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -891,6 +893,24 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .transform(removeDgraphTriples)
 
       testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+
+      def containsSortExec(plan: SparkPlan): Boolean = plan match {
+        case p: AdaptiveSparkPlanExec => containsSortExec(p.executedPlan)
+        case _: SortExec => true
+        case p => p.children.exists(containsSortExec)
+      }
+
+      it("should reuse partitioning and order for Window.partitionBy.orderBy") {
+        val data =
+          reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.triples(dgraph.target)
+          .select($"subject", $"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject"))
+        val plan = data.queryExecution.executedPlan
+        println(plan)
+        assert(containsSortExec(plan) === false, plan)
+      }
     }
 
     lazy val expectedSubjectCounts = expectedTypedTriples.toSeq.groupBy(_.subject)

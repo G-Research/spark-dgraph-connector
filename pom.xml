@@ -40,8 +40,8 @@
     <scala.compat.version>2.12</scala.compat.version>
     <scala.version>${scala.compat.version}.10</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
-    <spark.compat.version>3.2</spark.compat.version>
-    <spark.version>${spark.compat.version}.0</spark.version>
+    <spark.compat.version>3.3</spark.compat.version>
+    <spark.version>${spark.compat.version}.0-SNAPSHOT</spark.version>
   </properties>
 
   <!-- required to resolve GraphFrames dependency -->
@@ -94,12 +94,6 @@
       <artifactId>dgraph4j</artifactId>
       <version>21.12.0</version>
       <exclusions>
-        <!-- Spark comes with a specific netty version, we want to compile against that version -->
-        <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>netty-codec-http2</artifactId>
-        </exclusion>
         <!-- Spark comes with a specific netty version, we want to compile against that version -->
         <!-- This fixes: java.lang.ClassCastException: class io.netty.channel.epoll.EpollSocketChannel -->
         <exclusion>

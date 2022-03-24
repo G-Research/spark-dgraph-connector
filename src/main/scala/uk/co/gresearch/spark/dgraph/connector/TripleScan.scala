@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import org.apache.spark.sql.connector.expressions._
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.connector.read.partitioning.{ClusteredDistribution, Distribution, Partitioning}
 import org.apache.spark.sql.types.StructType
@@ -23,7 +24,7 @@ import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
 case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
-  extends Scan with SupportsReportPartitioning
+  extends Scan with SupportsReportPartitioning with SupportsReportOrdering
     with Batch {
 
   override def readSchema(): StructType = model.readSchema()
@@ -46,4 +47,22 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
       case _ => false
     }
   }
+
+  override def outputOrdering(): Array[SortOrder] =
+    partitioner.getOrderColumns.map(_.map(columnName => new SortOrder {
+      override def expression(): Expression = new Transform {
+        override def name(): String = "identity"
+
+        override def references(): Array[NamedReference] = Array.empty
+
+        override def arguments(): Array[Expression] = Seq(new NamedReference {
+          override def fieldNames(): Array[String] = Seq(columnName).toArray
+        }).toArray
+      }
+
+      override def direction(): SortDirection = SortDirection.ASCENDING
+
+      override def nullOrdering(): NullOrdering = NullOrdering.NULLS_FIRST
+    }).toArray).getOrElse(Array.empty[SortOrder])
+
 }

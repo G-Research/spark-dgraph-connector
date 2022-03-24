@@ -53,11 +53,40 @@ class TestPredicatePartitioner extends AnyFunSpec {
         )
         assert(partitions.map(_.size).sum === predicates.size)
         assert(partitions.flatten.toSet === predicates)
+
+        if (N >= P) {
+          assert(partitions.flatMap(_.toSeq) === predicates.toSeq.sortBy(_.predicateName))
+        }
       }
 
     }
 
     val schema = Schema((1 to 6).map(i => Predicate(s"pred$i", s"type$i", s"type$i")).toSet)
+
+    it("should partition single group with 1 predicates per partition") {
+      val clusterState = ClusterState(
+        Map("1" -> Set(Target("host1:9080"), Target("host2:9080"), Target("host3:9080"))),
+        Map("1" -> Set("pred1", "pred2", "pred3", "pred4", "pred5", "pred6")),
+        10000,
+        UUID.randomUUID()
+      )
+
+      val partitioner = PredicatePartitioner(schema, clusterState, 1)
+      val partitions = partitioner.getPartitions
+
+      assert(partitions.toSet === Set(
+        // with one group and one predicate per partition, predicates are alphabetically ordered
+        Partition(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080"))).has(Set("pred1"), Set.empty).getAll,
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"), Target("host1:9080"))).has(Set("pred2"), Set.empty).getAll,
+        Partition(Seq(Target("host3:9080"), Target("host1:9080"), Target("host2:9080"))).has(Set("pred3"), Set.empty).getAll,
+        Partition(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080"))).has(Set("pred4"), Set.empty).getAll,
+        Partition(Seq(Target("host2:9080"), Target("host3:9080"), Target("host1:9080"))).has(Set("pred5"), Set.empty).getAll,
+        Partition(Seq(Target("host3:9080"), Target("host1:9080"), Target("host2:9080"))).has(Set("pred6"), Set.empty).getAll,
+      ))
+
+      assert(partitioner.getOrderColumns === Some(Seq("predicate")))
+    }
+
     val clusterState = ClusterState(
       Map(
         "1" -> Set(Target("host1:9080")),

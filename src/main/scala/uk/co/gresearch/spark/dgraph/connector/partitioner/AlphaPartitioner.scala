@@ -34,4 +34,6 @@ case class AlphaPartitioner(schema: Schema, clusterState: ClusterState, partitio
 
   override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
 
+  override def getOrderColumns: Option[Seq[String]] = None
+
 }

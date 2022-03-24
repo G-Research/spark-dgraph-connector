@@ -34,9 +34,13 @@ trait Partitioner {
 
   /**
    * Get the column names that represent the partitioning.
-   * @return
    */
   def getPartitionColumns: Option[Seq[String]]
+
+  /**
+   * Get the column names that partitions are ordered by.
+   */
+  def getOrderColumns: Option[Seq[String]]
 
   /**
    * Indicates whether this partitioner supports all given filters.
