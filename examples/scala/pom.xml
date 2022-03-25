@@ -1,6 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector-examples_2.12</artifactId>
   <version>0.9.0-3.3-SNAPSHOT</version>
@@ -15,7 +14,7 @@
     <scala.version>${scala.compat.version}.10</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.3</spark.compat.version>
-    <spark.version>${spark.compat.version}.0</spark.version>
+    <spark.version>${spark.compat.version}.0-SNAPSHOT</spark.version>
   </properties>
 
   <!-- required to resolve GraphFrames dependency -->
