@@ -21,7 +21,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, StringTripleEncoder}
+import uk.co.gresearch.spark.dgraph.connector.encoder.StringTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
 import uk.co.gresearch.spark.dgraph.connector.model.TestChunkIterator.getChunk
 
@@ -300,12 +300,4 @@ class TestGraphTableModel extends AnyFunSpec {
 
   }
 
-}
-
-case class TestModel(execution: ExecutorProvider,
-                     encoder: JsonNodeInternalRowEncoder,
-                     chunkSize: Int,
-                     metrics: PartitionMetrics = NoPartitionMetrics())
-  extends GraphTableModel {
-  override def withMetrics(metrics: PartitionMetrics): TestModel = copy(metrics = metrics)
 }
