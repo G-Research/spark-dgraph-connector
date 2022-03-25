@@ -264,7 +264,7 @@ jobs:
         mvn --batch-mode dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
         mvn --batch-mode dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
         mvn --batch-mode dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
-        mvn --batch-mode dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.6
+        mvn --batch-mode dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.9
         mvn --batch-mode dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
       shell: bash
 
