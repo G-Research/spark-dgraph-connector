@@ -22,8 +22,10 @@ import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
+import java.util.OptionalLong
+
 case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
-  extends Scan with SupportsReportPartitioning
+  extends Scan with SupportsReportPartitioning with SupportsReportStatistics
     with Batch {
 
   override def readSchema(): StructType = model.readSchema()
@@ -45,5 +47,11 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
         partitioner.getPartitionColumns.exists(_.forall(c.clusteredColumns.contains))
       case _ => false
     }
+  }
+
+  override def estimateStatistics(): Statistics = new Statistics {
+    override def sizeInBytes(): OptionalLong = OptionalLong.empty()
+
+    override def numRows(): OptionalLong = OptionalLong.empty()
   }
 }

@@ -31,9 +31,18 @@ class TestTripleScan extends AnyFunSpec {
   describe("TripleScan") {
     Seq(Seq("col"), Seq("col1", "col2"), Seq("col1", "col2", "col3")).foreach { clusterColumns =>
       val scan = TripleScan(TestPartitioner(Seq(), Some(clusterColumns)), model)
-      val partitioning = scan.outputPartitioning()
 
       describe(s"with [${clusterColumns.mkString(",")}]") {
+
+        val statistics = scan.estimateStatistics()
+
+        it("should provide empty statistics") {
+          assert(statistics.numRows().isPresent === false)
+          assert(statistics.sizeInBytes().isPresent === false)
+        }
+
+        val partitioning = scan.outputPartitioning()
+
         it(s"should not satisfy unknown distribution") {
           assert(partitioning.satisfy(new Distribution() {}) === false)
         }
