@@ -864,6 +864,12 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
         )
       )
 
+      // There is no partitioner that does not provide subject or predicate partitioning,
+      // but those support subject and predicate partitioning
+      // so we cannot test this without providing a test-specific partitioner that
+      // produces multiple partitions but withou subject or predicate partitioning.
+      // making that available as a data source would further require a test-specific source and more.
+      /**
       describe("without subject and predicate partitioning") {
         val withoutPartitioning = () =>
           reader
@@ -879,6 +885,7 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
 
         testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
       }
+      **/
 
       describe("with subject and predicate partitioning") {
         val withPartitioning = () =>
