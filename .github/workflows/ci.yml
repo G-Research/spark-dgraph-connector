@@ -34,7 +34,7 @@ jobs:
           echo "PR_GEAD_REPO_FULL_NAME=$PR_GEAD_REPO_FULL_NAME"
         shell: bash
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Parametrize Extraction
         id: params-extract
@@ -117,7 +117,7 @@ jobs:
             python-version: 3.8
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v2
@@ -217,7 +217,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v2
