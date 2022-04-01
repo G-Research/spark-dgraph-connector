@@ -53,7 +53,7 @@ jobs:
         shell: bash
 
       - name: Cache Maven packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3.0.1
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-mvn-build-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -126,7 +126,7 @@ jobs:
         path: .
 
     - name: Cache Maven packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3.0.1
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-test-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -161,7 +161,7 @@ jobs:
       run: mvn --batch-mode test
 
     - name: Cache Pip packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3.0.1
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
@@ -226,7 +226,7 @@ jobs:
         path: .
 
     - name: Cache Maven packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3.0.1
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-integration-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -234,7 +234,7 @@ jobs:
           ${{ runner.os }}-mvn-integration-
 
     - name: Cache Spark Binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v3.0.1
       with:
         path: ~/spark
         key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
