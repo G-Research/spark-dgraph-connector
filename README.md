@@ -64,6 +64,8 @@ The connector provides the following features:
   and timing of the communication to the Dgraph cluster.
 - **Graph Partitioning and Streaming**: Graph data are partitioned and streamed in small chunks from Dgraph into Spark.
   This guarantees that graphs of any size can be read into Spark.
+- **Graph Partitioning available to Spark**: The actual partitioning of the graph data is known to Spark. This allows
+  Spark's query planning to fully make use of the existing data organization to avoid redundant data shuffling.
 
 ## Limitations
 
