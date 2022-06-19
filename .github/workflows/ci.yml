@@ -129,7 +129,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-test-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-test-${{ needs.build.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-test-
 
