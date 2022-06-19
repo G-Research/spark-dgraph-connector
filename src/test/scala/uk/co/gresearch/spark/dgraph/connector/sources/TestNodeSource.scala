@@ -472,10 +472,11 @@ class TestNodeSource extends AnyFunSpec
           .option(PartitionerOption, SingletonPartitionerOption)
           .dgraph.nodes(target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
+
       val predicates = Set(
         Predicate("dgraph.type", "string"),
         Predicate("name", "string"),
@@ -484,7 +485,7 @@ class TestNodeSource extends AnyFunSpec
         Predicate("running_time", "int"),
         Predicate("title", "string"),
       )
-      assert(partitions === Seq(Some(Partition(targets).has(predicates).langs(Set("title")))))
+      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
     }
 
     it("should load as a predicate partitions") {
@@ -495,18 +496,18 @@ class TestNodeSource extends AnyFunSpec
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.nodes(target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
 
-      val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date", "running_time"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll)
+      val expected = Seq(
+        Partition(Seq(Target(dgraph.target))).has(Set("release_date", "running_time"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
       )
 
-      assert(partitions.toSet === expected)
+      assert(partitions === expected)
     }
 
     it("should partition data") {
