@@ -21,6 +21,7 @@ import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, E
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
+import uk.co.gresearch.spark._
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
@@ -437,11 +438,11 @@ class TestTriplesSource extends AnyFunSpec
           .option(PartitionerOption, SingletonPartitionerOption)
           .dgraph.triples(target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
-      assert(partitions === Seq(Some(Partition(targets).has(predicates).langs(Set("title")))))
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
+      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
     }
 
     it("should load as predicate partitions") {
@@ -451,19 +452,19 @@ class TestTriplesSource extends AnyFunSpec
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.triples(dgraph.target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
 
-      val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll),
-        Some(Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll),
+      val expected = Seq(
+        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
       )
 
-      assert(partitions.toSet === expected)
+      assert(partitions === expected)
     }
 
     it("should load as uid-range partitions") {
@@ -476,17 +477,17 @@ class TestTriplesSource extends AnyFunSpec
           ))
           .dgraph.triples(dgraph.target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
 
-      val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(1), Uid(8))))),
-        Some(Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(8), Uid(15))))),
+      val expected = Seq(
+        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(1), Uid(8)))),
+        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(8), Uid(15))))
       )
 
-      assert(partitions.toSet === expected)
+      assert(partitions === expected)
     }
 
     it("should load as predicate uid-range partitions") {
@@ -500,21 +501,21 @@ class TestTriplesSource extends AnyFunSpec
           ))
           .dgraph.triples(dgraph.target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
 
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
-      val expected = Set(
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
+      val expected = Seq(
         Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
+        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
         Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll
-      ).flatMap(partition => ranges.map(range => Some(partition.copy(operators = partition.operators + range))))
+        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      ).flatMap(partition => ranges.map(range => partition.copy(operators = partition.operators + range)))
 
-      assert(partitions.toSet === expected)
+      assert(partitions === expected)
     }
 
     it("should partition data") {
