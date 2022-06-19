@@ -1,5 +1,5 @@
 base=spark-3.3
-branch=spark-3.0
+branch=spark-3.4
 
 echo "===== missing commits ====="
 diff <(git log --pretty=format:'%s' $branch..$base; echo) <(git log --pretty=format:'%s' $base..$branch; echo) | grep "^[<>]" | sed -e "s/^</$branch:/" -e "s/^>/$base:/"
