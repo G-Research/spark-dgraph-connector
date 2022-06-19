@@ -129,11 +129,11 @@ class TestEdgeSource extends AnyFunSpec
           .option(PartitionerOption, SingletonPartitionerOption)
           .dgraph.edges(target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
-      assert(partitions === Seq(Some(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))))
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
+      assert(partitions === Seq(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid")))))
     }
 
     it("should load as a predicate partitions") {
@@ -144,16 +144,16 @@ class TestEdgeSource extends AnyFunSpec
           .option(PredicatePartitionerPredicatesOption, "2")
           .dgraph.edges(target)
           .rdd
-          .partitions.map {
-          case p: DataSourceRDDPartition => Some(p.inputPartition)
-          case _ => None
-        }
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
 
-      val expected = Set(
-        Some(Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll)
+      val expected = Seq(
+        Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll
       )
 
-      assert(partitions.toSet === expected)
+      assert(partitions === expected)
     }
 
     it("should partition data") {
