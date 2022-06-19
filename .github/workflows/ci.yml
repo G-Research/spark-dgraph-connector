@@ -102,6 +102,19 @@ jobs:
         java-version: '11'
         distribution: 'zulu'
 
+    - name: Cache Pip packages
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
+
+    - name: Setup Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
     - name: Checkout Spark sources
       uses: actions/checkout@v2
       with:
@@ -109,11 +122,13 @@ jobs:
         ref: master
         path: spark
 
-    - name: Install Spark from sources
+    - name: Install Spark and PySpark from sources
       run: |
         cd spark
         ./build/mvn -DskipTests install
-        cd ..
+        cd python
+        python setup.py install
+        cd ../..
         rm -rf spark
 
     - name: Checkout sources
@@ -143,19 +158,6 @@ jobs:
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
       run: mvn --batch-mode test
-
-    - name: Cache Pip packages
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
-
-    - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Install Python dependencies
       run: |
