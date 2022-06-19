@@ -52,6 +52,34 @@ jobs:
           echo "::set-output name=spark-compat-version::$SPARK_COMPAT_VERSION"
         shell: bash
 
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-mvn-build-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-mvn-build-
+
+      - name: Setup JDK 1.11
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+
+      - name: Build
+        run: mvn --batch-mode compile test-compile package -DskipTests
+
+      - name: Upload Binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: Binaries
+          retention-days: 1
+          path: |
+            .
+            !.git
+            !target/*-javadoc.jar
+            !target/site
+
   test:
     name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -88,40 +116,28 @@ jobs:
           - dgraph-version: 21.12.0
             python-version: 3.8
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Binaries
+        path: .
+
     - name: Cache Maven packages
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-build-and-test-${{ needs.build.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-test-${{ needs.build.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-mvn-build-
+          ${{ runner.os }}-mvn-test-
 
     - name: Setup JDK 11
       uses: actions/setup-java@v2
       with:
         java-version: '11'
         distribution: 'zulu'
-
-    - name: Checkout Spark sources
-      uses: actions/checkout@v2
-      with:
-        repository: apache/spark
-        ref: branch-3.3
-        path: spark
-
-    - name: Install Spark from sources
-      run: |
-        cd spark
-        ./build/mvn -DskipTests install
-        cd ..
-        rm -rf spark
-
-    - name: Checkout sources
-      uses: actions/checkout@v2
-
-    - name: Build
-      run: |
-        mvn --batch-mode compile test-compile package -DskipTests
 
     - name: Start Dgraph cluster
       id: dgraph
@@ -200,40 +216,28 @@ jobs:
             spark-compat-version: ${{ needs.build.outputs.spark-compat-version }}
 
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: Binaries
+        path: .
+
     - name: Cache Maven packages
       uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-build-and-test-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-integration-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-mvn-build-
+          ${{ runner.os }}-mvn-integration-
 
-    - name: Setup JDK 11
-      uses: actions/setup-java@v2
+    - name: Cache Spark Binaries
+      uses: actions/cache@v2
       with:
-        java-version: '11'
-        distribution: 'zulu'
-
-    - name: Checkout Spark sources
-      uses: actions/checkout@v2
-      with:
-        repository: apache/spark
-        ref: branch-3.3
-        path: spark
-
-    - name: Install Spark from sources
-      run: |
-        cd spark
-        ./build/mvn -DskipTests install
-        cd ..
-        mv -v spark ~/spark
-
-    - name: Checkout sources
-      uses: actions/checkout@v2
-
-    - name: Build
-      run: |
-        mvn --batch-mode compile test-compile package -DskipTests
+        path: ~/spark
+        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
 
     - name: Setup Spark Binaries
       env:
@@ -294,6 +298,16 @@ jobs:
       run: |
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark3.0-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
+
+  delete_binaries:
+    name: "Delete Binaries"
+    runs-on: ubuntu-latest
+    needs: [test, integration]
+    steps:
+      - name: Delete Binaries Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: Binaries
 
   event_file:
     name: "Event File"
