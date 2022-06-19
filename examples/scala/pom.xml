@@ -17,12 +17,18 @@
     <spark.version>${spark.compat.version}.0-SNAPSHOT</spark.version>
   </properties>
 
-  <!-- required to resolve GraphFrames dependency -->
   <repositories>
+    <!-- required to resolve GraphFrames dependency -->
     <repository>
       <id>spark-packages</id>
       <name>Spark Packages</name>
       <url>https://repos.spark-packages.org</url>
+    </repository>
+    <!-- required to resolve SNAPSHOT dependencies -->
+    <repository>
+      <id>apache-snapshot-packages</id>
+      <name>Apache Snapshots</name>
+      <url>https://repository.apache.org/snapshots</url>
     </repository>
   </repositories>
 
