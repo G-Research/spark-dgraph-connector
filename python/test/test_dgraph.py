@@ -33,13 +33,13 @@ class DgraphTest(DgraphClusterTest):
     @classmethod
     def get_expected_typed_triples(cls):
         jdf = cls.get_expected_triples().getExpectedTypedTripleDf(cls.spark._jsparkSession)
-        df = DataFrame(jdf, cls.spark._wrapped)
+        df = DataFrame(jdf, cls.spark)
         return df.collect()
 
     @classmethod
     def get_expected_string_triples(cls):
         jdf = cls.get_expected_triples().getExpectedStringTripleDf(cls.spark._jsparkSession)
-        df = DataFrame(jdf, cls.spark._wrapped)
+        df = DataFrame(jdf, cls.spark)
         return df.collect()
 
     @classmethod
@@ -95,13 +95,13 @@ class DgraphTest(DgraphClusterTest):
     @classmethod
     def get_expected_typed_nodes(cls):
         jdf = cls.get_expected_nodes().getExpectedTypedNodeDf(cls.spark._jsparkSession)
-        df = DataFrame(jdf, cls.spark._wrapped)
+        df = DataFrame(jdf, cls.spark)
         return df.collect()
 
     @classmethod
     def get_expected_wide_nodes(cls):
         jdf = cls.get_expected_nodes().getExpectedWideNodeDf(cls.spark._jsparkSession)
-        df = DataFrame(jdf, cls.spark._wrapped)
+        df = DataFrame(jdf, cls.spark)
         return df.collect()
 
     def assertTypedNodes(self, data):
@@ -141,7 +141,7 @@ class DgraphTest(DgraphClusterTest):
         jvm = cls.spark._jvm
         expecteds = jvm.uk.co.gresearch.spark.dgraph.connector.sources.EdgesSourceExpecteds(cls._jdgraph)
         jdf = expecteds.getExpectedEdgeDf(cls.spark._jsparkSession)
-        df = DataFrame(jdf, cls.spark._wrapped)
+        df = DataFrame(jdf, cls.spark)
         return df.collect()
 
     def assertEdges(self, data):
