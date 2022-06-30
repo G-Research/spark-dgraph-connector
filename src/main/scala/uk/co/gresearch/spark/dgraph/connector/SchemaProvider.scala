@@ -19,7 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector
 import com.google.gson.{Gson, JsonObject}
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
-import io.grpc.ManagedChannel
+import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import java.util.regex.Pattern
 
