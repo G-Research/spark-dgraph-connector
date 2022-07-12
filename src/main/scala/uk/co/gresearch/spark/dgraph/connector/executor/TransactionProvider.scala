@@ -16,7 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.executor
 
-import io.grpc.ManagedChannel
+import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector.{ConfigParser, Target, Transaction, TransactionModeDefault, TransactionModeNoneOption, TransactionModeOption, TransactionModeReadOption, getClientFromChannel, toChannel}
 
