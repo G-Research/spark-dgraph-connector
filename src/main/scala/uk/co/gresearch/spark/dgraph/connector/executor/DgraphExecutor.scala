@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.dgraph.DgraphClient
-import io.grpc.ManagedChannel
+import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import uk.co.gresearch.spark.dgraph.connector.{ExtendedThrowable, GraphQl, Json, Logging, Target, Transaction, getClientFromChannel, toChannel}
 
 /**
