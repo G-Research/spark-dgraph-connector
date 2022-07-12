@@ -21,8 +21,8 @@ import java.sql.Timestamp
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
-import io.grpc.netty.NettyChannelBuilder
-import io.grpc.{ManagedChannel, Status, StatusRuntimeException}
+import io.dgraph.dgraph4j.shaded.io.grpc.netty.NettyChannelBuilder
+import io.dgraph.dgraph4j.shaded.io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 import org.apache.spark.sql.DataFrameReader
 
 package object connector {
