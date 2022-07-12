@@ -66,15 +66,6 @@ jobs:
           java-version: '11'
           distribution: 'zulu'
 
-      - name: Checkout dgraph4j
-        uses: actions/checkout@v2
-        with:
-          repository: EnricoMi/dgraph4j
-          ref: shaded
-          path: dgraph4j
-      - name: Build dgraph4j
-        run: cd dgraph4j; ./gradlew publishToMavenLocal
-
       - name: Build
         run: mvn --batch-mode compile test-compile package -DskipTests
 
@@ -152,15 +143,6 @@ jobs:
       with:
         java-version: '11'
         distribution: 'zulu'
-
-    - name: Checkout dgraph4j
-      uses: actions/checkout@v2
-      with:
-        repository: EnricoMi/dgraph4j
-        ref: shaded
-        path: dgraph4j
-    - name: Build dgraph4j
-      run: cd dgraph4j; ./gradlew publishToMavenLocal
 
     - name: Start Dgraph cluster
       id: dgraph
@@ -281,15 +263,6 @@ jobs:
         echo "::set-output name=graphframes-version::$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
         echo "::set-output name=home::$(cd ~; pwd)"
       shell: bash
-
-    - name: Checkout dgraph4j
-      uses: actions/checkout@v2
-      with:
-        repository: EnricoMi/dgraph4j
-        ref: shaded
-        path: dgraph4j
-    - name: Build dgraph4j
-      run: cd dgraph4j; ./gradlew publishToMavenLocal
 
     - name: Prepare Integration Tests
       run: |
