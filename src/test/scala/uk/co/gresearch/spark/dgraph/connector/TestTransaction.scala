@@ -16,10 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import com.google.protobuf.ByteString
+import io.dgraph.dgraph4j.shaded.com.google.protobuf.ByteString
 import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Mutation
-import io.grpc.ManagedChannel
+import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
