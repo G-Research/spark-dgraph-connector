@@ -34,7 +34,7 @@ jobs:
           echo "PR_GEAD_REPO_FULL_NAME=$PR_GEAD_REPO_FULL_NAME"
         shell: bash
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Parametrize Extraction
         id: params-extract
@@ -53,7 +53,7 @@ jobs:
         shell: bash
 
       - name: Cache Maven packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-mvn-build-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -61,7 +61,7 @@ jobs:
             ${{ runner.os }}-mvn-build-
 
       - name: Setup JDK 1.11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v3
         with:
           java-version: '11'
           distribution: 'zulu'
@@ -122,16 +122,16 @@ jobs:
             python-version: "3.9"
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Fetch Binaries Artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: Binaries
         path: .
 
     - name: Cache Maven packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-test-${{ needs.build.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -139,7 +139,7 @@ jobs:
           ${{ runner.os }}-mvn-test-
 
     - name: Setup JDK 11
-      uses: actions/setup-java@v2
+      uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'zulu'
@@ -166,7 +166,7 @@ jobs:
       run: mvn --batch-mode test
 
     - name: Cache Pip packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
@@ -174,7 +174,7 @@ jobs:
           ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -222,16 +222,16 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Fetch Binaries Artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: Binaries
         path: .
 
     - name: Cache Maven packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-integration-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
@@ -239,7 +239,7 @@ jobs:
           ${{ runner.os }}-mvn-integration-
 
     - name: Cache Spark Binaries
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/spark
         key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
