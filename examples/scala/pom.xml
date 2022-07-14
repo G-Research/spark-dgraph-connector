@@ -3,7 +3,7 @@
 
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector-examples_2.12</artifactId>
-  <version>0.9.0-3.1</version>
+  <version>0.10.0-3.1-SNAPSHOT</version>
   <name>Spark Dgraph Connector Example</name>
 
   <properties>
