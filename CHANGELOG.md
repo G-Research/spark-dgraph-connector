@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.9.0] - 2022-07-14
+
+### Changed
+- Moved to shaded Java Dgraph client (uk.co.gresearch.dgraph:dgraph4j-shaded:21.12.0-0).
+
 ## [0.8.0] - 2022-01-19
 
 ### Changed
