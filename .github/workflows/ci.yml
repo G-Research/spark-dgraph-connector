@@ -124,7 +124,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: apache/spark
-        ref: master
+        ref: branch-3.4
         path: spark
 
     - name: Install Spark and PySpark from sources
@@ -226,7 +226,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: apache/spark
-        ref: master
+        ref: branch-3.4
         path: spark
 
     - name: Install Spark from sources
