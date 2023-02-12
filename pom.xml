@@ -38,7 +38,7 @@
     <encoding>UTF-8</encoding>
     <!-- scala.compat.version must be reflected in project artifactId -->
     <scala.compat.version>2.12</scala.compat.version>
-    <scala.version>${scala.compat.version}.10</scala.version>
+    <scala.version>${scala.compat.version}.15</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.2</spark.compat.version>
     <spark.version>${spark.compat.version}.0</spark.version>
