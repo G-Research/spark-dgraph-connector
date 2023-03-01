@@ -17,9 +17,13 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange, UidRangePartitionerOption}
 
-case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
+case class UidRangePartitioner(partitioner: Partitioner,
+                               uidsPerPartition: Int,
+                               uidCardinalityEstimator: UidCardinalityEstimator,
+                               innerPartitionerIsDefault: Boolean = false)
+  extends Partitioner {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
@@ -32,6 +36,12 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
   if (partitions.exists(_.uidRange.isDefined))
     throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
       s"another uid partitioner: ${partitioner.getClass.getSimpleName}")
+
+  override def configOption: String = if (innerPartitionerIsDefault) {
+    UidRangePartitionerOption
+  } else {
+    s"${partitioner.configOption}+$UidRangePartitionerOption"
+  }
 
   override def supportsFilters(filters: Set[Filter]): Boolean = partitioner.supportsFilters(filters)
 
@@ -65,5 +75,9 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
       }
     }
   }
+
+  override def getPartitionColumns: Option[Seq[String]] =
+    partitioner.getPartitionColumns.map(_ :+ "subject")
+      .orElse(Some(Seq("subject")))
 
 }

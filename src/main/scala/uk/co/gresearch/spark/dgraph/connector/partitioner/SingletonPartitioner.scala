@@ -16,13 +16,31 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{Partition, Schema, Target}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, EmptyFilters, Filters, Predicate, Schema, SingletonPartitionerOption}
 
-case class SingletonPartitioner(targets: Seq[Target], schema: Schema) extends Partitioner {
+/**
+ * This partitioner produces a single partition, but provides the features
+ * of the PredicatePartitioner (filtering and projection, though for a single partition).
+ */
+class SingletonPartitioner(override val schema: Schema,
+                           override val clusterState: ClusterState,
+                           override val filters: Filters = EmptyFilters,
+                           override val projection: Option[Seq[Predicate]] = None)
+  extends PredicatePartitioner(schema, clusterState, Int.MaxValue, filters, projection) {
 
-  override def getPartitions: Seq[Partition] = {
-    val langs = schema.predicates.filter(_.isLang).map(_.predicateName)
-    Seq(Partition(targets).has(schema.predicates).langs(langs))
-  }
+  override def configOption: String = SingletonPartitionerOption
 
+  override def getPartitionColumns: Option[Seq[String]] = None
+
+  override def withFilters(filters: Filters): Partitioner =
+    new SingletonPartitioner(schema, clusterState, filters, projection)
+
+  override def withProjection(projection: Seq[Predicate]): Partitioner =
+    new SingletonPartitioner(schema, clusterState, filters, Some(projection))
+
+}
+
+object SingletonPartitioner {
+  def apply(schema: Schema, clusterState: ClusterState): SingletonPartitioner =
+    new SingletonPartitioner(schema, clusterState)
 }

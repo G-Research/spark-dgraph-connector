@@ -19,6 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark._
@@ -29,14 +31,14 @@ import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 import java.sql.Timestamp
 import scala.reflect.runtime.universe._
 
-class TestTriplesSource extends AnyFunSpec
+class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
   with ConnectorSparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
-  describe("TriplesDataSource") {
+  describe("TriplesSource") {
 
     lazy val expecteds = TriplesSourceExpecteds(dgraph)
     lazy val expectedTypedTriples = expecteds.getExpectedTypedTriples
@@ -440,9 +442,9 @@ class TestTriplesSource extends AnyFunSpec
           .rdd
           .partitions.flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _ => None
           }
-      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
+      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title")).getAll))
     }
 
     it("should load as predicate partitions") {
@@ -457,21 +459,22 @@ class TestTriplesSource extends AnyFunSpec
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(Set("release_date"), Set("starring")).getAll,
+        Partition(targets).has(Set("running_time"), Set("director")).getAll,
+        Partition(targets).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(targets).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should load as uid-range partitions") {
       val partitions =
         reader
           .options(Map(
-            PartitionerOption -> s"$UidRangePartitionerOption",
+            PartitionerOption -> UidRangePartitionerOption,
             UidRangePartitionerUidsPerPartOption -> "7",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
           ))
@@ -482,19 +485,20 @@ class TestTriplesSource extends AnyFunSpec
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(1), Uid(8)))),
-        Partition(Seq(Target(dgraph.target)), Set(Has(predicates), LangDirective(Set("title")), UidRange(Uid(8), Uid(15))))
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(predicates).getAll.langs(Set("title")).range(1, 8),
+        Partition(targets).has(predicates).getAll.langs(Set("title")).range(8, 15),
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should load as predicate uid-range partitions") {
       val partitions =
         reader
           .options(Map(
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
             MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
@@ -508,14 +512,15 @@ class TestTriplesSource extends AnyFunSpec
 
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date"), Set("starring")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("running_time"), Set("director")).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      val targets = Seq(Target(dgraph.target))
+      val expected = Set(
+        Partition(targets).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
+        Partition(targets).has(Set("release_date"), Set("starring")).getAll,
+        Partition(targets).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(targets).has(Set("running_time"), Set("director")).getAll
       ).flatMap(partition => ranges.map(range => partition.copy(operators = partition.operators + range)))
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
@@ -653,12 +658,12 @@ class TestTriplesSource extends AnyFunSpec
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull,
         Set(ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.isDefined)
+        expecteds = expectedTypedTriples.filter(_.objectString.isDefined)
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isNotNull && $"objectUid".isNotNull,
         Set(AlwaysFalse),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -666,12 +671,12 @@ class TestTriplesSource extends AnyFunSpec
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person",
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -679,24 +684,24 @@ class TestTriplesSource extends AnyFunSpec
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriples,
         $"objectString".isin("Person", "Film"),
         Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString".isin("Person"),
         Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString".isin("Person", "Film"),
         Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(Set("Person", "Film").contains))
       )
 
       doTestFilterPushDownDf(typedTriples,
@@ -707,12 +712,12 @@ class TestTriplesSource extends AnyFunSpec
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person")),
           EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(1L))
         ),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person" && $"objectUid" === 1,
         Set(AlwaysFalse),
-        expectedDs = Set.empty
+        expecteds = Set.empty
       )
     }
 
@@ -723,7 +728,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person"))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString" === "Person" && $"objectType" === "string",
@@ -733,7 +738,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
       )
 
       doTestFilterPushDownDf(stringTriples,
@@ -742,7 +747,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person"))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person") && $"objectType" === "string",
@@ -752,7 +757,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.objectType.equals("string"))
       )
 
       doTestFilterPushDownDf(stringTriples,
@@ -761,7 +766,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
-        expectedDs = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString))
+        expecteds = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString))
       )
       doTestFilterPushDownDf(stringTriples,
         $"objectString".isin("Person", "Film") && $"objectType" === "string",
@@ -771,7 +776,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))
         ),
-        expectedDs = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString) && t.objectType.equals("string"))
+        expecteds = expectedStringTriples.filter(t => Set("Person", "Film").contains(t.objectString) && t.objectType.equals("string"))
       )
     }
 
@@ -789,13 +794,13 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
 
       doTestFilterPushDownDf(typedTriplesSinglePredicatePartitions,
         $"objectString" === "Person" && $"predicate".isin("dgraph.type", "name"),
         Set(IntersectPredicateValueIsIn(Set("dgraph.type", "name"), Set("Person")), ObjectTypeIsIn("string")),
-        expectedDs = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
+        expecteds = expectedTypedTriples.filter(_.objectString.exists(_.equals("Person")))
       )
     }
 
@@ -809,7 +814,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
       )
       doTestFilterPushDownDf(stringTriplesSinglePredicatePartitions,
         $"objectString".isin("Person") && $"predicate".isin("dgraph.type", "name"),
@@ -822,7 +827,7 @@ class TestTriplesSource extends AnyFunSpec
         Seq(
           EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))
         ),
-        expectedDs = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
+        expecteds = expectedStringTriples.filter(_.objectString.equals("Person")).filter(_.predicate.equals("dgraph.type"))
       )
     }
 
@@ -848,6 +853,131 @@ class TestTriplesSource extends AnyFunSpec
         None,
         expectedStringTriples.toSeq.toDF().collect().toSet.map(select(0, 1, 2))
       )
+    }
+
+    lazy val expectedPredicateCounts = expectedTypedTriples.toSeq.groupBy(_.predicate)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val predicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"predicate").distinct(), () => expectedPredicateCounts.map(row => Row(row.getString(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"predicate").count(), () => expectedPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"predicate", count(lit(1)) over Window.partitionBy($"predicate")),
+        () => expectedPredicateCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject")),
+        () => expectedPredicateCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectCounts = expectedTypedTriples.toSeq.groupBy(_.subject)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val subjectPartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+        () => expectedSubjectCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"predicate")),
+        () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without subject partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectAndPredicateCounts = expectedTypedTriples.toSeq.groupBy(t => (t.subject, t.predicate))
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1._1, e._1._2, e._2))
+    val subjectAndPredicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject", $"predicate").distinct(), () => expectedSubjectAndPredicateCounts.map(row => Row(row.getLong(0), row.getString(1)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject", $"predicate").count(), () => expectedSubjectAndPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", $"predicate", count(lit(1)) over Window.partitionBy($"subject", $"predicate")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row * row.getInt(2))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", $"predicate", row_number() over Window.partitionBy($"subject", $"predicate").orderBy($"objectType")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row ++ row.getInt(2))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    // There is no partitioner that does not provide subject or predicate partitioning,
+    // but those support subject and predicate partitioning
+    // so we cannot test this without providing a test-specific partitioner that
+    // produces multiple partitions but withou subject or predicate partitioning.
+    // making that available as a data source would further require a test-specific source and more.
+    /**
+    describe("without subject and predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "2")
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+    }
+    **/
+
+    describe("with subject and predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2",
+            UidRangePartitionerUidsPerPartOption -> "5",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.triples(dgraph.target)
+          .transform(removeDgraphTriples)
+
+      testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
     }
 
   }

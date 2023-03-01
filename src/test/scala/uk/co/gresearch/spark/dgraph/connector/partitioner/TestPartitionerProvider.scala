@@ -40,7 +40,7 @@ class TestPartitionerProvider extends AnyFunSpec {
 
   describe("PartitionerProvider") {
 
-    val singleton = SingletonPartitioner(target, schema)
+    val singleton = SingletonPartitioner(schema, state)
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
@@ -52,7 +52,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       ("alpha", alpha),
       ("predicate", pred),
 
-      ("uid-range", uidRange),
+      ("uid-range", uidRange.copy(innerPartitionerIsDefault = true)),
       ("singleton+uid-range", uidRange),
       ("group+uid-range", uidRange.copy(partitioner = group)),
       ("alpha+uid-range", uidRange.copy(partitioner = alpha)),
@@ -64,6 +64,7 @@ class TestPartitionerProvider extends AnyFunSpec {
         val options = new CaseInsensitiveStringMap(Map(PartitionerOption -> partOption).asJava)
         val partitioner = provider.getPartitioner(schema, state, transaction, options)
         assert(partitioner === expected)
+        assert(partitioner.configOption === partOption)
       }
 
     }
@@ -132,7 +133,7 @@ class TestPartitionerProvider extends AnyFunSpec {
         UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
-      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
+      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator, innerPartitionerIsDefault = true))
     }
 
     it(s"should provide alpha uid-range partitioner with non-default values via option") {

@@ -16,12 +16,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import java.math.BigInteger
-import java.security.MessageDigest
-
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector._
 
+import java.math.BigInteger
+import java.security.MessageDigest
 import scala.language.implicitConversions
 
 case class PredicatePartitioner(schema: Schema,
@@ -33,6 +32,8 @@ case class PredicatePartitioner(schema: Schema,
 
   if (predicatesPerPartition <= 0)
     throw new IllegalArgumentException(s"predicatesPerPartition must be larger than zero: $predicatesPerPartition")
+
+  override def configOption: String = PredicatePartitionerOption
 
   def getPartitionsForPredicates(predicates: Set[_]): Int =
     if (predicates.isEmpty) 1 else 1 + (predicates.size - 1) / predicatesPerPartition
@@ -71,6 +72,8 @@ case class PredicatePartitioner(schema: Schema,
 
     PredicatePartitioner.getPartitions(schema, cState, (_, predicates) => getPartitionsForPredicates(predicates), simplifiedFilters, projection)
   }
+
+  override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
 
   /**
    * Replaces ObjectTypeIsIn filter in required and optional filters

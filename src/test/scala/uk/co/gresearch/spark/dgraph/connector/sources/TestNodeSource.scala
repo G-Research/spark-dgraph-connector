@@ -20,7 +20,8 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{col, count, lit, row_number}
 import org.apache.spark.sql.types._
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark._
@@ -30,7 +31,7 @@ import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 import java.sql.Timestamp
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
-class TestNodeSource extends AnyFunSpec
+class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
   with ConnectorSparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {
@@ -53,7 +54,7 @@ class TestNodeSource extends AnyFunSpec
     nodes.where(!$"subject".isin(dgraphNodeUids: _*))
   }
 
-  describe("NodeDataSource") {
+  describe("NodeSource") {
 
     lazy val expecteds = NodesSourceExpecteds(dgraph)
     lazy val expectedTypedNodes = expecteds.getExpectedTypedNodes
@@ -61,7 +62,7 @@ class TestNodeSource extends AnyFunSpec
     lazy val expectedWideSchema: StructType = expecteds.getExpectedWideNodeSchema
 
     def doTestLoadTypedNodes(load: () => DataFrame, expected: Set[TypedNode] = expectedTypedNodes, removeDgraphNodes: Boolean = true): Unit = {
-      val nodes = (if (removeDgraphNodes) removeDgraphTypedNodes(load().as[TypedNode]) else load().as[TypedNode]).collect().toSet
+      val nodes = (if (removeDgraphNodes) load().as[TypedNode].transform(removeDgraphTypedNodes) else load().as[TypedNode]).collect().toSet
       assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expected.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
     }
 
@@ -69,7 +70,7 @@ class TestNodeSource extends AnyFunSpec
                             expectedNodes: Set[Row] = expectedWideNodes,
                             expectedSchema: StructType = expectedWideSchema,
                             removeDgraphNodes: Boolean = true): Unit = {
-      val df = if (removeDgraphNodes) removeDgraphWideNodes(load()) else load()
+      val df = if (removeDgraphNodes) load().transform(removeDgraphWideNodes) else load()
       val nodes = df.collect().toSet
       assert(df.schema === expectedSchema)
       assert(nodes === expectedNodes)
@@ -397,30 +398,37 @@ class TestNodeSource extends AnyFunSpec
       )
     }
 
-    it("should load wide nodes with predicate partitioner") {
-      doTestLoadWideNodes(() =>
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "1"
-          ))
-          .dgraph.nodes(dgraph.target)
-      )
+    Seq(
+      AlphaPartitionerOption,
+      GroupPartitionerOption,
+      PredicatePartitionerOption,
+      PredicateAndUidRangePartitionerOption
+    ).foreach { partitioner =>
+      it(s"should not load wide nodes with predicate $partitioner partitioner") {
+        val exception = intercept[RuntimeException] {
+          reader
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(PartitionerOption, partitioner)
+            .dgraph.nodes(dgraph.target)
+        }
+        assert(exception.getMessage === f"Dgraph nodes cannot be read in wide mode with " +
+          f"any kind of predicate partitioning: $partitioner")
+      }
     }
 
-    it("should load wide nodes with predicate partitioner and uid ranges") {
-      doTestLoadWideNodes(() =>
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
-            PredicatePartitionerPredicatesOption -> "1",
-            UidRangePartitionerUidsPerPartOption -> "1",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.nodes(dgraph.target)
-      )
+    Seq(
+      SingletonPartitionerOption,
+      UidRangePartitionerOption,
+      s"$SingletonPartitionerOption+$UidRangePartitionerOption"
+    ).foreach { partitioner =>
+      it(s"should load wide nodes with $partitioner partitioner") {
+        doTestLoadWideNodes(() =>
+          reader
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(PartitionerOption, partitioner)
+            .dgraph.nodes(dgraph.target)
+        )
+      }
     }
 
     it("should load typed nodes in chunks") {
@@ -439,12 +447,12 @@ class TestNodeSource extends AnyFunSpec
 
     it("should encode TypedNode") {
       val rows =
-        removeDgraphTypedNodes(
         reader
           .format(NodesSource)
           .load(dgraph.target)
           .as[TypedNode]
-        ).collectAsList()
+          .transform(removeDgraphTypedNodes)
+          .collectAsList()
       assert(rows.size() === 49)
     }
 
@@ -486,11 +494,12 @@ class TestNodeSource extends AnyFunSpec
         Predicate("running_time", "int"),
         Predicate("title", "string"),
       )
-      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title"))))
+      assert(partitions === Seq(Partition(targets).has(predicates).getAll.langs(Set("title"))))
     }
 
-    it("should load as a predicate partitions") {
+    it("should load as predicate partitions") {
       val target = dgraph.target
+      val targets = Seq(Target(target))
       val partitions =
         reader
           .option(PartitionerOption, PredicatePartitionerOption)
@@ -502,28 +511,55 @@ class TestNodeSource extends AnyFunSpec
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set("release_date", "running_time"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("dgraph.type", "name"), Set.empty).getAll,
-        Partition(Seq(Target(dgraph.target))).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll
+      val expected = Set(
+        Partition(targets).has(Set("release_date", "running_time"), Set.empty).getAll,
+        Partition(targets).has(Set("dgraph.type", "name"), Set.empty).getAll,
+        Partition(targets).has(Set("revenue", "title"), Set.empty).langs(Set("title")).getAll,
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
+    }
+
+    it("should load as uid-range partitions") {
+      val target = dgraph.target
+      val targets = Seq(Target(target))
+      val partitions =
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.nodes(target)
+          .rdd
+          .partitions.flatMap {
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
+          }
+
+      val properties = Set("dgraph.type", "name", "release_date", "revenue", "running_time", "title")
+      val expected = Set(
+        Partition(targets).has(properties, Set.empty).getAll.langs(Set("title")).range(1, 8),
+        Partition(targets).has(properties, Set.empty).getAll.langs(Set("title")).range(8, 15),
+      )
+
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
       val target = dgraph.target
       val partitions = {
-        removeDgraphTypedNodes(
-          reader
-            .options(Map(
-              PartitionerOption -> UidRangePartitionerOption,
-              UidRangePartitionerUidsPerPartOption -> "7",
-              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
-            ))
-            .dgraph.nodes(target)
-            .as[TypedNode]
-        )
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "7",
+            UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.nodes(target)
+          .as[TypedNode]
+          .transform(removeDgraphTypedNodes)
           .toDF()
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
@@ -536,37 +572,31 @@ class TestNodeSource extends AnyFunSpec
     }
 
     lazy val typedNodes =
-      removeDgraphTypedNodes(
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeTypedOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "2"
-          ))
-          .dgraph.nodes(dgraph.target)
-          .as[TypedNode]
-      )
+      reader
+        .options(Map(
+          NodesModeOption -> NodesModeTypedOption,
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "2"
+        ))
+        .dgraph.nodes(dgraph.target)
+        .as[TypedNode]
+        .transform(removeDgraphTypedNodes)
     lazy val typedNodesSinglePredicatePerPartition =
-      removeDgraphTypedNodes(
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeTypedOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "1"
-          ))
-          .dgraph.nodes(dgraph.target)
-          .as[TypedNode]
-      )
+      reader
+        .options(Map(
+          NodesModeOption -> NodesModeTypedOption,
+          PartitionerOption -> PredicatePartitionerOption,
+          PredicatePartitionerPredicatesOption -> "1"
+        ))
+        .dgraph.nodes(dgraph.target)
+        .as[TypedNode]
+        .transform(removeDgraphTypedNodes)
 
     lazy val wideNodes =
-      removeDgraphWideNodes(
-        reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption
-          ))
-          .dgraph.nodes(dgraph.target)
-      )
+      reader
+        .option(NodesModeOption, NodesModeWideOption)
+        .dgraph.nodes(dgraph.target)
+        .transform(removeDgraphWideNodes)
 
     def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
       doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
@@ -725,6 +755,155 @@ class TestNodeSource extends AnyFunSpec
           None,
           expectedTypedNodes.toSeq.toDF.collect().map(select(0, 1, 2)).toSet
         )
+      }
+
+      lazy val expectedPredicateCounts = expectedTypedNodes.toSeq.groupBy(_.predicate)
+        .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+      val predicatePartitioningTests = Seq(
+        ("distinct", (df: DataFrame) => df.select($"predicate").distinct(), () => expectedPredicateCounts.map(row => Row(row.getString(0)))),
+        ("groupBy", (df: DataFrame) => df.groupBy($"predicate").count(), () => expectedPredicateCounts),
+        ("Window.partitionBy", (df: DataFrame) => df.select($"predicate", count(lit(1)) over Window.partitionBy($"predicate")),
+          () => expectedPredicateCounts.flatMap(row => row * row.getInt(1)) // all rows occur with cardinality of their count
+        ),
+        ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject")),
+          () => expectedPredicateCounts.flatMap(row => row ++ row.getInt(1)) // each row occurs with row_number up to their cardinality
+        )
+      )
+
+      describe("without predicate partitioning") {
+        val withoutPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+      }
+
+      describe("with predicate partitioning") {
+        val withPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2"
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+      }
+
+      lazy val expectedSubjectCounts = expectedTypedNodes.toSeq.groupBy(_.subject)
+        .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+      val subjectPartitioningTests = Seq(
+        ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+        ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+        ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+          () => expectedSubjectCounts.flatMap(row => row * row.getInt(1)) // all rows occur with cardinality of their count
+        ),
+        ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"predicate")),
+          () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1)) // each row occurs with row_number up to their cardinality
+        )
+      )
+
+      describe("without subject partitioning") {
+        val withoutPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2"
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+      }
+
+      describe("with subject partitioning") {
+        val withPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+      }
+
+      lazy val expectedSubjectAndPredicateCounts = expectedTypedNodes.toSeq.groupBy(t => (t.subject, t.predicate))
+        .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1._1, e._1._2, e._2))
+      val subjectAndPredicatePartitioningTests = Seq(
+        ("distinct", (df: DataFrame) => df.select($"subject", $"predicate").distinct(), () => expectedSubjectAndPredicateCounts.map(row => Row(row.getLong(0), row.getString(1)))),
+        ("groupBy", (df: DataFrame) => df.groupBy($"subject", $"predicate").count(), () => expectedSubjectAndPredicateCounts),
+        ("Window.partitionBy", (df: DataFrame) => df.select($"subject", $"predicate", count(lit(1)) over Window.partitionBy($"subject", $"predicate")),
+          () => expectedSubjectAndPredicateCounts.flatMap(row => row * row.getInt(2)) // all rows occur with cardinality of their count
+        ),
+        ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", $"predicate", row_number() over Window.partitionBy($"subject", $"predicate").orderBy($"objectType")),
+          () => expectedSubjectAndPredicateCounts.flatMap(row => row ++ row.getInt(2)) // each row occurs with row_number up to their cardinality
+        )
+      )
+
+      // There is no partitioner that does not provide subject or predicate partitioning,
+      // but those support subject and predicate partitioning
+      // so we cannot test this without providing a test-specific partitioner that
+      // produces multiple partitions but withou subject or predicate partitioning.
+      // making that available as a data source would further require a test-specific source and more.
+      /**
+      describe("without subject and predicate partitioning") {
+        val withoutPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2"
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+      }
+      **/
+
+      describe("with subject and predicate partitioning") {
+        val withPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicateAndUidRangePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2",
+              UidRangePartitionerUidsPerPartOption -> "7",
+              UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(dgraph.target)
+            .as[TypedNode]
+            .transform(removeDgraphTypedNodes)
+            .toDF()
+
+        testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
       }
 
     }
@@ -890,6 +1069,38 @@ class TestNodeSource extends AnyFunSpec
         )
       }
 
+      lazy val expectedSubjectCounts = expectedWideNodes.toSeq.groupBy(_.getLong(0))
+        .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+      val subjectPartitioningTests = Seq(
+        ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+        ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+        ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+          () => expectedSubjectCounts.flatMap(row => row * row.getInt(1)) // all rows occur with cardinality of their count
+        ),
+        ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"title")),
+          () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1)) // each row occurs with row_number up to their cardinality
+        )
+      )
+
+      // NOTE: there is no partitioning for wide nodes that does not support subject partitioning
+      // describe("without subject partitioning") { ... }
+
+      describe("with subject partitioning") {
+        val withPartitioning = () =>
+          reader
+            .options(Map(
+              NodesModeOption -> NodesModeWideOption,
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "7",
+              UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption,
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.nodes(dgraph.target)
+            .transform(removeDgraphWideNodes)
+
+        testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+      }
+
     }
 
     it("should push filters for backticked columns") {
@@ -924,7 +1135,6 @@ class TestNodeSource extends AnyFunSpec
     }
 
   }
-
 }
 
 case class NodesSourceExpecteds(cluster: DgraphCluster) {

@@ -16,10 +16,13 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
-import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Partition, Schema}
+import uk.co.gresearch.spark.dgraph.connector.{ClusterState, GroupPartitionerOption, Partition, Schema}
 
 case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
   extends Partitioner with ClusterStateHelper {
+
+  override def configOption: String = GroupPartitionerOption
+
   override def getPartitions: Seq[Partition] =
     clusterState.groupMembers.map { case (group, alphas) =>
       (group, alphas, getGroupPredicates(clusterState, group, schema))
@@ -27,4 +30,7 @@ case class GroupPartitioner(schema: Schema, clusterState: ClusterState)
       val langs = predicates.filter(_.isLang).map(_.predicateName)
       Partition(alphas.toSeq).has(predicates).langs(langs)
     }.toSeq
+
+  override def getPartitionColumns: Option[Seq[String]] = Some(Seq("predicate"))
+
 }

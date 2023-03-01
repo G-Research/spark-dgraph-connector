@@ -19,6 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.{count, lit, row_number}
 import org.apache.spark.sql.types.LongType
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark._
@@ -27,21 +29,22 @@ import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import scala.reflect.runtime.universe._
 
-class TestEdgeSource extends AnyFunSpec
+class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
   with ConnectorSparkTestSession with DgraphTestCluster
   with FilterPushdownTestHelper
   with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
-  describe("EdgeDataSource") {
+  describe("EdgeSource") {
 
     lazy val expecteds = EdgesSourceExpecteds(dgraph)
-    lazy val expectedEdges = expecteds.getExpectedEdgeDf(spark).collect().toSet
+    lazy val expectedRows = expecteds.getExpectedEdgeDf(spark).collect().toSet
+    lazy val expectedEdges = expecteds.getExpectedEdges
 
     def doTestLoadEdges(load: () => DataFrame): Unit = {
       val edges = load().collect().toSet
-      assert(edges === expectedEdges)
+      assert(edges === expectedRows)
     }
 
     it("should load edges via path") {
@@ -134,11 +137,14 @@ class TestEdgeSource extends AnyFunSpec
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
-      assert(partitions === Seq(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid")))))
+      assert(partitions === Seq(
+        Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))).getAll)
+      )
     }
 
     it("should load as a predicate partitions") {
       val target = dgraph.target
+      val targets = Seq(Target(target))
       val partitions =
         reader
           .option(PartitionerOption, PredicatePartitionerOption)
@@ -150,11 +156,11 @@ class TestEdgeSource extends AnyFunSpec
             case _ => Seq.empty
           }
 
-      val expected = Seq(
-        Partition(Seq(Target(dgraph.target))).has(Set.empty, Set("director", "starring")).getAll
+      val expected = Set(
+        Partition(targets).has(Set.empty, Set("director", "starring")).getAll
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {
@@ -184,6 +190,7 @@ class TestEdgeSource extends AnyFunSpec
           PredicatePartitionerPredicatesOption -> "2"
         ))
         .dgraph.edges(dgraph.target)
+        .as[Edge]
     lazy val edgesSinglePredicatePerPartition =
       spark
         .read
@@ -192,24 +199,25 @@ class TestEdgeSource extends AnyFunSpec
           PredicatePartitionerPredicatesOption -> "1"
         ))
         .dgraph.edges(dgraph.target)
+        .as[Edge]
 
     it("should push subject filters") {
       doTestFilterPushDown(
         $"subject" === dgraph.leia,
         Set(SubjectIsIn(Uid(dgraph.leia))),
-        expectedDf = expectedEdges.filter(_.getLong(0) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.subject == dgraph.leia)
       )
 
       doTestFilterPushDown(
         $"subject".isin(dgraph.leia),
         Set(SubjectIsIn(Uid(dgraph.leia))),
-        expectedDf = expectedEdges.filter(_.getLong(0) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.subject == dgraph.leia)
       )
 
       doTestFilterPushDown(
         $"subject".isin(dgraph.leia, dgraph.luke),
         Set(SubjectIsIn(Uid(dgraph.leia), Uid(dgraph.luke))),
-        expectedDf = expectedEdges.filter(r => Set(dgraph.leia, dgraph.luke).contains(r.getLong(0)))
+        expecteds = expectedEdges.filter(r => Set(dgraph.leia, dgraph.luke).contains(r.subject))
       )
     }
 
@@ -217,19 +225,19 @@ class TestEdgeSource extends AnyFunSpec
       doTestFilterPushDown(
         $"predicate" === "director",
         Set(IntersectPredicateNameIsIn("director")),
-        expectedDf = expectedEdges.filter(_.getString(1) == "director")
+        expecteds = expectedEdges.filter(_.predicate == "director")
       )
 
       doTestFilterPushDown(
         $"predicate".isin("director"),
         Set(IntersectPredicateNameIsIn("director")),
-        expectedDf = expectedEdges.filter(_.getString(1) == "director")
+        expecteds = expectedEdges.filter(_.predicate == "director")
       )
 
       doTestFilterPushDown(
         $"predicate".isin("director", "starring"),
         Set(IntersectPredicateNameIsIn("director", "starring")),
-        expectedDf = expectedEdges.filter(r => Set("director", "starring").contains(r.getString(1)))
+        expecteds = expectedEdges.filter(r => Set("director", "starring").contains(r.predicate))
       )
     }
 
@@ -240,13 +248,13 @@ class TestEdgeSource extends AnyFunSpec
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(dgraph.leia))),
-        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.objectUid == dgraph.leia)
       )
       doTestFilterPushDownDf(
         edgesSinglePredicatePerPartition,
         $"objectUid" === dgraph.leia,
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
-        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.objectUid == dgraph.leia)
       )
 
       doTestFilterPushDownDf(
@@ -255,13 +263,13 @@ class TestEdgeSource extends AnyFunSpec
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("objectUid", LongType, nullable = true)(), Literal(dgraph.leia))),
-        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.objectUid == dgraph.leia)
       )
       doTestFilterPushDownDf(
         edgesSinglePredicatePerPartition,
         $"objectUid".isin(dgraph.leia),
         Set(ObjectValueIsIn(dgraph.leia), ObjectTypeIsIn("uid")),
-        expectedDs = expectedEdges.filter(_.getLong(2) == dgraph.leia)
+        expecteds = expectedEdges.filter(_.objectUid == dgraph.leia)
       )
 
       doTestFilterPushDownDf(
@@ -270,43 +278,158 @@ class TestEdgeSource extends AnyFunSpec
         Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(In(AttributeReference("objectUid", LongType, nullable = true)(), Seq(Literal(dgraph.leia), Literal(dgraph.lucas)))),
-        expectedDs = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
+        expecteds = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.objectUid))
       )
       doTestFilterPushDownDf(
         edgesSinglePredicatePerPartition,
         $"objectUid".isin(dgraph.leia, dgraph.lucas),
         Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
-        expectedDs = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
+        expecteds = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.objectUid))
       )
     }
 
-    def doTestFilterPushDown(condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
-      doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
+    def doTestFilterPushDown(condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expecteds: Set[Edge]): Unit = {
+      doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expecteds)
     }
 
     it("should not push projection") {
       doTestProjectionPushDownDf(
-        edges,
+        edges.toDF(),
         Seq($"subject", $"objectUid"),
         None,
-        expectedEdges.map(select(0, 2))
+        expectedRows.map(select(0, 2))
       )
 
       doTestProjectionPushDownDf(
-        edges,
+        edges.toDF(),
         Seq($"subject", $"predicate", $"objectUid"),
         None,
-        expectedEdges
+        expectedRows
       )
 
       doTestProjectionPushDownDf(
-        edges,
+        edges.toDF(),
         Seq.empty,
         None,
-        expectedEdges
+        expectedRows
       )
     }
 
+    lazy val expectedPredicateCounts = expectedEdges.toSeq.groupBy(_.predicate)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val predicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"predicate").distinct(), () => expectedPredicateCounts.map(row => Row(row.getString(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"predicate").count(), () => expectedPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"predicate", count(lit(1)) over Window.partitionBy($"predicate")),
+        () => expectedPredicateCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"predicate", row_number() over Window.partitionBy($"predicate").orderBy($"subject")),
+        () => expectedPredicateCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, predicatePartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectCounts = expectedEdges.toSeq.groupBy(_.subject)
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1, e._2))
+    val subjectPartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject").distinct(), () => expectedSubjectCounts.map(row => Row(row.getLong(0)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject").count(), () => expectedSubjectCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", count(lit(1)) over Window.partitionBy($"subject")),
+        () => expectedSubjectCounts.flatMap(row => row * row.getInt(1))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", row_number() over Window.partitionBy($"subject").orderBy($"predicate")),
+        () => expectedSubjectCounts.flatMap(row => row ++ row.getInt(1))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    describe("without subject partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, subjectPartitioningTests, shuffleExpected = true)
+    }
+
+    describe("with subject partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> UidRangePartitionerOption,
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, subjectPartitioningTests, shuffleExpected = false)
+    }
+
+    lazy val expectedSubjectAndPredicateCounts = expectedEdges.toSeq.groupBy(t => (t.subject, t.predicate))
+      .mapValues(_.length).toSeq.sortBy(_._1).map(e => Row(e._1._1, e._1._2, e._2))
+    val subjectAndPredicatePartitioningTests = Seq(
+      ("distinct", (df: DataFrame) => df.select($"subject", $"predicate").distinct(), () => expectedSubjectAndPredicateCounts.map(row => Row(row.getLong(0), row.getString(1)))),
+      ("groupBy", (df: DataFrame) => df.groupBy($"subject", $"predicate").count(), () => expectedSubjectAndPredicateCounts),
+      ("Window.partitionBy", (df: DataFrame) => df.select($"subject", $"predicate", count(lit(1)) over Window.partitionBy($"subject", $"predicate")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row * row.getInt(2))  // all rows occur with cardinality of their count
+      ),
+      ("Window.partitionBy.orderBy", (df: DataFrame) => df.select($"subject", $"predicate", row_number() over Window.partitionBy($"subject", $"predicate").orderBy($"objectUid")),
+        () => expectedSubjectAndPredicateCounts.flatMap(row => row ++ row.getInt(2))  // each row occurs with row_number up to their cardinality
+      )
+    )
+
+    // There is no partitioner that does not provide subject or predicate partitioning,
+    // but those support subject and predicate partitioning
+    // so we cannot test this without providing a test-specific partitioner that
+    // produces multiple partitions but withou subject or predicate partitioning.
+    // making that available as a data source would further require a test-specific source and more.
+    /**
+    describe("without subject and predicate partitioning") {
+      val withoutPartitioning = () =>
+        reader
+          .option(PartitionerOption, PredicatePartitionerOption)
+          .option(PredicatePartitionerPredicatesOption, "1")
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withoutPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = true)
+    }
+    **/
+
+    describe("with subject and predicate partitioning") {
+      val withPartitioning = () =>
+        reader
+          .options(Map(
+            PartitionerOption -> PredicateAndUidRangePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "1",
+            UidRangePartitionerUidsPerPartOption -> "2",
+            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+          ))
+          .dgraph.edges(dgraph.target)
+
+      testForShuffleExchange(withPartitioning, subjectAndPredicatePartitioningTests, shuffleExpected = false)
+    }
   }
 
 }

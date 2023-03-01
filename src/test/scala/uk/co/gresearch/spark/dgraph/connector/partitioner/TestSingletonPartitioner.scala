@@ -19,30 +19,48 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
+import java.util.UUID
+
 class TestSingletonPartitioner extends AnyFunSpec {
 
   describe("SingletonPartitioner") {
 
     val targets = Seq(Target("host1:9080"), Target("host2:9080"))
+    val predicates = Set(Predicate("pred", "type", "type"))
+
+    def getState(predicates: Set[Predicate]): ClusterState = ClusterState(
+      Map("1" -> targets.toSet),
+      Map("1" -> predicates.map(_.predicateName)),
+      10000,
+      UUID.randomUUID()
+    )
+
+    val schema = Schema(predicates)
+    val state = getState(predicates)
 
     it("should partition") {
-      val predicates = Set(Predicate("pred", "type", "type"))
-      val schema = Schema(predicates)
-      val partitioner = SingletonPartitioner(targets, schema)
+      val partitioner = SingletonPartitioner(schema, state)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets).has(predicates)))
+      assert(partitions.toSet === Set(Partition(targets).has(predicates).getAll))
+    }
+
+    it("should not partition by any column") {
+      val partitioner = SingletonPartitioner(schema, state)
+      assert(partitioner.getPartitionColumns === None)
     }
 
     it("should provide lang directives") {
       val predicates = Set(Predicate("pred1", "type1", "type1"), Predicate("pred2", "type2", "type2", isLang = true))
       val schema = Schema(predicates)
-      val partitioner = SingletonPartitioner(targets, schema)
+      val state = getState(predicates)
+
+      val partitioner = SingletonPartitioner(schema, state)
       val partitions = partitioner.getPartitions
 
       assert(partitions.length === 1)
-      assert(partitions.toSet === Set(Partition(targets).has(predicates).langs(Set("pred2"))))
+      assert(partitions.toSet === Set(Partition(targets).has(predicates).getAll.langs(Set("pred2"))))
     }
 
   }

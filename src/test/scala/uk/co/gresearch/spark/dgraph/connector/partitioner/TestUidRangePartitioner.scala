@@ -40,7 +40,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
       UUID.randomUUID()
     )
 
-    val singleton = SingletonPartitioner(Seq(Target("host1:9080"), Target("host2:9080"), Target("host3:9080")), schema)
+    val singleton = SingletonPartitioner(schema, clusterState)
     val group = GroupPartitioner(schema, clusterState)
     val alpha = AlphaPartitioner(schema, clusterState, 1)
     val pred = PredicatePartitioner(schema, clusterState, 1)
@@ -56,6 +56,17 @@ class TestUidRangePartitioner extends AnyFunSpec {
     val testSizes = Seq(2000, 5000)
 
     testPartitioners.foreach { case (partitioner, label) =>
+
+      it(s"should add subject partition column to $label partitioner") {
+        val uidPartitioner = UidRangePartitioner(partitioner, 10, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
+
+        assert(uidPartitioner.getPartitionColumns.isDefined)
+        if (partitioner.getPartitionColumns.isDefined)
+          assert(uidPartitioner.getPartitionColumns.get === partitioner.getPartitionColumns.get :+ "subject")
+        else
+          assert(uidPartitioner.getPartitionColumns === Some(Seq("subject")))
+      }
+
       testSizes.foreach { size =>
 
         it(s"should decorate $label partitioner with ${size} uids per partition") {
