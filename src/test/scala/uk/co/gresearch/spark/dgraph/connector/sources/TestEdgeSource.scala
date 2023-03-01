@@ -160,7 +160,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
         Partition(targets).has(Set.empty, Set("director", "starring")).getAll
       )
 
-      assert(partitions === expected)
+      assert(partitions.toSet === expected)
     }
 
     it("should partition data") {

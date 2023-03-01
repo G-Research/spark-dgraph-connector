@@ -444,7 +444,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => None
           }
-      assert(partitions.toSet === Seq(Partition(targets).has(predicates).getAll.langs(Set("title"))))
+      assert(partitions === Seq(Partition(targets).has(predicates).langs(Set("title")).getAll))
     }
 
     it("should load as predicate partitions") {
