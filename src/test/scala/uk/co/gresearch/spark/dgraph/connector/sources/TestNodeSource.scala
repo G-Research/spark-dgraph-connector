@@ -533,9 +533,10 @@ class TestNodeSource extends AnyFunSpec with ShuffleExchangeTests
           .dgraph.nodes(target)
           .rdd
           .partitions.flatMap {
-            case p: DataSourceRDDPartition => Some(p.inputPartition)
-            case _ => None
+            case p: DataSourceRDDPartition => p.inputPartitions
+            case _ => Seq.empty
           }
+          .toSet
 
       val properties = Set("dgraph.type", "name", "release_date", "revenue", "running_time", "title")
       val expected = Set(

@@ -1,6 +1,7 @@
 package uk.co.gresearch.spark.dgraph.connector
 
-import org.apache.spark.sql.connector.read.partitioning.{ClusteredDistribution, Distribution}
+import org.apache.spark.sql.connector.expressions.{NamedReference, Transform}
+import org.apache.spark.sql.connector.read.partitioning.KeyGroupedPartitioning
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.encoder.StringTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.{ExecutorProvider, JsonGraphQlExecutor}
@@ -30,33 +31,25 @@ class TestTripleScan extends AnyFunSpec {
 
   describe("TripleScan") {
     Seq(Seq("col"), Seq("col1", "col2"), Seq("col1", "col2", "col3")).foreach { clusterColumns =>
-      val scan = TripleScan(TestPartitioner(Seq(), Some(clusterColumns)), model)
+      val targets = Seq(Target("localhost:1234"))
+      val partitions = Seq(Partition(targets), Partition(targets))
+      val scan = TripleScan(TestPartitioner(partitions, Some(clusterColumns)), model)
       val partitioning = scan.outputPartitioning()
 
       describe(s"with [${clusterColumns.mkString(",")}]") {
-        it(s"should not satisfy unknown distribution") {
-          assert(partitioning.satisfy(new Distribution() {}) === false)
-        }
+        it("should report KeyGroupedPartitioning") {
+          assert(partitioning.isInstanceOf[KeyGroupedPartitioning])
+          val kgPartitioning = partitioning.asInstanceOf[KeyGroupedPartitioning]
 
-        it(s"should not satisfy clustered distribution with unknown column: [col0]") {
-          assert(partitioning.satisfy(new ClusteredDistribution(Seq("col0").toArray)) === false)
-        }
+          assert(kgPartitioning.numPartitions() === partitions.length)
+          assert(kgPartitioning.keys().length === clusterColumns.length)
+          assert(kgPartitioning.keys().forall(_.isInstanceOf[Transform]))
+          val args = kgPartitioning.keys().map(_.asInstanceOf[Transform].arguments())
 
-        if (clusterColumns.nonEmpty) {
-          it(s"should satisfy identical clustered distribution: ${clusterColumns.mkString(",")}") {
-            assert(partitioning.satisfy(new ClusteredDistribution(clusterColumns.toArray)))
-          }
-        }
-
-        val partitioningColumns = clusterColumns :+ "col0"
-        it(s"should satisfy clustered distribution with more columns: [${partitioningColumns.mkString(",")}]") {
-          assert(partitioning.satisfy(new ClusteredDistribution(partitioningColumns.toArray)))
-        }
-
-        it(s"should not satisfy partially overlapping clustered distribution: [${partitioningColumns.mkString(",")}]") {
-          val scan = TripleScan(TestPartitioner(Seq(), Some(partitioningColumns)), model)
-          val partitioning = scan.outputPartitioning()
-          assert(partitioning.satisfy(new ClusteredDistribution(("colX" +: clusterColumns).toArray)) === false)
+          assert(args.forall(_.forall(_.isInstanceOf[NamedReference])))
+          args.map(_.flatMap(_.asInstanceOf[NamedReference].fieldNames()))
+            .zip(clusterColumns)
+            .foreach { case (keys: Array[String], column: String) => assert(keys === Array(column)) }
         }
       }
 

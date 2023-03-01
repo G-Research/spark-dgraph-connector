@@ -30,6 +30,7 @@ trait SparkTestSession {
       .config("spark.driver.bindAddress", "127.0.0.1")
       .config("spark.sql.shuffle.partitions", 2)
       .config("spark.local.dir", ".")
+      .config("spark.sql.sources.v2.bucketing.enabled", "true")
       .getOrCreate()
   }
 

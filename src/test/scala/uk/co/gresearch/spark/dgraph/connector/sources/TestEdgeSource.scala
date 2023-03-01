@@ -154,6 +154,7 @@ class TestEdgeSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
+          .toSet
 
       val expected = Set(
         Partition(targets).has(Set.empty, Set("director", "starring")).getAll

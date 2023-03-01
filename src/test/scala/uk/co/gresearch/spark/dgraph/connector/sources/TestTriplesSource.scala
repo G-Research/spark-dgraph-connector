@@ -18,7 +18,10 @@ package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
+import org.apache.spark.sql.execution.exchange.EnsureRequirements
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{LongType, StringType}
@@ -457,6 +460,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
+          .toSet
 
       val targets = Seq(Target(dgraph.target))
       val expected = Set(
@@ -483,11 +487,12 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
+          .toSet
 
       val targets = Seq(Target(dgraph.target))
       val expected = Set(
-        Partition(targets).has(predicates).getAll.langs(Set("title")).range(1, 8),
-        Partition(targets).has(predicates).getAll.langs(Set("title")).range(8, 15),
+        Partition(targets).has(predicates).langs(Set("title")).getAll.range(1, 8),
+        Partition(targets).has(predicates).langs(Set("title")).getAll.range(8, 15),
       )
 
       assert(partitions === expected)
@@ -508,6 +513,7 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
             case p: DataSourceRDDPartition => p.inputPartitions
             case _ => Seq.empty
           }
+          .toSet
 
       val ranges = Seq(UidRange(Uid(1), Uid(6)), UidRange(Uid(6), Uid(11)), UidRange(Uid(11), Uid(16)))
 
@@ -880,6 +886,24 @@ class TestTriplesSource extends AnyFunSpec with ShuffleExchangeTests
           .transform(removeDgraphTriples)
 
       testForShuffleExchange(withoutPartitioning, predicatePartitioningTests, shuffleExpected = true)
+    }
+
+    it("should work") {
+      val df = reader
+        .option(PartitionerOption, PredicatePartitionerOption)
+        .option(PredicatePartitionerPredicatesOption, "2")
+        .dgraph.triples(dgraph.target)
+        .transform(removeDgraphTriples)
+
+      val expected = expectedPredicateCounts.map(row => Row(row.getString(0)))
+      val data = df.select($"predicate").distinct()
+      val plan = data.queryExecution.executedPlan
+
+      def enumerate(plan: SparkPlan): Seq[SparkPlan] =
+        plan +: plan.children.flatMap(enumerate)
+      val plans = enumerate(plan.asInstanceOf[AdaptiveSparkPlanExec].initialPlan)
+      assert(containsShuffleExchangeExec(plan) === false, plan)
+      assert(data.sort(data.columns.map(col): _*).collect() === expected)
     }
 
     describe("with predicate partitioning") {

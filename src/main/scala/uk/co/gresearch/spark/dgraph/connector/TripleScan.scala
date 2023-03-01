@@ -16,9 +16,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import org.apache.spark.sql.connector.expressions.{Expression, NamedReference, Transform}
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.connector.read.partitioning.{ClusteredDistribution, Distribution, Partitioning}
+import org.apache.spark.sql.connector.read.partitioning.{KeyGroupedPartitioning, Partitioning, UnknownPartitioning}
 import org.apache.spark.sql.types.StructType
+import uk.co.gresearch.spark.dgraph.connector.TripleScan.namedReference
 import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 
@@ -32,18 +34,31 @@ case class TripleScan(partitioner: Partitioner, model: GraphTableModel)
 
   private lazy val partitions: Array[InputPartition] = partitioner.getPartitions.toArray
 
+  private lazy val partitionKeys: Option[Array[Expression]] =
+    partitioner.getPartitionColumns.map(partitionColumns =>
+      partitionColumns.map(partitionColumn => namedReference(partitionColumn)).toArray
+    )
+
   override def planInputPartitions(): Array[InputPartition] = partitions
 
   override def createReaderFactory(): PartitionReaderFactory =
     TriplePartitionReaderFactory(model.withMetrics(AccumulatorPartitionMetrics()))
 
-  override def outputPartitioning(): Partitioning = new Partitioning {
-    def numPartitions: Int = partitions.length
+  override def outputPartitioning(): Partitioning =
+    partitionKeys.map(keys => new KeyGroupedPartitioning(keys, partitions.length))
+      .getOrElse(new UnknownPartitioning(partitions.length))
 
-    def satisfy(distribution: Distribution): Boolean = distribution match {
-      case c: ClusteredDistribution =>
-        partitioner.getPartitionColumns.exists(_.forall(c.clusteredColumns.contains))
-      case _ => false
+}
+
+object TripleScan {
+  def namedReference(columnName: String): Expression =
+    new Transform {
+      override def name(): String = "identity"
+
+      override def references(): Array[NamedReference] = Array.empty
+
+      override def arguments(): Array[Expression] = Array(new NamedReference {
+        override def fieldNames(): Array[String] = Array(columnName)
+      })
     }
-  }
 }
