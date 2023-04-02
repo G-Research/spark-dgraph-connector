@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.gson.JsonPrimitive
 import org.scalatest.funspec.AnyFunSpec
 
 import java.util.UUID
@@ -23,6 +24,21 @@ import java.util.UUID
 class TestClusterState extends AnyFunSpec {
 
   describe("ClusterState") {
+
+    it("should handle long maxLeaseIds") {
+      assert(ClusterState.getLongFromJson(new JsonPrimitive("1234")) === Some(1234))
+      assert(ClusterState.getLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Some(Long.MaxValue))
+    }
+
+    it("should handle too large maxLeaseIds") {
+      assert(ClusterState.getLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === None)
+      assert(ClusterState.getLongFromJson(new JsonPrimitive("18446055125930680484")) === None)
+    }
+
+    it("should handle too large non-numeric maxLeaseIds") {
+      assert(ClusterState.getLongFromJson(new JsonPrimitive("123e4")) === None)
+      // log WARN expected
+    }
 
     it("should handle un-prefixed predicates") {
       assert(ClusterState.getPredicateFromJsonString("predicate") === Some("predicate"))
@@ -145,6 +161,21 @@ class TestClusterState extends AnyFunSpec {
       ))
       assert(state.maxLeaseId === Some(10000))
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
+    }
+
+    it("should handle too large maxLeaseId") {
+      val json =
+        """{
+          |  "groups": {},
+          |  "zeros": {},
+          |  "maxLeaseId": "18446055125930680484",
+          |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+          |}
+          |""".stripMargin
+
+      val state = ClusterState.fromJson(Json(json))
+
+      assert(state.maxLeaseId === None)
     }
 
     it("should handle null predicate prefix") {

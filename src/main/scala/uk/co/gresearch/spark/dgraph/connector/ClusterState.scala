@@ -57,7 +57,7 @@ object ClusterState extends Logging {
       Some(n.getAsLong)
     } catch {
       case e: NumberFormatException =>
-        if (!n.isNumber) log.warn("Cannot parse as number", e)
+        try { n.getAsBigInteger } catch { case _: Throwable => log.warn("Cannot parse as number", e) }
         None
     }
   }
