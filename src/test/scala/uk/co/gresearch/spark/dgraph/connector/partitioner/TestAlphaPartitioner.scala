@@ -39,7 +39,7 @@ class TestAlphaPartitioner extends AnyFunSpec {
         "3" -> Set("pred5"),
         "4" -> Set("pred6", "pred7")
       ),
-      10000,
+      Some(10000),
       UUID.randomUUID()
     )
 

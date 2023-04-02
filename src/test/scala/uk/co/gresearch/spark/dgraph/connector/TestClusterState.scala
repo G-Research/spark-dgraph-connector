@@ -143,7 +143,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
         "2" -> Set("name", "release_date", "revenue")
       ))
-      assert(state.maxLeaseId === 10000)
+      assert(state.maxLeaseId === Some(10000))
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
 
@@ -292,7 +292,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director", "name")
       ))
-      assert(state.maxLeaseId === 10000)
+      assert(state.maxLeaseId === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
 
@@ -441,7 +441,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director")  // predicate name is ignored as it is not in the default namespace
       ))
-      assert(state.maxLeaseId === 10000)
+      assert(state.maxLeaseId === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
   }

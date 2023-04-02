@@ -53,15 +53,15 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
   }
 
   describe("MaxLeaseIdUidCardinalityEstimator") {
-    val estimator = MaxLeaseIdUidCardinalityEstimator(1234)
+    val estimator = MaxLeaseIdUidCardinalityEstimator(Some(1234))
     doTestUidCardinalityEstimatorBase(estimator, Some(1234))
 
     it("should fail on negative or zero max uids") {
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(-1)
+        UidCardinalityEstimator.forMaxLeaseId(Some(-1))
       }
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(0)
+        UidCardinalityEstimator.forMaxLeaseId(Some(0))
       }
     }
 

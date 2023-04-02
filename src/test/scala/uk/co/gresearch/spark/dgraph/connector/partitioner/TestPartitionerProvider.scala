@@ -31,7 +31,7 @@ class TestPartitionerProvider extends AnyFunSpec {
   val state: ClusterState = ClusterState(
     Map("1" -> target.toSet),
     Map("1" -> schema.predicates.map(_.predicateName)),
-    10000,
+    Some(10000),
     UUID.randomUUID()
   )
   val transaction: Option[Transaction] = Some(Transaction(TxnContext.newBuilder().build()))

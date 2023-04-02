@@ -37,7 +37,7 @@ class TestGroupPartitioner extends AnyFunSpec {
         "2" -> Set("pred1", "pred2", "pred3"),
         "3" -> Set("pred4")
       ),
-      10000,
+      Some(10000),
       UUID.randomUUID()
     )
 

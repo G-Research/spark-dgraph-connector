@@ -36,7 +36,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
         "1" -> Set("pred1"),
         "2" -> Set("pred2")
       ),
-      10000,
+      Some(10000),
       UUID.randomUUID()
     )
 
@@ -81,7 +81,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
     testPartitioners.foreach{ case (partitioner, label) =>
 
       it(s"should noop $label partitioner with too large uidsPerPartition") {
-        val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.toInt, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
+        val uidPartitioner = UidRangePartitioner(partitioner, clusterState.maxLeaseId.get.toInt, UidCardinalityEstimator.forMaxLeaseId(clusterState.maxLeaseId))
         assert(uidPartitioner.getPartitions === partitioner.getPartitions)
       }
 
@@ -89,26 +89,26 @@ class TestUidRangePartitioner extends AnyFunSpec {
 
     it("should fail on null partitioner") {
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(null, 1, UidCardinalityEstimator.forMaxLeaseId(1000))
+        UidRangePartitioner(null, 1, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       }
     }
 
     it("should fail with integer overflow partition size") {
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(singleton, 1, UidCardinalityEstimator.forMaxLeaseId(Long.MaxValue)).getPartitions
+        UidRangePartitioner(singleton, 1, UidCardinalityEstimator.forMaxLeaseId(Some(Long.MaxValue))).getPartitions
       }
     }
 
     it("should fail on decorating uid partitioner") {
-      val uidPartitioner = UidRangePartitioner(singleton, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val uidPartitioner = UidRangePartitioner(singleton, 2, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       assertThrows[IllegalArgumentException] {
-        UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(1000))
+        UidRangePartitioner(uidPartitioner, 1, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       }
     }
 
     it("should support what decorated partitioner supports") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)
-      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
 
       Seq[Set[Filter]](
         Set(SubjectIsIn(Uid("0x1"))),
@@ -130,7 +130,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
 
     it("should forward filters to decorated partitioner") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)
-      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       // deliberately not EmptyFilters here to test with our own instance
       val filters = Filters(Set.empty, Set.empty)
       val actual =
@@ -142,7 +142,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
 
     it("should forward projection to decorated partitioner") {
       val partitioner = PredicatePartitioner(schema, clusterState, 1)
-      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val uidPartitioner = UidRangePartitioner(partitioner, 2, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       val projection = schema.predicates.toSeq
       val actual =
         uidPartitioner.withProjection(projection)
@@ -156,7 +156,7 @@ class TestUidRangePartitioner extends AnyFunSpec {
       val langPreds = Set("pred2")
       val langSchema = Schema(schema.predicates.map(p => if (langPreds.contains(p.predicateName)) p.copy(isLang = true) else p))
       val partitioner = PredicatePartitioner(langSchema, clusterState, 5)
-      val uidPartitioner = UidRangePartitioner(partitioner, 500, UidCardinalityEstimator.forMaxLeaseId(1000))
+      val uidPartitioner = UidRangePartitioner(partitioner, 500, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       val partitions = uidPartitioner.getPartitions
       assert(partitions === Seq(
         Partition(Seq(Target("host1:9080"), Target("host2:9080"))).has(Set("pred1"), Set.empty).range(1, 501).getAll,

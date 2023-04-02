@@ -16,18 +16,17 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.gson.{Gson, JsonObject, JsonPrimitive}
+
 import java.util.UUID
-
-import com.google.gson.{Gson, JsonObject}
-
 import scala.collection.JavaConverters._
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
                         groupPredicates: Map[String, Set[String]],
-                        maxLeaseId: Long,
+                        maxLeaseId: Option[Long],
                         cid: UUID)
 
-object ClusterState {
+object ClusterState extends Logging {
 
   def fromJson(json: Json): ClusterState = {
     val root = new Gson().fromJson(json.string, classOf[JsonObject])
@@ -42,15 +41,25 @@ object ClusterState {
       .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
     val maxLeaseId = if (root.has("maxUID")) {
-      root.getAsJsonPrimitive("maxUID").getAsLong
+      getLongFromJson(root.getAsJsonPrimitive("maxUID"))
     } else if (root.has("maxLeaseId")) {
-      root.getAsJsonPrimitive("maxLeaseId").getAsLong
+      getLongFromJson(root.getAsJsonPrimitive("maxLeaseId"))
     } else {
-      1000L
+      Some(1000L)
     }
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
     ClusterState(groupMembers, groupPredicates, maxLeaseId, cid)
+  }
+
+  def getLongFromJson(n: JsonPrimitive): Option[Long] = {
+    try {
+      Some(n.getAsLong)
+    } catch {
+      case e: NumberFormatException =>
+        if (!n.isNumber) log.warn("Cannot parse as number", e)
+        None
+    }
   }
 
   def getMembersFromGroup(group: JsonObject): Set[String] =

@@ -37,7 +37,7 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       val actualPredicates = state.get.groupPredicates("1")
       val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
       assert(expectedPredicates.diff(actualPredicates) === Set.empty)
-      assert(state.get.maxLeaseId === 10000)
+      assert(state.get.maxLeaseId === Some(10000))
     }
 
     it("should retrieve cluster states") {
@@ -48,7 +48,7 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       val actualPredicates = state.groupPredicates("1")
       val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
       assert(actualPredicates === expectedPredicates)
-      assert(state.maxLeaseId === 10000)
+      assert(state.maxLeaseId === Some(10000))
     }
 
     it("should fail for unavailable cluster") {

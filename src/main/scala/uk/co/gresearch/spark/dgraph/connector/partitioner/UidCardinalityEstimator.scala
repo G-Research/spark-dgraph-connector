@@ -48,9 +48,9 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
 
 }
 
-case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Long) extends UidCardinalityEstimatorBase {
+case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[Long]) extends UidCardinalityEstimatorBase {
 
-  if (maxLeaseId <= 0)
+  if (maxLeaseId.exists(_ <= 0))
     throw new IllegalArgumentException(s"uidCardinality must be larger than zero: $maxLeaseId")
 
   /**
@@ -61,11 +61,11 @@ case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Long) extends UidCardin
    * @return estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[Long] =
-    super.uidCardinality(partition).orElse(Some(maxLeaseId))
+    super.uidCardinality(partition).orElse(maxLeaseId)
 
 }
 
 object UidCardinalityEstimator {
-  def forMaxLeaseId(maxLeaseId: Long): UidCardinalityEstimator =
+  def forMaxLeaseId(maxLeaseId: Option[Long]): UidCardinalityEstimator =
     MaxLeaseIdUidCardinalityEstimator(maxLeaseId)
 }
