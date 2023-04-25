@@ -60,21 +60,21 @@ jobs:
             "22.0.0", "22.0.1", "22.0.2"
         ]
         scala-compat-version: ["2.12"]
-      include:
-        - spark-compat-version: "3.2"
-          spark-version: "3.2.4"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
+        include:
+          - spark-compat-version: "3.2"
+            spark-version: "3.2.4"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
 
-        - spark-compat-version: "3.3"
-          spark-version: "3.3.2"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
+          - spark-compat-version: "3.3"
+            spark-version: "3.3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
 
-        - spark-compat-version: "3.4"
-          spark-version: "3.4.0"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.17"
+          - spark-compat-version: "3.4"
+            spark-version: "3.4.0"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.17"
 
     steps:
       - name: Checkout
@@ -103,43 +103,43 @@ jobs:
         ]
         dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
         scala-compat-version: ["2.12"]
-      include:
-        - spark-version: "3.2.0"
-          spark-compat-version: "3.2"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
-        - spark-version: "3.2.1"
-          spark-compat-version: "3.2"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
-        - spark-version: "3.2.2"
-          spark-compat-version: "3.2"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
-        - spark-version: "3.2.3"
-          spark-compat-version: "3.2"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
+        include:
+          - spark-version: "3.2.0"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.1"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.2"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.3"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
 
-        - spark-version: "3.3.0"
-          spark-compat-version: "3.3"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
-        - spark-version: "3.3.1"
-          spark-compat-version: "3.3"
-          scala-compat-version: "2.12"
-          scala-version: "2.12.15"
+          - spark-version: "3.3.0"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.3.1"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
 
-        - dgraph-minor-version: "20.03"
-          dgraph-version: "20.03.7"
-        - dgraph-minor-version: "20.07"
-          dgraph-version: "20.07.3"
-        - dgraph-minor-version: "20.11"
-          dgraph-version: "20.11.3"
-        - dgraph-minor-version: "21.12"
-          dgraph-version: "21.12.0"
-        - dgraph-minor-version: "22.0"
-          dgraph-version: "22.0.2"
+          - dgraph-minor-version: "20.03"
+            dgraph-version: "20.03.7"
+          - dgraph-minor-version: "20.07"
+            dgraph-version: "20.07.3"
+          - dgraph-minor-version: "20.11"
+            dgraph-version: "20.11.3"
+          - dgraph-minor-version: "21.12"
+            dgraph-version: "21.12.0"
+          - dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
 
     steps:
       - name: Checkout
@@ -164,24 +164,24 @@ jobs:
         spark-compat-version: ["3.2", "3.3", "3.4"]
         dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
         python-version: ["3.7", "3.8", "3.9"]
-      include:
-        - spark-compat-version: "3.2"
-          spark-version: "3.2.4"
-        - spark-compat-version: "3.3"
-          spark-version: "3.3.2"
-        - spark-compat-version: "3.4"
-          spark-version: "3.4.0"
+        include:
+          - spark-compat-version: "3.2"
+            spark-version: "3.2.4"
+          - spark-compat-version: "3.3"
+            spark-version: "3.3.2"
+          - spark-compat-version: "3.4"
+            spark-version: "3.4.0"
 
-        - dgraph-minor-version: "20.03"
-          dgraph-version: "20.03.7"
-        - dgraph-minor-version: "20.07"
-          dgraph-version: "20.07.3"
-        - dgraph-minor-version: "20.11"
-          dgraph-version: "20.11.3"
-        - dgraph-minor-version: "21.12"
-          dgraph-version: "21.12.0"
-        - dgraph-minor-version: "22.0"
-          dgraph-version: "22.0.2"
+          - dgraph-minor-version: "20.03"
+            dgraph-version: "20.03.7"
+          - dgraph-minor-version: "20.07"
+            dgraph-version: "20.07.3"
+          - dgraph-minor-version: "20.11"
+            dgraph-version: "20.11.3"
+          - dgraph-minor-version: "21.12"
+            dgraph-version: "21.12.0"
+          - dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
 
     steps:
       - name: Checkout
@@ -207,42 +207,42 @@ jobs:
         spark-compat-version: ["3.2", "3.3", "3.4"]
         dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
         scala-compat-version: ["2.12"]
-      include:
-        - spark-compat-version: '3.2'
-          spark-version: '3.2.4'
-          scala-compat-version: '2.12'
-          scala-version: '2.12.15'
-        - spark-compat-version: '3.3'
-          spark-version: '3.3.2'
-          scala-compat-version: '2.12'
-          scala-version: '2.12.15'
-        - spark-compat-version: '3.4'
-          spark-version: '3.4.0'
-          scala-compat-version: '2.12'
-          scala-version: '2.12.17'
+        include:
+          - spark-compat-version: '3.2'
+            spark-version: '3.2.4'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.15'
+          - spark-compat-version: '3.3'
+            spark-version: '3.3.2'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.15'
+          - spark-compat-version: '3.4'
+            spark-version: '3.4.0'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.17'
 
-        - dgraph-minor-version: "20.03"
-          dgraph-version: "20.03.7"
-        - dgraph-minor-version: "20.07"
-          dgraph-version: "20.07.3"
-        - dgraph-minor-version: "20.11"
-          dgraph-version: "20.11.3"
-        - dgraph-minor-version: "21.12"
-          dgraph-version: "21.12.0"
-        - dgraph-minor-version: "22.0"
-          dgraph-version: "22.0.2"
+          - dgraph-minor-version: "20.03"
+            dgraph-version: "20.03.7"
+          - dgraph-minor-version: "20.07"
+            dgraph-version: "20.07.3"
+          - dgraph-minor-version: "20.11"
+            dgraph-version: "20.11.3"
+          - dgraph-minor-version: "21.12"
+            dgraph-version: "21.12.0"
+          - dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Test
-      uses: ./.github/actions/test-integrate
-      with:
-        spark-version: ${{ matrix.spark-version }}
-        scala-version: ${{ matrix.scala-version }}
-        spark-compat-version: ${{ matrix.spark-compat-version }}
-        dgraph-version: ${{ matrix.dgraph-version }}
+      - name: Test
+        uses: ./.github/actions/test-integrate
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
 
   delete_binaries:
     name: "Delete Binaries"

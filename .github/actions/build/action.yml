@@ -16,41 +16,41 @@ inputs:
 runs:
   using: 'composite'
   steps:
-  - name: Set versions in pom.xml
-    run: |
-      ./set-version.sh ${{ inputs.spark-version }} ${{ inputs.scala-version }}
-      git diff
-    shell: bash
+    - name: Set versions in pom.xml
+      run: |
+        ./set-version.sh ${{ inputs.spark-version }} ${{ inputs.scala-version }}
+        git diff
+      shell: bash
 
-  - name: Cache Maven packages
-    uses: actions/cache@v3
-    with:
-      path: ~/.m2/repository
-      key: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-version }}-${{ hashFiles('pom.xml') }}
-      restore-keys: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-version }}-
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-version }}-${{ hashFiles('pom.xml') }}
+        restore-keys: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-version }}-
 
-  - name: Setup JDK 1.11
-    uses: actions/setup-java@v3
-    with:
-      java-version: '11'
-      distribution: 'zulu'
+    - name: Setup JDK 1.11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'zulu'
 
-  - name: Build
-    run: |
-      mvn --batch-mode --update-snapshots clean compile test-compile
-      mvn --batch-mode package -DskipTests -Dmaven.test.skip=true
-      mvn --batch-mode install -DskipTests -Dmaven.test.skip=true -Dgpg.skip
-    shell: bash
+    - name: Build
+      run: |
+        mvn --batch-mode --update-snapshots clean compile test-compile
+        mvn --batch-mode package -DskipTests -Dmaven.test.skip=true
+        mvn --batch-mode install -DskipTests -Dmaven.test.skip=true -Dgpg.skip
+      shell: bash
 
-  - name: Upload Binaries
-    uses: actions/upload-artifact@v3
-    with:
-      name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-version }}
-      path: |
-        *
-        !.*
-        !target/*-javadoc.jar
-        !target/site
+    - name: Upload Binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-version }}
+        path: |
+          *
+          !.*
+          !target/*-javadoc.jar
+          !target/site
 
 branding:
   icon: 'check-circle'
