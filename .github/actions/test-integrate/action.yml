@@ -1,0 +1,104 @@
+name: 'Test Integration'
+author: 'EnricoMi'
+description: 'A GitHub Action that tests spark-dgraph-connector integrating with Dgraph and Spark'
+
+inputs:
+  spark-version:
+    description: Spark version, e.g. 3.4.0 or 3.4.0-SNAPSHOT
+    required: true
+  scala-version:
+    description: Scala version, e.g. 2.12.15
+    required: true
+  spark-compat-version:
+    description: Spark compatibility version, e.g. 3.4
+    required: true
+  hadoop-version:
+    description: Hadoop version, e.g. 2.7 or 2
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch Binaries Artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-version }}
+        path: .
+
+    - name: Cache Maven packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-version }}-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-version }}-
+
+    - name: Cache Spark Binaries
+      uses: actions/cache@v3
+      with:
+        path: ~/spark
+        key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-version }}
+
+    - name: Setup Spark Binaries
+      env:
+        SPARK_PACKAGE: spark-${{ inputs.spark-version }}/spark-${{ inputs.spark-version }}-bin-hadoop${{ inputs.hadoop-version }}.tgz
+      run: |
+        if [[ ! -e ~/spark ]]
+        then
+          wget --progress=dot:giga "https://www.apache.org/dyn/closer.lua/spark/${SPARK_PACKAGE}?action=download" -O - | tar -xzC "${{ runner.temp }}"
+          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
+        fi
+      shell: bash
+
+    - name: Parametrize
+      id: params
+      run: |
+        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
+        echo "::set-output name=graphframes-version::$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
+        echo "::set-output name=home::$(cd ~; pwd)"
+      shell: bash
+
+    - name: Prepare Integration Tests
+      run: |
+        mvn --batch-mode install -DskipTests
+        cd examples/scala
+        mvn --batch-mode package
+        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
+        mvn --batch-mode dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
+        mvn --batch-mode dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
+        mvn --batch-mode dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
+        mvn --batch-mode dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.9
+        mvn --batch-mode dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
+      shell: bash
+
+    - name: Start Dgraph cluster
+      id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
+      run: |
+        cp -v dgraph-instance.*.sh /tmp/
+        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
+        sleep 10
+        if [[ "${{ inputs.dgraph-version }}" != "20.03."* ]]
+        then
+          /tmp/dgraph-instance.drop-all.sh
+        fi
+        /tmp/dgraph-instance.schema.sh
+        /tmp/dgraph-instance.insert.sh
+      shell: bash
+
+    - name: Integration Tests
+      env:
+        SPARK_LOCAL_IP: 127.0.0.1
+        SPARK_HOME: ${{ steps.params.outputs.home }}/spark
+        ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
+        VERSION: ${{ steps.params.outputs.version }}
+      # There is only a Spark 3.0 release of graphframes
+      run: |
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark3.0-s_${{ inputs.scala-compat-version }} --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
+
+branding:
+  icon: 'check-circle'
+  color: 'green'

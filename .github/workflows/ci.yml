@@ -10,322 +10,256 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Build (Spark ${{ matrix.spark-version }} Scala ${{ matrix.scala-version }})
     runs-on: ubuntu-latest
-    outputs:
-      spark-version: ${{ steps.params.outputs.spark-version }}
-      spark-compat-version: ${{ steps.params.outputs.spark-compat-version }}
-      spark-version-matrix: ${{ format('["{0}"]', steps.params.outputs.spark-version) }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - spark-compat-version: '3.2'
+            spark-version: '3.2.4'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.15'
+
+          - spark-compat-version: '3.3'
+            spark-version: '3.3.2'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.15'
+
+          - spark-compat-version: '3.4'
+            spark-version: '3.4.0'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.17'
 
     steps:
-      - name: Debug Action
-        uses: hmarr/debug-action@v2.0.1
-
-      - name: Debug
-        env:
-          REF: ${{ github.ref }}
-          HEAD_REF: ${{ github.head_ref }}
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          PR_GEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
-        run: |
-          echo "REF=$REF"
-          echo "HEAD_REF=$HEAD_REF"
-          echo "PR_HEAD_REF=$PR_HEAD_REF"
-          echo "PR_GEAD_REPO_FULL_NAME=$PR_GEAD_REPO_FULL_NAME"
-        shell: bash
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Parametrize Extraction
-        id: params-extract
-        run: |
-          echo "::set-output name=spark-version::$(grep --max-count=1 "<spark.version>.*</spark.version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-          echo "::set-output name=spark-compat-version::$(grep --max-count=1 "<spark.compat.version>.*</spark.compat.version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        shell: bash
-      - name: Parametrize
-        id: params
-        env:
-          SPARK_VERSION: ${{ steps.params-extract.outputs.spark-version }}
-          SPARK_COMPAT_VERSION: ${{ steps.params-extract.outputs.spark-compat-version }}
-        run: |
-          echo "::set-output name=spark-version::$(echo "$SPARK_VERSION" | sed "s/\${spark.compat.version}/$SPARK_COMPAT_VERSION/")"
-          echo "::set-output name=spark-compat-version::$SPARK_COMPAT_VERSION"
-        shell: bash
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-mvn-build-${{ steps.params.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-mvn-build-
-
-      - name: Setup JDK 1.11
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'zulu'
-
       - name: Build
-        run: mvn --batch-mode compile test-compile package -DskipTests
-
-      - name: Upload Binaries
-        uses: actions/upload-artifact@v2
+        uses: ./.github/actions/build
         with:
-          name: Binaries
-          retention-days: 1
-          path: |
-            .
-            !.git
-            !target/*-javadoc.jar
-            !target/site
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
 
-  test:
-    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
+  test-dgraph:
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-version }})
     runs-on: ubuntu-latest
     needs: build
 
     strategy:
       fail-fast: false
       matrix:
+        spark-compat-version: ["3.2", "3.3", "3.4"]
         dgraph-version: [
-          "20.03.4", "20.03.5", "20.03.6", "20.03.7",
-          "20.07.0", "20.07.1", "20.07.2", "20.07.3",
-          "20.11.0", "20.11.1", "20.11.2", "20.11.3",
-          "21.03.0", "21.03.1", "21.03.2", "21.12.0",
-          "22.0.0", "22.0.1", "22.0.2"
+            "20.03.4", "20.03.5", "20.03.6", "20.03.7",
+            "20.07.0", "20.07.1", "20.07.2", "20.07.3",
+            "20.11.0", "20.11.1", "20.11.2", "20.11.3",
+            "21.03.0", "21.03.1", "21.03.2", "21.12.0",
+            "22.0.0", "22.0.1", "22.0.2"
         ]
-        python-version: ["3.8"]
-        include:
-          - dgraph-version: "20.03.7"
-            python-version: "3.7"
-          - dgraph-version: "20.03.7"
-            python-version: "3.9"
+        scala-compat-version: ["2.12"]
+      include:
+        - spark-compat-version: "3.2"
+          spark-version: "3.2.4"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
 
-          - dgraph-version: "20.07.3"
-            python-version: "3.7"
-          - dgraph-version: "20.07.3"
-            python-version: "3.9"
+        - spark-compat-version: "3.3"
+          spark-version: "3.3.2"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
 
-          - dgraph-version: "20.11.3"
-            python-version: "3.7"
-          - dgraph-version: "20.11.3"
-            python-version: "3.9"
+        - spark-compat-version: "3.4"
+          spark-version: "3.4.0"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.17"
 
-          - dgraph-version: "21.03.2"
-            python-version: "3.7"
-          - dgraph-version: "21.03.2"
-            python-version: "3.9"
-
-          - dgraph-version: "21.12.0"
-            python-version: "3.7"
-          - dgraph-version: "21.12.0"
-            python-version: "3.9"
-
-          - dgraph-version: "22.0.2"
-            python-version: "3.7"
-          - dgraph-version: "22.0.2"
-            python-version: "3.9"
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Fetch Binaries Artifact
-      uses: actions/download-artifact@v3
-      with:
-        name: Binaries
-        path: .
+      - name: Test
+        uses: ./.github/actions/test-scala
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
 
-    - name: Cache Maven packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-test-${{ needs.build.outputs.spark-version }}-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-mvn-test-
+  test-spark:
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-version }})
+    runs-on: ubuntu-latest
+    needs: build
 
-    - name: Setup JDK 11
-      uses: actions/setup-java@v3
-      with:
-        java-version: '11'
-        distribution: 'zulu'
+    strategy:
+      fail-fast: false
+      matrix:
+        # latest spark versions tested in test-dgraph, not testes here again
+        spark-version: [
+            "3.2.0", "3.2.1", "3.2.2", "3.2.3",
+            "3.3.0", "3.3.1"
+        ]
+        dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
+        scala-compat-version: ["2.12"]
+      include:
+        - spark-version: "3.2.0"
+          spark-compat-version: "3.2"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
+        - spark-version: "3.2.1"
+          spark-compat-version: "3.2"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
+        - spark-version: "3.2.2"
+          spark-compat-version: "3.2"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
+        - spark-version: "3.2.3"
+          spark-compat-version: "3.2"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
 
-    - name: Start Dgraph cluster
-      id: dgraph
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-      run: |
-        cp -v dgraph-instance.*.sh /tmp/
-        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
-        sleep 10
-        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
-        then
-          /tmp/dgraph-instance.drop-all.sh
-        fi
-        /tmp/dgraph-instance.schema.sh
-        /tmp/dgraph-instance.insert.sh
-      shell: bash
+        - spark-version: "3.3.0"
+          spark-compat-version: "3.3"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
+        - spark-version: "3.3.1"
+          spark-compat-version: "3.3"
+          scala-compat-version: "2.12"
+          scala-version: "2.12.15"
 
-    - name: Scala Test
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-      run: mvn --batch-mode test
+        - dgraph-minor-version: "20.03"
+          dgraph-version: "20.03.7"
+        - dgraph-minor-version: "20.07"
+          dgraph-version: "20.07.3"
+        - dgraph-minor-version: "20.11"
+          dgraph-version: "20.11.3"
+        - dgraph-minor-version: "21.12"
+          dgraph-version: "21.12.0"
+        - dgraph-minor-version: "22.0"
+          dgraph-version: "22.0.2"
 
-    - name: Cache Pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-test-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-test-${{ matrix.python-version }}-
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Test
+        uses: ./.github/actions/test-scala
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r python/requirements.txt
-        pip install pytest
+  test-python:
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} Python ${{ matrix.python-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-version }})
+    runs-on: ubuntu-latest
+    needs: [test-dgraph, test-spark]
 
-    - name: Python Test
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-        PYTHONPATH: python:python/test
-      run: |
-        mkdir -p target/surefire-reports
-        python -m pytest python/test --junit-xml target/surefire-reports/pytest.xml
+    strategy:
+      fail-fast: false
+      matrix:
+        spark-compat-version: ["3.2", "3.3", "3.4"]
+        dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
+        python-version: ["3.7", "3.8", "3.9"]
+      include:
+        - spark-compat-version: "3.2"
+          spark-version: "3.2.4"
+        - spark-compat-version: "3.3"
+          spark-version: "3.3.2"
+        - spark-compat-version: "3.4"
+          spark-version: "3.4.0"
 
-    - name: Generate Unit Test Report
-      if: failure()
-      run: mvn --batch-mode surefire-report:report-only
+        - dgraph-minor-version: "20.03"
+          dgraph-version: "20.03.7"
+        - dgraph-minor-version: "20.07"
+          dgraph-version: "20.07.3"
+        - dgraph-minor-version: "20.11"
+          dgraph-version: "20.11.3"
+        - dgraph-minor-version: "21.12"
+          dgraph-version: "21.12.0"
+        - dgraph-minor-version: "22.0"
+          dgraph-version: "22.0.2"
 
-    - name: Upload Unit Test Results
-      if: always()
-      uses: actions/upload-artifact@v2
-      with:
-        name: Unit Test Results (Dgraph ${{ matrix.dgraph-version }} and Python ${{ matrix.python-version }})
-        path: |
-          target/surefire-reports/*.xml
-          !target/surefire-reports/TEST-org.scalatest*.xml
-          target/site/surefire-report.html
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-  integration:
+      - name: Test
+        uses: ./.github/actions/test-python
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
+          python-version: ${{ matrix.python-version }}
+
+  test-integration:
     name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test-dgraph, test-spark]
 
     strategy:
       fail-fast: false
       matrix:
-        spark-version: ${{ fromJSON(needs.build.outputs.spark-version-matrix) }}
-        dgraph-version: ["20.03.7", "20.07.3", "20.11.3", "21.03.2", "21.12.0", "22.0.2"]
-        include:
-          - spark-version: ${{ needs.build.outputs.spark-version }}
-            spark-compat-version: ${{ needs.build.outputs.spark-compat-version }}
+        spark-compat-version: ["3.2", "3.3", "3.4"]
+        dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0"]
+        scala-compat-version: ["2.12"]
+      include:
+        - spark-compat-version: '3.2'
+          spark-version: '3.2.4'
+          scala-compat-version: '2.12'
+          scala-version: '2.12.15'
+        - spark-compat-version: '3.3'
+          spark-version: '3.3.2'
+          scala-compat-version: '2.12'
+          scala-version: '2.12.15'
+        - spark-compat-version: '3.4'
+          spark-version: '3.4.0'
+          scala-compat-version: '2.12'
+          scala-version: '2.12.17'
+
+        - dgraph-minor-version: "20.03"
+          dgraph-version: "20.03.7"
+        - dgraph-minor-version: "20.07"
+          dgraph-version: "20.07.3"
+        - dgraph-minor-version: "20.11"
+          dgraph-version: "20.11.3"
+        - dgraph-minor-version: "21.12"
+          dgraph-version: "21.12.0"
+        - dgraph-minor-version: "22.0"
+          dgraph-version: "22.0.2"
 
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Fetch Binaries Artifact
-      uses: actions/download-artifact@v3
+    - name: Test
+      uses: ./.github/actions/test-integrate
       with:
-        name: Binaries
-        path: .
-
-    - name: Cache Maven packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-integration-${{ matrix.spark-version }}-${{ hashFiles('**/pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-mvn-integration-
-
-    - name: Cache Spark Binaries
-      uses: actions/cache@v3
-      with:
-        path: ~/spark
-        key: ${{ runner.os }}-spark-binaries-${{ matrix.spark-version }}
-
-    - name: Setup Spark Binaries
-      env:
-        SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop2.tgz
-      run: |
-        if [[ ! -e ~/spark ]]
-        then
-          wget --progress=dot:giga "https://www.apache.org/dyn/closer.lua/spark/${SPARK_PACKAGE}?action=download" -O - | tar -xzC "${{ runner.temp }}"
-          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
-        fi
-      shell: bash
-
-    - name: Parametrize
-      id: params
-      run: |
-        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=graphframes-version::$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
-        echo "::set-output name=home::$(cd ~; pwd)"
-      shell: bash
-
-    - name: Prepare Integration Tests
-      run: |
-        mvn --batch-mode install -DskipTests
-        cd examples/scala
-        mvn --batch-mode package
-        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
-        mvn --batch-mode dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
-        mvn --batch-mode dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
-        mvn --batch-mode dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
-        mvn --batch-mode dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.9
-        mvn --batch-mode dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
-      shell: bash
-
-    - name: Start Dgraph cluster
-      id: dgraph
-      env:
-        DGRAPH_TEST_CLUSTER_VERSION: ${{ matrix.dgraph-version }}
-      run: |
-        cp -v dgraph-instance.*.sh /tmp/
-        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
-        sleep 10
-        if [[ "${{ matrix.dgraph-version }}" != "20.03."* ]]
-        then
-          /tmp/dgraph-instance.drop-all.sh
-        fi
-        /tmp/dgraph-instance.schema.sh
-        /tmp/dgraph-instance.insert.sh
-      shell: bash
-
-    - name: Integration Tests
-      env:
-        SPARK_LOCAL_IP: 127.0.0.1
-        SPARK_HOME: ${{ steps.params.outputs.home }}/spark
-        ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
-        VERSION: ${{ steps.params.outputs.version }}
-      # There is no Spark 3.2 release of graphframes yet, so we use Spark 3.0 for now
-      run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark3.0-s_2.12 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
-      shell: bash
+        spark-version: ${{ matrix.spark-version }}
+        scala-version: ${{ matrix.scala-version }}
+        spark-compat-version: ${{ matrix.spark-compat-version }}
+        dgraph-version: ${{ matrix.dgraph-version }}
 
   delete_binaries:
     name: "Delete Binaries"
     runs-on: ubuntu-latest
-    needs: [test, integration]
+    needs: [test-dgraph, test-spark, test-python, test-integration]
     steps:
       - name: Delete Binaries Artifact
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v2
         with:
-          name: Binaries
+          name: "Binaries-*"
 
   event_file:
     name: "Event File"
     runs-on: ubuntu-latest
     steps:
       - name: Upload
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Event File
           path: ${{ github.event_path }}
