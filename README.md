@@ -82,9 +82,6 @@ The connector has the following known limitations:
 The Spark Dgraph Connector is available for Spark 3.0, Spark 3.1, Spark 3.2 and Spark 3.3, all with Scala 2.12.
 Use Maven artifact ID `spark-dgraph-connector_2.12`. The Spark version is part of the package version,
 i.e. 0.9.0-3.0, 0.9.0-3.1, 0.9.0-3.2 and 0.9.0-3.3, respectively.
-Minor versions are kept in sync between those packages,
-such that identical minor versions contain identical feature sets
-(where supported by the respective Spark version).
 
 ### SBT
 
