@@ -41,8 +41,11 @@ runs:
       uses: actions/cache@v3
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
-        restore-keys: ${{ runner.os }}-mvn-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
+        key: ${{ runner.os }}-mvn-python-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-mvn-python-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
+          ${{ runner.os }}-mvn-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
+          ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Setup JDK 11
       uses: actions/setup-java@v3

@@ -44,6 +44,7 @@ runs:
         key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
           ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
+          ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Cache Spark Binaries
       uses: actions/cache@v3
