@@ -56,7 +56,7 @@ runs:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
       run: |
         cp -v dgraph-instance.*.sh /tmp/
-        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
+        echo "docker=$(/tmp/dgraph-instance.background.sh)" >> $GITHUB_OUTPUT
         sleep 10
         if [[ "${{ inputs.dgraph-version }}" != "20.03."* ]]
         then

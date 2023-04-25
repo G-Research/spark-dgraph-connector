@@ -56,10 +56,10 @@ runs:
     - name: Parametrize
       id: params
       run: |
-        echo "::set-output name=artifact-id::$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=version::$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")"
-        echo "::set-output name=graphframes-version::$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")"
-        echo "::set-output name=home::$(cd ~; pwd)"
+        echo "artifact-id=$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")" >> $GITHUB_OUTPUT
+        echo "version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")" >> $GITHUB_OUTPUT
+        echo "graphframes-version=$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")" >> $GITHUB_OUTPUT
+        echo "home=$(cd ~; pwd)" >> $GITHUB_OUTPUT
       shell: bash
 
     - name: Prepare Integration Tests
@@ -81,7 +81,7 @@ runs:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
       run: |
         cp -v dgraph-instance.*.sh /tmp/
-        echo "::set-output name=docker::$(/tmp/dgraph-instance.background.sh)"
+        echo "docker=$(/tmp/dgraph-instance.background.sh)" >> $GITHUB_OUTPUT
         sleep 10
         if [[ "${{ inputs.dgraph-version }}" != "20.03."* ]]
         then
