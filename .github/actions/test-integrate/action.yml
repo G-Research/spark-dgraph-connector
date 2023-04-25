@@ -12,6 +12,9 @@ inputs:
   spark-compat-version:
     description: Spark compatibility version, e.g. 3.4
     required: true
+  scala-compat-version:
+    description: Scala compatibility version, e.g. 2.12
+    required: true
   hadoop-version:
     description: Hadoop version, e.g. 2.7 or 2
     required: true
@@ -22,22 +25,22 @@ runs:
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v3
       with:
-        name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-version }}
+        name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: .
 
     - name: Cache Maven packages
       uses: actions/cache@v3
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-version }}-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-version }}-
+          ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Cache Spark Binaries
       uses: actions/cache@v3
       with:
         path: ~/spark
-        key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-version }}
+        key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}
 
     - name: Setup Spark Binaries
       env:
