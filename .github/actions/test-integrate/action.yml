@@ -25,6 +25,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Set versions in pom.xml
+      run: |
+        ./set-version.sh ${{ inputs.spark-version }} ${{ inputs.scala-version }}
+        git diff
+      shell: bash
+
     - name: Fetch Binaries Artifact
       uses: actions/download-artifact@v3
       with:
