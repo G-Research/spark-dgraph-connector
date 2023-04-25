@@ -184,6 +184,24 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>com.coderplus.maven.plugins</groupId>
+        <artifactId>copy-rename-maven-plugin</artifactId>
+        <version>1.0.1</version>
+        <executions>
+          <execution>
+            <id>provide-requirements-txt</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <sourceFile>${project.basedir}/python/requirements-${spark.compat.version}.txt</sourceFile>
+              <destinationFile>${project.basedir}/python/requirements.txt</destinationFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
         <version>2.15.2</version>
