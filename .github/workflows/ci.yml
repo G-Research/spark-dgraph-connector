@@ -208,7 +208,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
   test-integration:
-    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }})
+    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
     runs-on: ubuntu-latest
     needs: [test-dgraph, test-spark]
 

@@ -32,6 +32,14 @@ then
         -e "s%^(    <spark.compat.version>).+(</spark.compat.version>)$%\1${spark_compat}\2%" \
         -e "s%^(    <spark.version>\\\$\{spark.compat.version\}.).+(</spark.version>)$%\1$spark_patch\2%" \
         pom.xml
+    sed -i -E \
+        -e "s%^(  <artifactId>)([^_]+)[_0-9.]+(</artifactId>)$%\1\2_${scala_compat}\3%" \
+        -e "s%^(  <version>)([^-]+)-[^-]+(.*</version>)$%\1\2-$spark_compat\3%" \
+        -e "s%^(    <scala.compat.version>).+(</scala.compat.version>)$%\1${scala_compat}\2%" \
+        -e "s%^(    <scala.version>\\\$\{scala.compat.version\}.).+(</scala.version>)$%\1$scala_patch\2%" \
+        -e "s%^(    <spark.compat.version>).+(</spark.compat.version>)$%\1${spark_compat}\2%" \
+        -e "s%^(    <spark.version>\\\$\{spark.compat.version\}.).+(</spark.version>)$%\1$spark_patch\2%" \
+        examples/scala/pom.xml
 
     version=$(grep -m 1 version pom.xml | sed "s/\s*<[^>]*>\s*//g")
 else
