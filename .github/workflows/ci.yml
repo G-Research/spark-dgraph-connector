@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - 'spark-*'
+      - 'main'
     tags:
       - '*'
   pull_request:
