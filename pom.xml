@@ -18,7 +18,6 @@
     <connection>scm:git:git://github.com/g-research/spark-dgraph-connector.git</connection>
     <developerConnection>scm:git:ssh://github.com:g-research/spark-dgraph-connector.git</developerConnection>
     <url>https://github.com/g-research/spark-dgraph-connector/tree/${project.scm.tag}</url>
-    <tag>spark-3.3</tag>
   </scm>
   <developers>
     <developer>
@@ -44,12 +43,24 @@
     <spark.version>${spark.compat.version}.0</spark.version>
   </properties>
 
-  <!-- required to resolve GraphFrames dependency -->
   <repositories>
+    <!-- required to resolve GraphFrames dependency -->
     <repository>
-      <id>spark-packages</id>
+      <id>spark packages</id>
       <name>Spark Packages</name>
       <url>https://repos.spark-packages.org</url>
+    </repository>
+    <!-- the official source for Spark releases, mirrored to Maven central -->
+    <repository>
+      <id>apache releases</id>
+      <name>Apache Releases</name>
+      <url>https://repository.apache.org/content/repositories/releases/</url>
+    </repository>
+    <!-- required to resolve Spark SNAPSHOT dependencies -->
+    <repository>
+      <id>apache snapshots</id>
+      <name>Apache Snapshots</name>
+      <url>https://repository.apache.org/snapshots</url>
     </repository>
   </repositories>
 
@@ -84,7 +95,7 @@
     <dependency>
       <groupId>graphframes</groupId>
       <artifactId>graphframes</artifactId>
-      <!-- no Spark 3.3 release for graphframes yet -->
+      <!-- latest release is Spark 3.0 -->
       <version>0.8.1-spark3.0-s_${scala.compat.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -154,6 +165,42 @@
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/test/scala-spark-${spark.compat.version}</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.coderplus.maven.plugins</groupId>
+        <artifactId>copy-rename-maven-plugin</artifactId>
+        <version>1.0.1</version>
+        <executions>
+          <execution>
+            <id>provide-requirements-txt</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <sourceFile>${project.basedir}/python/requirements-${spark.compat.version}.txt</sourceFile>
+              <destinationFile>${project.basedir}/python/requirements.txt</destinationFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>

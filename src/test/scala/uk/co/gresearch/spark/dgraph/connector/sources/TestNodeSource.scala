@@ -23,6 +23,7 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.scalatest.funspec.AnyFunSpec
+import uk.co.gresearch.spark._
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
