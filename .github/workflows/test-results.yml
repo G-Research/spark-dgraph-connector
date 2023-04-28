@@ -17,6 +17,8 @@ jobs:
         uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
         with:
           run_id: ${{ github.event.workflow_run.id }}
+          name: "Unit Test Results |Event File"
+          name_is_regexp: true
           path: artifacts
 
       - name: Publish Test Results
