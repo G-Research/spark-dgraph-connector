@@ -53,7 +53,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
       assert(row.numFields === 11)
       assert(row.getLong(0) === 1)
       assert(row.getString(1) === "predicate")
-      if (encType == "uid") assert(row.getLong(2) === value.asInstanceOf[Uid].uid) else assert(row.get(2, StringType) === null)
+      if (encType == "uid") assert(row.getLong(2) === value.asInstanceOf[Uid].uid.longValue()) else assert(row.get(2, StringType) === null)
       if (encType == "string" || encType == "default") assert(row.getUTF8String(3).toString === value.toString) else assert(row.get(3, StringType) === null)
       if (encType == "int") assert(row.getLong(4) === value) else assert(row.get(4, StringType) === null)
       if (encType == "float") assert(row.getDouble(5) === value) else assert(row.get(5, StringType) === null)

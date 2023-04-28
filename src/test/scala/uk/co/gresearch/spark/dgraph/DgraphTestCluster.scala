@@ -145,7 +145,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
     }
 
     val uid = attempt(1, 30)
-    Map("dgraph.graphql.schema" -> uid.uid)
+    Map("dgraph.graphql.schema" -> uid.uid.longValue())
   }
 
   case class TestEncoder() extends JsonNodeInternalRowEncoder with NoColumnInfo {
@@ -438,7 +438,7 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
       .getAsJsonObject("data")
       .getAsJsonObject("uids")
       .entrySet().asScala
-      .map(e => e.getKey -> Uid(e.getValue.getAsString).uid)
+      .map(e => e.getKey -> Uid(e.getValue.getAsString).uid.longValue())
       .toMap
 
     assert(map.keys.toSet == Set(

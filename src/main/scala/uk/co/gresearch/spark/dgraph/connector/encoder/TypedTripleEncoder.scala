@@ -74,7 +74,7 @@ case class TypedTripleEncoder(predicates: Map[String, Predicate])
 
     // order has to align with TypedTriple
     val valuesWithoutObject = Seq(
-      s.uid,
+      s.uid.longValue(),
       UTF8String.fromString(p),
       null, // uid
       null, // string
@@ -90,7 +90,7 @@ case class TypedTripleEncoder(predicates: Map[String, Predicate])
     // order has to align with TypedTriple
     val (objectValueIndex, objectValue) =
       objectType match {
-        case "uid" => (2, o.asInstanceOf[Uid].uid)
+        case "uid" => (2, o.asInstanceOf[Uid].uid.longValue())
         case "string" => (3, UTF8String.fromString(o.asInstanceOf[String]))
         case "long" => (4, o)
         case "double" => (5, o)

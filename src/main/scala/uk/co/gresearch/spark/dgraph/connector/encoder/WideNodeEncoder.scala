@@ -117,7 +117,7 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
           case (Some(p), Some(t), o) =>
             val obj = getValue(o, t)
             val objectValue = t match {
-              case "subject" => obj.asInstanceOf[Uid].uid
+              case "subject" => obj.asInstanceOf[Uid].uid.longValue()
               case "string" => UTF8String.fromString(obj.asInstanceOf[String])
               case "int" => obj
               case "float" => obj

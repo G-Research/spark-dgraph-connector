@@ -16,6 +16,8 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.common.primitives.UnsignedLong
+
 /**
  * Operator for PartitionQuery.
  */
@@ -64,7 +66,7 @@ case class Uids(uids: Set[Uid]) extends Operator
 case class UidRange(first: Uid, until: Uid) extends Operator {
   if (first >= until)
     throw new IllegalArgumentException(s"UidRange first uid (is $first) must be before until (is $until)")
-  def length: Long = until.uid - first.uid
+  def length: UnsignedLong = until.uid.minus(first.uid)
 }
 
 /**
