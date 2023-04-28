@@ -193,10 +193,10 @@ package object connector {
   val UidRangePartitionerMaxPartsOption: String = "dgraph.partitioner.uidRange.maxPartitions"
   val UidRangePartitionerMaxPartsDefault: Int = 10000
   val UidRangePartitionerEstimatorOption: String = "dgraph.partitioner.uidRange.estimator"
-  val MaxLeaseIdEstimatorOption: String = "maxLeaseId"
-  val UidRangePartitionerEstimatorDefault: String = MaxLeaseIdEstimatorOption
+  val MaxUidEstimatorOption: String = "maxUid"
+  val UidRangePartitionerEstimatorDefault: String = MaxUidEstimatorOption
   // for testing purposes only
-  val MaxLeaseIdEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxLeaseIdEstimatorOption.id"
+  val MaxUidEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxUidEstimatorOption.id"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 

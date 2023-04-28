@@ -25,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
                         groupPredicates: Map[String, Set[String]],
-                        maxLeaseId: Option[UnsignedLong],
+                        maxUid: Option[UnsignedLong],
                         cid: UUID)
 
 object ClusterState extends Logging {
@@ -44,7 +44,7 @@ object ClusterState extends Logging {
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
-    val maxLeaseId = (if (root.has("maxUID")) {
+    val maxUid = (if (root.has("maxUID")) {
       getUnsignedLongFromJson(root.getAsJsonPrimitive("maxUID"))
     } else if (root.has("maxLeaseId")) {
       getUnsignedLongFromJson(root.getAsJsonPrimitive("maxLeaseId"))
@@ -53,16 +53,16 @@ object ClusterState extends Logging {
     }) match {
       case Success(value) => Some(value)
       case Failure(exception) =>
-        log.error("Failed to retrieve maxLeaseId from cluster state", exception)
+        log.error("Failed to retrieve maxUID from cluster state", exception)
         None
     }
 
-    if (maxLeaseId.exists(_.compareTo(UnsignedLong.ZERO) < 0)) {
-      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxLeaseId.get.toString}")
+    if (maxUid.exists(_.compareTo(UnsignedLong.ZERO) < 0)) {
+      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxUid.get}")
     }
-    val positiveMaxLeaseId = maxLeaseId.filter(_.compareTo(UnsignedLong.ZERO) >= 0)
+    val positiveMaxUID = maxUid.filter(_.compareTo(UnsignedLong.ZERO) >= 0)
 
-    ClusterState(groupMembers, groupPredicates, positiveMaxLeaseId, cid)
+    ClusterState(groupMembers, groupPredicates, positiveMaxUID, cid)
   }
 
   def getUnsignedLongFromJson(n: JsonPrimitive): Try[UnsignedLong] = {
