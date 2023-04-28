@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
@@ -71,13 +72,13 @@ class TestPredicatePartitioner extends AnyFunSpec {
         "3" -> Set("pred4", "pred5"),
         "4" -> Set("pred6")
       ),
-      10000,
+      Some(UnsignedLong.valueOf(10000)),
       UUID.randomUUID()
     )
     val simpleClusterState = ClusterState(
       Map("1" -> Set(Target("host1:9080"), Target("host2:9080"), Target("host3:9080"))),
       Map("1" -> Set("pred1", "pred2", "pred3", "pred4", "pred5", "pred6")),
-      10000,
+      Some(UnsignedLong.valueOf(10000)),
       UUID.randomUUID()
     )
 

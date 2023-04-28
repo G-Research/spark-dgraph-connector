@@ -16,18 +16,19 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.common.primitives.UnsignedLong
+import com.google.gson.{Gson, JsonObject, JsonPrimitive}
+
 import java.util.UUID
-
-import com.google.gson.{Gson, JsonObject}
-
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
                         groupPredicates: Map[String, Set[String]],
-                        maxLeaseId: Long,
+                        maxLeaseId: Option[UnsignedLong],
                         cid: UUID)
 
-object ClusterState {
+object ClusterState extends Logging {
 
   def fromJson(json: Json): ClusterState = {
     val root = new Gson().fromJson(json.string, classOf[JsonObject])
@@ -41,16 +42,31 @@ object ClusterState {
     val groupMembers = groupMap.mapValues(getMembersFromGroup)
       .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
-    val maxLeaseId = if (root.has("maxUID")) {
-      root.getAsJsonPrimitive("maxUID").getAsLong
-    } else if (root.has("maxLeaseId")) {
-      root.getAsJsonPrimitive("maxLeaseId").getAsLong
-    } else {
-      1000L
-    }
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
-    ClusterState(groupMembers, groupPredicates, maxLeaseId, cid)
+    val maxLeaseId = (if (root.has("maxUID")) {
+      getUnsignedLongFromJson(root.getAsJsonPrimitive("maxUID"))
+    } else if (root.has("maxLeaseId")) {
+      getUnsignedLongFromJson(root.getAsJsonPrimitive("maxLeaseId"))
+    } else {
+      Failure(new IllegalArgumentException("Cluster state does not contain maxLeaseId or maxUID, this disables uid range partitioning"))
+    }) match {
+      case Success(value) => Some(value)
+      case Failure(exception) =>
+        log.error("Failed to retrieve maxLeaseId from cluster state", exception)
+        None
+    }
+
+    if (maxLeaseId.exists(_.compareTo(UnsignedLong.ZERO) < 0)) {
+      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxLeaseId.get.toString}")
+    }
+    val positiveMaxLeaseId = maxLeaseId.filter(_.compareTo(UnsignedLong.ZERO) >= 0)
+
+    ClusterState(groupMembers, groupPredicates, positiveMaxLeaseId, cid)
+  }
+
+  def getUnsignedLongFromJson(n: JsonPrimitive): Try[UnsignedLong] = {
+    Try(n.getAsString).map(UnsignedLong.valueOf)
   }
 
   def getMembersFromGroup(group: JsonObject): Set[String] =

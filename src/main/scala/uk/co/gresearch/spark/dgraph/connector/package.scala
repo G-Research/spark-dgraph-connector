@@ -190,6 +190,8 @@ package object connector {
   val PredicatePartitionerPredicatesDefault: Int = 1000
   val UidRangePartitionerUidsPerPartOption: String = "dgraph.partitioner.uidRange.uidsPerPartition"
   val UidRangePartitionerUidsPerPartDefault: Int = 1000000
+  val UidRangePartitionerMaxPartsOption: String = "dgraph.partitioner.uidRange.maxPartitions"
+  val UidRangePartitionerMaxPartsDefault: Int = 10000
   val UidRangePartitionerEstimatorOption: String = "dgraph.partitioner.uidRange.estimator"
   val MaxLeaseIdEstimatorOption: String = "maxLeaseId"
   val UidRangePartitionerEstimatorDefault: String = MaxLeaseIdEstimatorOption

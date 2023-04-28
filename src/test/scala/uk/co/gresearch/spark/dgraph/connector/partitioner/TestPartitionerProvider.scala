@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
@@ -31,7 +32,7 @@ class TestPartitionerProvider extends AnyFunSpec {
   val state: ClusterState = ClusterState(
     Map("1" -> target.toSet),
     Map("1" -> schema.predicates.map(_.predicateName)),
-    10000,
+    Some(UnsignedLong.valueOf(10000)),
     UUID.randomUUID()
   )
   val transaction: Option[Transaction] = Some(Transaction(TxnContext.newBuilder().build()))
@@ -44,7 +45,7 @@ class TestPartitionerProvider extends AnyFunSpec {
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
+    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
 
     Seq(
       ("singleton", singleton),
@@ -74,7 +75,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
+      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
       assert(partitioner === expected)
     }
 
@@ -84,13 +85,14 @@ class TestPartitionerProvider extends AnyFunSpec {
         Map(
           PredicatePartitionerPredicatesOption -> "1",
           UidRangePartitionerUidsPerPartOption -> "2",
+          UidRangePartitionerMaxPartsOption -> "3",
           UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption
         ).asJava
       )
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, 1)
-      val expected = UidRangePartitioner(predicatePart, 2, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId))
+      val expected = UidRangePartitioner(predicatePart, 2, 3, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId))
       assert(partitioner === expected)
     }
 

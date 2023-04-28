@@ -621,8 +621,9 @@ The number of uids of each underlying partition has to be estimated. Once the nu
 the partition is further split into ranges of that uid space.
 
 The space of existing `uids` is split into ranges of `N` `uids` per partition. The `N` defaults to `1000000`
-and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to
-partitions in ascending order. If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
+and can be configured via `dgraph.partitioner.uidRange.uidsPerPartition`. The `uid`s are allocated to partitions in ascending order.
+Such a split will not be done if more than `dgraph.partitioner.uidRange.maxPartitions` partitions would be created. This defaults to `10000`.
+If vertex size is skewed and a function of `uid`, then partitions will be skewed as well.
 
 Note: With uid partitioning, the chunk size configured via `dgraph.chunkSize` should be at least a 10th of
 the number of uids per partition configured via `dgraph.partitioner.uidRange.uidsPerPartition` to avoid

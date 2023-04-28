@@ -47,11 +47,12 @@ class ConfigPartitionerOption extends PartitionerProviderOption
           getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault))
       case UidRangePartitionerOption =>
         val uidsPerPartition = getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
+        val maxPartitions = getIntOption(UidRangePartitionerMaxPartsOption, options, UidRangePartitionerMaxPartsDefault)
         val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
         val targets = getAllClusterTargets(clusterState)
         val singleton = SingletonPartitioner(targets, schema)
-        UidRangePartitioner(singleton, uidsPerPartition, estimator)
-      case option if option.endsWith(s"+${UidRangePartitionerOption}") =>
+        UidRangePartitioner(singleton, uidsPerPartition, maxPartitions, estimator)
+      case option if option.endsWith(s"+$UidRangePartitionerOption") =>
         val name = option.substring(0, option.indexOf('+'))
         val partitioner = getPartitioner(name, schema, clusterState, transaction, options)
         getPartitioner(UidRangePartitionerOption, schema, clusterState, transaction, options)
