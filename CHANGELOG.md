@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [UNRELEASED] - YYYY-MM-DD
+
+### Fixed
+- Work with maxUID values that cannot be parsed
+- Handle maxUID values larger than Long.MaxValue
+
 ## [0.9.0] - 2022-07-14
 
 ### Changed
