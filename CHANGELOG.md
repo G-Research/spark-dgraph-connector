@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - Work with maxUID values that cannot be parsed
 - Handle maxUID values larger than Long.MaxValue
+- Supports full unsigned long (64 bits) value range of Dgraph uids, mapped into signed longs
 
 ## [0.9.0] - 2022-07-14
 
