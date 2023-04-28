@@ -17,6 +17,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - spark-compat-version: '3.0'
+            spark-version: '3.0.3'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.10'
+
+          - spark-compat-version: '3.1'
+            spark-version: '3.1.3'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.10'
+
           - spark-compat-version: '3.2'
             spark-version: '3.2.4'
             scala-compat-version: '2.12'
@@ -91,12 +101,24 @@ jobs:
       matrix:
         # main spark versions tested in test-dgraph, not testes here again
         spark-version: [
+            "3.0.3",
+            "3.1.3",
             "3.2.0", "3.2.1", "3.2.2", "3.2.3", "3.2.4",
             "3.3.0", "3.3.1", "3.3.2"
         ]
         dgraph-minor-version: ["21.12", "22.0", "23.0"]
         scala-compat-version: ["2.12"]
         include:
+          - spark-version: "3.0.3"
+            spark-compat-version: "3.0"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.10"
+
+          - spark-version: "3.1.3"
+            spark-compat-version: "3.1"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.10"
+
           - spark-version: "3.2.0"
             spark-compat-version: "3.2"
             scala-compat-version: "2.12"
@@ -202,6 +224,22 @@ jobs:
         dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0", "23.0"]
         scala-compat-version: ["2.12"]
         include:
+          - spark-compat-version: '3.0'
+            spark-version: '3.0.3'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.10'
+            dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
+            hadoop-version: '2.7'
+
+          - spark-compat-version: '3.1'
+            spark-version: '3.1.3'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.10'
+            dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
+            hadoop-version: '2.7'
+
           - spark-compat-version: '3.2'
             spark-version: '3.2.4'
             scala-compat-version: '2.12'

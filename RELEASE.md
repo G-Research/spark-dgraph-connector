@@ -42,6 +42,8 @@ Once you have released the new version, release from the same tag for all other 
 
 |Spark|Scala|
 |:----|:----|
+|3.0  |2.12.10|
+|3.1  |2.12.10|
 |3.2  |2.12.15|
 |3.3  |2.12.15|
 |3.4  |2.12.17|
