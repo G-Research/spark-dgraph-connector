@@ -102,6 +102,24 @@ class TestUidRangePartitioner extends AnyFunSpec {
       }
     }
 
+    it("should fail on negative uidsPerPartition") {
+      assertThrows[IllegalArgumentException] {
+        UidRangePartitioner(singleton, -1, 2, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
+      }
+    }
+
+    it("should fail on zero maxPartitions") {
+      assertThrows[IllegalArgumentException] {
+        UidRangePartitioner(singleton, 1, 0, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
+      }
+    }
+
+    it("should fail on negative maxPartitions") {
+      assertThrows[IllegalArgumentException] {
+        UidRangePartitioner(singleton, 1, -1, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
+      }
+    }
+
     it("should not partition into more than max partitions") {
       val uidPartitioner1 = UidRangePartitioner(singleton, 100, 5, UidCardinalityEstimator.forMaxLeaseId(Some(1000)))
       assert(uidPartitioner1.getPartitions === singleton.getPartitions)
