@@ -229,7 +229,7 @@ jobs:
             scala-compat-version: '2.12'
             scala-version: '2.12.10'
             dgraph-minor-version: "22.0"
-            dgraph-version: "22.00.2"
+            dgraph-version: "22.0.2"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.1'
@@ -237,7 +237,7 @@ jobs:
             scala-compat-version: '2.12'
             scala-version: '2.12.10'
             dgraph-minor-version: "22.0"
-            dgraph-version: "22.00.2"
+            dgraph-version: "22.0.2"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.2'
