@@ -16,18 +16,16 @@
 
 package uk.co.gresearch.spark.dgraph.connector.model
 
+import com.google.common.primitives.UnsignedLong
 import com.google.gson.{JsonArray, JsonElement}
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Uid}
-import uk.co.gresearch.spark.dgraph.connector.model.ChunkIterator.getLastUid
+import uk.co.gresearch.spark.dgraph.connector.model.ChunkIterator.{getChunkSize, getLastUid}
 
 case class ChunkIterator(after: Uid, until: Option[Uid], chunkSize: Int, readChunk: Chunk => JsonArray)
   extends Iterator[JsonArray] {
 
   if (chunkSize <= 0)
     throw new IllegalArgumentException(s"Chunk size must be larger than zero: $chunkSize")
-
-  def getChunkSize(after: Uid, until: Uid, chunkSize: Int): Int =
-    math.min((until.uid - after.uid - 1).toInt, chunkSize)
 
   val firstChunkSize: Int = until.map(u => getChunkSize(after, u, chunkSize)).getOrElse(chunkSize)
 
@@ -72,4 +70,15 @@ object ChunkIterator {
   def getLastUid(array: JsonArray): Uid = getUid(array.get(array.size() - 1))
 
   def getUid(element: JsonElement): Uid = Uid(element.getAsJsonObject.get("uid").getAsString)
+
+  def getChunkSize(after: Uid, until: Uid, chunkSize: Int): Int = {
+    val length = until.uid.minus(after.uid).minus(UnsignedLong.ONE)
+    val chunkSizeUnsigned = UnsignedLong.valueOf(chunkSize)
+    if (length.compareTo(chunkSizeUnsigned) < 0) {
+      length.intValue()
+    } else {
+      chunkSize
+    }
+  }
+
 }

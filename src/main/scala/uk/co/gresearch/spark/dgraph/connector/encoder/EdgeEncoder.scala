@@ -61,7 +61,7 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate])
    * @return an internal row
    */
   override def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] = o match {
-    case uid: Uid => Some(InternalRow(s.uid, UTF8String.fromString(p), uid.uid))
+    case uid: Uid => Some(InternalRow(s.uid.longValue(), UTF8String.fromString(p), uid.uid.longValue()))
     case _ => None
   }
 

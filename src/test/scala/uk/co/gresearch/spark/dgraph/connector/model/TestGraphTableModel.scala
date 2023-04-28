@@ -134,15 +134,15 @@ class TestGraphTableModel extends AnyFunSpec {
         |""".stripMargin
 
     val expecteds = Seq(
-      InternalRow(Uid("0x123").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x123a").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x123").uid, UTF8String.fromString("prop"), UTF8String.fromString("str123"), UTF8String.fromString("string")),
-      InternalRow(Uid("0x124").uid, UTF8String.fromString("prop"), UTF8String.fromString("str124"), UTF8String.fromString("string")),
-      InternalRow(Uid("0x125").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125a").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x125").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125b").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x132").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x132a").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x132").uid, UTF8String.fromString("prop"), UTF8String.fromString("str132"), UTF8String.fromString("string")),
-      InternalRow(Uid("0x135").uid, UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x135a").toString), UTF8String.fromString("uid")),
-      InternalRow(Uid("0x135").uid, UTF8String.fromString("prop"), UTF8String.fromString("str135"), UTF8String.fromString("string"))
+      InternalRow(Uid("0x123").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x123a").uid.longValue().toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x123").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str123"), UTF8String.fromString("string")),
+      InternalRow(Uid("0x124").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str124"), UTF8String.fromString("string")),
+      InternalRow(Uid("0x125").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125a").uid.longValue().toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x125").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x125b").uid.longValue().toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x132").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x132a").uid.longValue().toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x132").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str132"), UTF8String.fromString("string")),
+      InternalRow(Uid("0x135").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x135a").uid.longValue().toString), UTF8String.fromString("uid")),
+      InternalRow(Uid("0x135").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str135"), UTF8String.fromString("string"))
     )
 
     it("should read empty result") {
@@ -156,7 +156,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(lastUidOfFirstFullChunk) -> emptyChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= lastUidOfFirstFullChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= lastUidOfFirstFullChunk.uid.longValue())
       doTest(results, expected)
     }
 
@@ -166,7 +166,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(lastUidOfFirstFullChunk) -> secondHalfChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= lastUidOfSecondHalfChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= lastUidOfSecondHalfChunk.uid.longValue())
       doTest(results, expected)
     }
 
@@ -190,7 +190,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(lastUidOfFirstFullChunk) -> emptyChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= lastUidOfFirstFullChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= lastUidOfFirstFullChunk.uid.longValue())
       doTest(results, expected, Some(range))
     }
 
@@ -202,7 +202,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(firstUid.before) -> firstFullChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= uidBeforeLastUidOfFirstFullChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= uidBeforeLastUidOfFirstFullChunk.uid.longValue())
       doTest(results, expected, Some(range))
     }
 
@@ -215,7 +215,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(lastUidOfFirstFullChunk) -> secondHalfChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= uidBeforeLastUidOfSecondHalfChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= uidBeforeLastUidOfSecondHalfChunk.uid.longValue())
       doTest(results, expected, Some(range))
     }
 
@@ -228,7 +228,7 @@ class TestGraphTableModel extends AnyFunSpec {
         chunkQuery(lastUidOfFirstFullChunk) -> secondHalfChunkResult
       )
 
-      val expected = expecteds.filter(_.getLong(0) <= lastUidOfSecondHalfChunk.uid)
+      val expected = expecteds.filter(_.getLong(0) <= lastUidOfSecondHalfChunk.uid.longValue())
       doTest(results, expected, Some(range))
     }
 
@@ -281,7 +281,10 @@ class TestGraphTableModel extends AnyFunSpec {
 
       val rowEncoder = StringTripleEncoder(predicates)
       val model = TestModel(executionProvider, rowEncoder, size)
-      val partition = Partition(targets, Set(Has(predicates.values.toSet)) ++ uidRange.map(Set(_)).getOrElse(Set.empty) ++ uids.map(Set(_)).getOrElse(Set.empty)).getAll
+      val ops = Set(Has(predicates.values.toSet)) ++
+        uidRange.map(o => Set(o.asInstanceOf[Operator])).getOrElse(Set.empty) ++
+        uids.map(o => Set(o.asInstanceOf[Operator])).getOrElse(Set.empty)
+      val partition = Partition(targets, ops).getAll
 
       val rows = model.modelPartition(partition).toSeq
       assert(rows === expected)

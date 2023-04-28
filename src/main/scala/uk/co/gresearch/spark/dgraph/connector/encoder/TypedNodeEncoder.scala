@@ -77,7 +77,7 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
     } else {
       // order has to align with TypedNode case class
       val valuesWithoutObject = Seq(
-        s.uid,
+        s.uid.longValue(),
         UTF8String.fromString(p),
         null, // string
         null, // long

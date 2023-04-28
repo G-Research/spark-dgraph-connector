@@ -61,7 +61,7 @@ case class StringTripleEncoder(predicates: Map[String, Predicate])
    */
   override def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] =
     Some(InternalRow(
-      s.uid,
+      s.uid.longValue(),
       UTF8String.fromString(p),
       UTF8String.fromString(o.toString),
       UTF8String.fromString(getType(o))
