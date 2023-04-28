@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Logging, Partition, Uid, UidRange}
 
@@ -33,6 +34,9 @@ case class UidRangePartitioner(partitioner: Partitioner,
   if (maxPartitions <= 0)
     throw new IllegalArgumentException(s"maxPartitions must be larger than zero: $maxPartitions")
 
+  val uidsPerPartitionUnsigned: UnsignedLong = UnsignedLong.valueOf(uidsPerPartition)
+  val maxPartitionsUnsigned: UnsignedLong = UnsignedLong.valueOf(maxPartitions)
+
   val partitions: Seq[Partition] = partitioner.getPartitions
 
   if (partitions.exists(_.uidRange.isDefined))
@@ -48,30 +52,30 @@ case class UidRangePartitioner(partitioner: Partitioner,
   override def getPartitions: Seq[Partition] = {
     partitions.flatMap { partition =>
       val uidCardinality = uidCardinalityEstimator.uidCardinality(partition)
-      val parts = uidCardinality.map(uids => ((uids - 1) / uidsPerPartition) + 1)
+      val somePartitions = uidCardinality.map(uids => uids.minus(UnsignedLong.ONE).dividedBy(uidsPerPartitionUnsigned).plus(UnsignedLong.ONE))
 
-      if (parts.isDefined && parts.get > 1) {
-        if (parts.get <= maxPartitions) {
-          (0 to parts.get.toInt)
-            .map(idx => 1 + idx * uidsPerPartition)
-            .map(Uid(_))
-            .sliding(2)
-            .map(uids => UidRange(uids.head, uids.last))
-            .zipWithIndex
-            .map {
-              case (range, idx) =>
-                Partition(partition.targets.rotateLeft(idx), partition.operators + range)
+      somePartitions
+        .filter(_.compareTo(UnsignedLong.ONE) > 0)
+        .map { parts =>
+          if (parts.compareTo(maxPartitionsUnsigned) <= 0) {
+            (0 to parts.intValue())
+              .map(idx => 1 + idx * uidsPerPartition)
+              .map(Uid(_))
+              .sliding(2)
+              .map(uids => UidRange(uids.head, uids.last))
+              .zipWithIndex
+              .map {
+                case (range, idx) =>
+                  Partition(partition.targets.rotateLeft(idx), partition.operators + range)
+              }
+          } else {
+            if (parts.compareTo(UnsignedLong.ONE) > 0) {
+              log.warn(s"Will not partition by uid range as this leads to more then $maxPartitions partitions: ${parts} " +
+                s"(uidsPerPartition=$uidsPerPartition, uidCardinality=${uidCardinality.get})")
             }
-        } else {
-          if (parts.isDefined && parts.get > 1) {
-            log.warn(s"Will not partition by uid range as this leads to more then $maxPartitions partitions: ${parts.get} " +
-              s"(uidsPerPartition=$uidsPerPartition uidCardinality=${uidCardinality.get})")
+            Seq(partition)
           }
-          Seq(partition)
-        }
-      } else {
-        Seq(partition)
-      }
+        }.getOrElse(Seq(partition))
     }
   }
 

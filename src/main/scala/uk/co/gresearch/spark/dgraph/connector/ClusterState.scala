@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.common.primitives.UnsignedLong
 import com.google.gson.{Gson, JsonObject, JsonPrimitive}
 
 import java.util.UUID
@@ -24,7 +25,7 @@ import scala.util.{Failure, Success, Try}
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
                         groupPredicates: Map[String, Set[String]],
-                        maxLeaseId: Option[BigInt],
+                        maxLeaseId: Option[UnsignedLong],
                         cid: UUID)
 
 object ClusterState extends Logging {
@@ -44,9 +45,9 @@ object ClusterState extends Logging {
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
     val maxLeaseId = (if (root.has("maxUID")) {
-      getBigIntFromJson(root.getAsJsonPrimitive("maxUID"))
+      getUnsignedLongFromJson(root.getAsJsonPrimitive("maxUID"))
     } else if (root.has("maxLeaseId")) {
-      getBigIntFromJson(root.getAsJsonPrimitive("maxLeaseId"))
+      getUnsignedLongFromJson(root.getAsJsonPrimitive("maxLeaseId"))
     } else {
       Failure(new IllegalArgumentException("Cluster state does not contain maxLeaseId or maxUID, this disables uid range partitioning"))
     }) match {
@@ -56,16 +57,16 @@ object ClusterState extends Logging {
         None
     }
 
-    if (maxLeaseId.exists(_ < 0)) {
-      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxLeaseId.get}")
+    if (maxLeaseId.exists(_.compareTo(UnsignedLong.ZERO) < 0)) {
+      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxLeaseId.get.toString}")
     }
-    val positiveMaxLeaseId = maxLeaseId.filter(_ >= 0)
+    val positiveMaxLeaseId = maxLeaseId.filter(_.compareTo(UnsignedLong.ZERO) >= 0)
 
     ClusterState(groupMembers, groupPredicates, positiveMaxLeaseId, cid)
   }
 
-  def getBigIntFromJson(n: JsonPrimitive): Try[BigInt] = {
-    Try(n.getAsBigInteger).map(BigInt.javaBigInteger2bigInt)
+  def getUnsignedLongFromJson(n: JsonPrimitive): Try[UnsignedLong] = {
+    Try(n.getAsString).map(UnsignedLong.valueOf)
   }
 
   def getMembersFromGroup(group: JsonObject): Set[String] =

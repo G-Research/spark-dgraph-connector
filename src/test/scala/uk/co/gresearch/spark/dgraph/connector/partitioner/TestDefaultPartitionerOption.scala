@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
@@ -31,7 +32,7 @@ class TestDefaultPartitionerOption extends AnyFunSpec {
     val state = ClusterState(
       Map("1" -> Set(target)),
       Map("1" -> schema.predicates.map(_.predicateName)),
-      Some(10000),
+      Some(UnsignedLong.valueOf(10000)),
       UUID.randomUUID()
     )
     val transaction = Some(Transaction(TxnContext.newBuilder().build()))

@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
@@ -39,7 +40,7 @@ class TestAlphaPartitioner extends AnyFunSpec {
         "3" -> Set("pred5"),
         "4" -> Set("pred6", "pred7")
       ),
-      Some(10000),
+      Some(UnsignedLong.valueOf(10000)),
       UUID.randomUUID()
     )
 

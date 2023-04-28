@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
@@ -37,7 +38,7 @@ class TestGroupPartitioner extends AnyFunSpec {
         "2" -> Set("pred1", "pred2", "pred3"),
         "3" -> Set("pred4")
       ),
-      Some(10000),
+      Some(UnsignedLong.valueOf(10000)),
       UUID.randomUUID()
     )
 

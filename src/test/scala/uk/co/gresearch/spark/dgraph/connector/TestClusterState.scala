@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
+import com.google.common.primitives.UnsignedLong
 import com.google.gson.JsonPrimitive
 import org.scalatest.funspec.AnyFunSpec
 
@@ -27,17 +28,17 @@ class TestClusterState extends AnyFunSpec {
   describe("ClusterState") {
 
     it("should handle numeric maxLeaseIds") {
-      assert(ClusterState.getBigIntFromJson(new JsonPrimitive("1234")) === Success(1234))
-      assert(ClusterState.getBigIntFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(Long.MaxValue))
-      assert(ClusterState.getBigIntFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(BigInt("9223372036854775808")))
-      assert(ClusterState.getBigIntFromJson(new JsonPrimitive("18446055125930680484")) === Success(BigInt("18446055125930680484")))
+      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("1234")) === Success(UnsignedLong.valueOf(1234)))
+      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(UnsignedLong.valueOf(Long.MaxValue)))
+      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(UnsignedLong.valueOf("9223372036854775808")))
+      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("18446055125930680484")) === Success(UnsignedLong.valueOf("18446055125930680484")))
     }
 
     it("should handle non-numeric maxLeaseIds") {
-      val bigint = ClusterState.getBigIntFromJson(new JsonPrimitive("123e4"))
+      val bigint = ClusterState.getUnsignedLongFromJson(new JsonPrimitive("123e4"))
       assert(bigint.isFailure)
-      assert(bigint.asInstanceOf[Failure[BigInt]].exception.isInstanceOf[NumberFormatException])
-      assert(bigint.asInstanceOf[Failure[BigInt]].exception.getMessage === "For input string: \"123e4\"")
+      assert(bigint.asInstanceOf[Failure[UnsignedLong]].exception.isInstanceOf[NumberFormatException])
+      assert(bigint.asInstanceOf[Failure[UnsignedLong]].exception.getMessage === "123e4")
     }
 
     it("should handle un-prefixed predicates") {
@@ -159,7 +160,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
         "2" -> Set("name", "release_date", "revenue")
       ))
-      assert(state.maxLeaseId === Some(10000))
+      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
 
@@ -176,7 +177,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === Some(10000))
+        assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
       }
 
       it(s"should handle Json with large $field") {
@@ -191,7 +192,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === Some(BigInt("18446055125930680484")))
+        assert(state.maxLeaseId === Some(UnsignedLong.valueOf("18446055125930680484")))
       }
 
       it(s"should handle Json with zero $field") {
@@ -206,7 +207,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === Some(0))
+        assert(state.maxLeaseId === Some(UnsignedLong.ZERO))
       }
 
       it(s"should handle Json with negative $field") {
@@ -399,7 +400,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director", "name")
       ))
-      assert(state.maxLeaseId === Some(10000))
+      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
 
@@ -548,7 +549,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director")  // predicate name is ignored as it is not in the default namespace
       ))
-      assert(state.maxLeaseId === Some(10000))
+      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
   }

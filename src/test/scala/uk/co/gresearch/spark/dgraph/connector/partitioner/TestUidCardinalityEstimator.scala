@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
@@ -29,7 +30,7 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
       val partition = Partition(Seq.empty, Set(range))
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined === true)
-      assert(actual.get === range.length)
+      assert(actual.get.intValue() === range.length)
     }
 
     it("should estimate partition's uids cardinality") {
@@ -37,13 +38,13 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
       val partition = Partition(Seq.empty, Set(uids))
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined === true)
-      assert(actual.get === uids.uids.size)
+      assert(actual.get.intValue() === uids.uids.size)
     }
 
     it("should estimate partition without uid range and uids") {
       val partition = Partition(Seq.empty)
       val actual = estimator.uidCardinality(partition)
-      assert(actual === expectedEstimationWithoutRange)
+      assert(actual.map(_.intValue()) === expectedEstimationWithoutRange)
     }
 
   }
@@ -54,7 +55,7 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
 
   describe("MaxLeaseIdUidCardinalityEstimator") {
     describe("with some maxLeaseId") {
-      doTestUidCardinalityEstimatorBase(MaxLeaseIdUidCardinalityEstimator(Some(1234)), Some(1234))
+      doTestUidCardinalityEstimatorBase(MaxLeaseIdUidCardinalityEstimator(Some(UnsignedLong.valueOf(1234))), Some(1234))
     }
     describe("with no maxLeaseId") {
       doTestUidCardinalityEstimatorBase(MaxLeaseIdUidCardinalityEstimator(None), None)
@@ -62,10 +63,10 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
 
     it("should fail on negative or zero max uids") {
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(Some(-1))
+        UidCardinalityEstimator.forMaxLeaseId(Some(UnsignedLong.valueOf(-1)))
       }
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(Some(0))
+        UidCardinalityEstimator.forMaxLeaseId(Some(UnsignedLong.valueOf(0)))
       }
     }
 

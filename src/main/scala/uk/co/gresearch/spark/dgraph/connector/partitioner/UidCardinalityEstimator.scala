@@ -16,6 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
+import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector.Partition
 
 trait UidCardinalityEstimator {
@@ -27,7 +28,7 @@ trait UidCardinalityEstimator {
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  def uidCardinality(partition: Partition): Option[BigInt]
+  def uidCardinality(partition: Partition): Option[UnsignedLong]
 
 }
 
@@ -43,14 +44,14 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  override def uidCardinality(partition: Partition): Option[BigInt] =
-    partition.uidRange.map(_.length).map(BigInt.apply).orElse(partition.uids.map(_.size))
+  override def uidCardinality(partition: Partition): Option[UnsignedLong] =
+    partition.uidRange.map(_.length).orElse(partition.uids.map(_.size.toLong)).map(UnsignedLong.valueOf)
 
 }
 
-case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[BigInt]) extends UidCardinalityEstimatorBase {
+case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[UnsignedLong]) extends UidCardinalityEstimatorBase {
 
-  if (maxLeaseId.exists(_ <= 0))
+  if (maxLeaseId.exists(_.compareTo(UnsignedLong.ZERO) <= 0))
     throw new IllegalArgumentException(s"uidCardinality must be larger than zero: $maxLeaseId")
 
   /**
@@ -60,12 +61,12 @@ case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[BigInt]) extends
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  override def uidCardinality(partition: Partition): Option[BigInt] =
+  override def uidCardinality(partition: Partition): Option[UnsignedLong] =
     super.uidCardinality(partition).orElse(maxLeaseId)
 
 }
 
 object UidCardinalityEstimator {
-  def forMaxLeaseId(maxLeaseId: Option[BigInt]): UidCardinalityEstimator =
+  def forMaxLeaseId(maxLeaseId: Option[UnsignedLong]): UidCardinalityEstimator =
     MaxLeaseIdUidCardinalityEstimator(maxLeaseId)
 }
