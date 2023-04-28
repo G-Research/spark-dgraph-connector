@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [UNRELEASED] - YYYY-MM-DD
 
 ### Changed
-- Estimator "maxLeaseId" renamed to "maxUID", as used by option `dgraph.partitioner.uidRange.estimator`
+- Estimator "maxLeaseId" renamed to "maxUID", as used with option `dgraph.partitioner.uidRange.estimator`
 
 ### Fixed
 - Work with maxUID values that cannot be parsed

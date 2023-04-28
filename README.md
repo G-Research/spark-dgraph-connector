@@ -633,7 +633,7 @@ set the chunk size to 100th or less.
 <!-- there is only one estimator left, no need to mention this until we have another
 The estimator can be selected with the `dgraph.partitioner.uidRange.estimator` option. These estimators are available:
 
-##### Cluster maxUID (formerly MaxLeaseId)
+##### Cluster maxUID (formerly maxLeaseId)
 
 The Dgraph cluster [maintains a maxUID](https://dgraph.io/docs/deploy/dgraph-zero/#more-about-the-state-endpoint), which is the largest possible uid.
 It grows as new uids are added to the cluster, so it serves as an upper estimate of the actual largest uid.
