@@ -44,7 +44,7 @@ class TestPartitionerProvider extends AnyFunSpec {
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
+    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
 
     Seq(
       ("singleton", singleton),
@@ -74,7 +74,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, maxLeaseEstimator)
+      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
       assert(partitioner === expected)
     }
 
@@ -84,13 +84,14 @@ class TestPartitionerProvider extends AnyFunSpec {
         Map(
           PredicatePartitionerPredicatesOption -> "1",
           UidRangePartitionerUidsPerPartOption -> "2",
+          UidRangePartitionerMaxPartsOption -> "3",
           UidRangePartitionerEstimatorOption -> MaxLeaseIdEstimatorOption
         ).asJava
       )
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, 1)
-      val expected = UidRangePartitioner(predicatePart, 2, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId))
+      val expected = UidRangePartitioner(predicatePart, 2, 3, MaxLeaseIdUidCardinalityEstimator(state.maxLeaseId))
       assert(partitioner === expected)
     }
 

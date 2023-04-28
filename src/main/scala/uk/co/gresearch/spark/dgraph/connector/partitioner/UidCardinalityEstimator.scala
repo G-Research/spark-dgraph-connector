@@ -27,7 +27,7 @@ trait UidCardinalityEstimator {
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  def uidCardinality(partition: Partition): Option[Long]
+  def uidCardinality(partition: Partition): Option[BigInt]
 
 }
 
@@ -43,12 +43,12 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  override def uidCardinality(partition: Partition): Option[Long] =
-    partition.uidRange.map(_.length).orElse(partition.uids.map(_.size))
+  override def uidCardinality(partition: Partition): Option[BigInt] =
+    partition.uidRange.map(_.length).map(BigInt.apply).orElse(partition.uids.map(_.size))
 
 }
 
-case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[Long]) extends UidCardinalityEstimatorBase {
+case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[BigInt]) extends UidCardinalityEstimatorBase {
 
   if (maxLeaseId.exists(_ <= 0))
     throw new IllegalArgumentException(s"uidCardinality must be larger than zero: $maxLeaseId")
@@ -60,12 +60,12 @@ case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[Long]) extends U
    * @param partition a partition
    * @return estimated number of uids or None
    */
-  override def uidCardinality(partition: Partition): Option[Long] =
+  override def uidCardinality(partition: Partition): Option[BigInt] =
     super.uidCardinality(partition).orElse(maxLeaseId)
 
 }
 
 object UidCardinalityEstimator {
-  def forMaxLeaseId(maxLeaseId: Option[Long]): UidCardinalityEstimator =
+  def forMaxLeaseId(maxLeaseId: Option[BigInt]): UidCardinalityEstimator =
     MaxLeaseIdUidCardinalityEstimator(maxLeaseId)
 }

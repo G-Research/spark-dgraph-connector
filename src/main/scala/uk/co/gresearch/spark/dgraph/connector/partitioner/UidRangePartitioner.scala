@@ -17,15 +17,21 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import uk.co.gresearch.spark.dgraph.connector
-import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
+import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Logging, Partition, Uid, UidRange}
 
-case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
+case class UidRangePartitioner(partitioner: Partitioner,
+                               uidsPerPartition: Int,
+                               maxPartitions: Int,
+                               uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner with Logging {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
 
   if (uidsPerPartition <= 0)
     throw new IllegalArgumentException(s"uidsPerPartition must be larger than zero: $uidsPerPartition")
+
+  if (maxPartitions <= 0)
+    throw new IllegalArgumentException(s"maxPartitions must be larger than zero: $maxPartitions")
 
   val partitions: Seq[Partition] = partitioner.getPartitions
 
@@ -45,21 +51,24 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
       val parts = uidCardinality.map(uids => ((uids - 1) / uidsPerPartition) + 1)
 
       if (parts.isDefined && parts.get > 1) {
-        if (!parts.get.isValidInt)
-          throw new IllegalArgumentException(s"uidsPerPartition of $uidsPerPartition " +
-            s"with uidCardinality of ${uidCardinality.get} " +
-            s"leads to more then ${Integer.MAX_VALUE} partitions: ${parts.get}")
-
-        (0 to parts.get.toInt)
-          .map(idx => 1 + idx * uidsPerPartition)
-          .map(Uid(_))
-          .sliding(2)
-          .map(uids => UidRange(uids.head, uids.last))
-          .zipWithIndex
-          .map {
-            case (range, idx) =>
-              Partition(partition.targets.rotateLeft(idx), partition.operators + range)
+        if (parts.get <= maxPartitions) {
+          (0 to parts.get.toInt)
+            .map(idx => 1 + idx * uidsPerPartition)
+            .map(Uid(_))
+            .sliding(2)
+            .map(uids => UidRange(uids.head, uids.last))
+            .zipWithIndex
+            .map {
+              case (range, idx) =>
+                Partition(partition.targets.rotateLeft(idx), partition.operators + range)
+            }
+        } else {
+          if (parts.isDefined && parts.get > 1) {
+            log.warn(s"Will not partition by uid range as this leads to more then $maxPartitions partitions: ${parts.get} " +
+              s"(uidsPerPartition=$uidsPerPartition uidCardinality=${uidCardinality.get})")
           }
+          Seq(partition)
+        }
       } else {
         Seq(partition)
       }

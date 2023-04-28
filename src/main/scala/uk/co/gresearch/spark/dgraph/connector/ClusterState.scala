@@ -20,10 +20,11 @@ import com.google.gson.{Gson, JsonObject, JsonPrimitive}
 
 import java.util.UUID
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
                         groupPredicates: Map[String, Set[String]],
-                        maxLeaseId: Option[Long],
+                        maxLeaseId: Option[BigInt],
                         cid: UUID)
 
 object ClusterState extends Logging {
@@ -40,26 +41,31 @@ object ClusterState extends Logging {
     val groupMembers = groupMap.mapValues(getMembersFromGroup)
       .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
     val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
-    val maxLeaseId = if (root.has("maxUID")) {
-      getLongFromJson(root.getAsJsonPrimitive("maxUID"))
-    } else if (root.has("maxLeaseId")) {
-      getLongFromJson(root.getAsJsonPrimitive("maxLeaseId"))
-    } else {
-      Some(1000L)
-    }
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
-    ClusterState(groupMembers, groupPredicates, maxLeaseId, cid)
-  }
-
-  def getLongFromJson(n: JsonPrimitive): Option[Long] = {
-    try {
-      Some(n.getAsLong)
-    } catch {
-      case e: NumberFormatException =>
-        try { n.getAsBigInteger } catch { case _: Throwable => log.warn("Cannot parse as number", e) }
+    val maxLeaseId = (if (root.has("maxUID")) {
+      getBigIntFromJson(root.getAsJsonPrimitive("maxUID"))
+    } else if (root.has("maxLeaseId")) {
+      getBigIntFromJson(root.getAsJsonPrimitive("maxLeaseId"))
+    } else {
+      Failure(new IllegalArgumentException("Cluster state does not contain maxLeaseId or maxUID, this disables uid range partitioning"))
+    }) match {
+      case Success(value) => Some(value)
+      case Failure(exception) =>
+        log.error("Failed to retrieve maxLeaseId from cluster state", exception)
         None
     }
+
+    if (maxLeaseId.exists(_ < 0)) {
+      log.error(s"Cluster state indicates negative maxLeaseId or maxUID, this disables uid range partitioning: ${maxLeaseId.get}")
+    }
+    val positiveMaxLeaseId = maxLeaseId.filter(_ >= 0)
+
+    ClusterState(groupMembers, groupPredicates, positiveMaxLeaseId, cid)
+  }
+
+  def getBigIntFromJson(n: JsonPrimitive): Try[BigInt] = {
+    Try(n.getAsBigInteger).map(BigInt.javaBigInteger2bigInt)
   }
 
   def getMembersFromGroup(group: JsonObject): Set[String] =

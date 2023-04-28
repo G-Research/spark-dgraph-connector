@@ -20,24 +20,24 @@ import com.google.gson.JsonPrimitive
 import org.scalatest.funspec.AnyFunSpec
 
 import java.util.UUID
+import scala.util.{Failure, Success}
 
 class TestClusterState extends AnyFunSpec {
 
   describe("ClusterState") {
 
-    it("should handle long maxLeaseIds") {
-      assert(ClusterState.getLongFromJson(new JsonPrimitive("1234")) === Some(1234))
-      assert(ClusterState.getLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Some(Long.MaxValue))
+    it("should handle numeric maxLeaseIds") {
+      assert(ClusterState.getBigIntFromJson(new JsonPrimitive("1234")) === Success(1234))
+      assert(ClusterState.getBigIntFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(Long.MaxValue))
+      assert(ClusterState.getBigIntFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(BigInt("9223372036854775808")))
+      assert(ClusterState.getBigIntFromJson(new JsonPrimitive("18446055125930680484")) === Success(BigInt("18446055125930680484")))
     }
 
-    it("should handle too large maxLeaseIds") {
-      assert(ClusterState.getLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === None)
-      assert(ClusterState.getLongFromJson(new JsonPrimitive("18446055125930680484")) === None)
-    }
-
-    it("should handle too large non-numeric maxLeaseIds") {
-      assert(ClusterState.getLongFromJson(new JsonPrimitive("123e4")) === None)
-      // log WARN expected
+    it("should handle non-numeric maxLeaseIds") {
+      val bigint = ClusterState.getBigIntFromJson(new JsonPrimitive("123e4"))
+      assert(bigint.isFailure)
+      assert(bigint.asInstanceOf[Failure[BigInt]].exception.isInstanceOf[NumberFormatException])
+      assert(bigint.asInstanceOf[Failure[BigInt]].exception.getMessage === "For input string: \"123e4\"")
     }
 
     it("should handle un-prefixed predicates") {
@@ -163,22 +163,98 @@ class TestClusterState extends AnyFunSpec {
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
 
-    it("should handle too large maxLeaseId") {
+    Seq("maxLeaseId", "maxUID").foreach { field =>
+      it(s"should handle Json with $field") {
+        val json =
+          s"""{
+             |  "groups": {},
+             |  "zeros": {},
+             |  "$field": "10000",
+             |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+             |}
+             |""".stripMargin
+
+        val state = ClusterState.fromJson(Json(json))
+
+        assert(state.maxLeaseId === Some(10000))
+      }
+
+      it(s"should handle Json with large $field") {
+        val json =
+          s"""{
+             |  "groups": {},
+             |  "zeros": {},
+             |  "$field": "18446055125930680484",
+             |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+             |}
+             |""".stripMargin
+
+        val state = ClusterState.fromJson(Json(json))
+
+        assert(state.maxLeaseId === Some(BigInt("18446055125930680484")))
+      }
+
+      it(s"should handle Json with zero $field") {
+        val json =
+          s"""{
+             |  "groups": {},
+             |  "zeros": {},
+             |  "$field": "0",
+             |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+             |}
+             |""".stripMargin
+
+        val state = ClusterState.fromJson(Json(json))
+
+        assert(state.maxLeaseId === Some(0))
+      }
+
+      it(s"should handle Json with negative $field") {
+        val json =
+          s"""{
+             |  "groups": {},
+             |  "zeros": {},
+             |  "$field": "-123",
+             |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+             |}
+             |""".stripMargin
+
+        val state = ClusterState.fromJson(Json(json))
+
+        assert(state.maxLeaseId === None)
+      }
+
+      it(s"should handle Json with non-numeric $field") {
+        val json =
+          s"""{
+             |  "groups": {},
+             |  "zeros": {},
+             |  "$field": "123e4",
+             |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+             |}
+             |""".stripMargin
+
+        val state = ClusterState.fromJson(Json(json))
+
+        assert(state.maxLeaseId === None)
+      }
+    }
+
+    it("should handle Json with no maxLeasId / maxUID") {
       val json =
         """{
-          |  "groups": {},
-          |  "zeros": {},
-          |  "maxLeaseId": "18446055125930680484",
-          |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
-          |}
-          |""".stripMargin
+           |  "groups": {},
+           |  "zeros": {},
+           |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980"
+           |}
+           |""".stripMargin
 
       val state = ClusterState.fromJson(Json(json))
 
       assert(state.maxLeaseId === None)
     }
 
-    it("should handle null predicate prefix") {
+    it("should handle Json with null predicate prefix") {
       val json =
         """{
           |  "counter": "25",
@@ -327,7 +403,7 @@ class TestClusterState extends AnyFunSpec {
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
 
-    it("should handle namespace prefixed predicates") {
+    it("should handle Json with namespace prefixed predicates") {
       val json =
         """{
           |  "counter": "25",
