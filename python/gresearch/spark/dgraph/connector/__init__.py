@@ -52,9 +52,11 @@ PredicatePartitionerPredicatesOption: str = "dgraph.partitioner.predicate.predic
 PredicatePartitionerPredicatesDefault: int = 1000
 UidRangePartitionerUidsPerPartOption: str = "dgraph.partitioner.uidRange.uidsPerPartition"
 UidRangePartitionerUidsPerPartDefault: int = 1000000
+UidRangePartitionerMaxPartsOption: str = "dgraph.partitioner.uidRange.maxPartitions"
+UidRangePartitionerMaxPartsDefault: int = 10000
 UidRangePartitionerEstimatorOption: str = "dgraph.partitioner.uidRange.estimator"
-MaxLeaseIdEstimatorOption: str = "maxLeaseId"
-UidRangePartitionerEstimatorDefault: str = MaxLeaseIdEstimatorOption
+MaxUidEstimatorOption: str = "maxUid"
+UidRangePartitionerEstimatorDefault: str = MaxUidEstimatorOption
 
 
 class DgraphReader:
