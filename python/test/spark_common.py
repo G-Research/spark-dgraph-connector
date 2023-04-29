@@ -49,18 +49,7 @@ class SparkTest(unittest.TestCase):
         raise RuntimeError('Could not find path to pom.xml, looked here: {}'.format(', '.join(paths)))
 
     @staticmethod
-    def get_dependencies_from_mvn(path) -> str:
-        logging.info('running mvn to get JVM dependencies')
-        dependencies_process = subprocess.run(
-            ['/bin/bash', '-c', 'mvn dependency:build-classpath 2>/dev/null | grep -A 1 "Dependencies classpath:$" | tail -n 1'],
-            cwd=path, stdout=subprocess.PIPE
-        )
-        if dependencies_process.returncode != 0:
-            raise RuntimeError("failed to run mvn to get classpath for JVM")
-        return str(dependencies_process.stdout.strip())
-
-    @staticmethod
-    def get_spark_config(path, dependencies) -> SparkConf:
+    def get_spark_config(path) -> SparkConf:
         master = 'local[2]'
         conf = SparkConf().setAppName('unit test').setMaster(master)
         return conf.setAll([
@@ -68,17 +57,18 @@ class SparkTest(unittest.TestCase):
             ('spark.ui.showConsoleProgress', 'false'),
             ('spark.test.home', os.environ.get('SPARK_HOME')),
             ('spark.locality.wait', '0'),
+            ('spark.jars.packages', 'uk.co.gresearch.dgraph:dgraph4j-shaded:21.12.0-0,'
+                                    'com.lihaoyi:requests_2.12:0.7.1,'
+                                    'org.apache.commons:commons-lang3:3.12.0,'
+                                    'com.google.code.gson:gson:2.9.0'),
             ('spark.driver.extraClassPath', '{}'.format(':'.join([
                 os.path.join(os.getcwd(), path, 'target', 'classes'),
                 os.path.join(os.getcwd(), path, 'target', 'test-classes'),
-                dependencies
             ]))),
         ])
 
     path = get_pom_path.__func__()
-    dependencies = get_dependencies_from_mvn.__func__(path)
-    logging.info('found {} JVM dependencies'.format(len(dependencies.split(':'))))
-    conf = get_spark_config.__func__(path, dependencies)
+    conf = get_spark_config.__func__(path)
     spark: SparkSession = None
 
     @property
