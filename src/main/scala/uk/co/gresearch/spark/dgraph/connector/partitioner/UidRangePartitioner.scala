@@ -19,7 +19,8 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Partition, Uid, UidRange}
 
-case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner {
+case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, uidCardinalityEstimator: UidCardinalityEstimator)
+  extends Partitioner {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
@@ -40,7 +41,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
   override def withProjection(projection: Seq[connector.Predicate]): UidRangePartitioner = copy(partitioner = partitioner.withProjection(projection))
 
   override def getPartitions: Seq[Partition] = {
-    partitions.flatMap { partition =>
+    partitions.map { partition =>
       val uidCardinality = uidCardinalityEstimator.uidCardinality(partition)
       val parts = uidCardinality.map(uids => ((uids - 1) / uidsPerPartition) + 1)
 
@@ -63,7 +64,7 @@ case class UidRangePartitioner(partitioner: Partitioner, uidsPerPartition: Int, 
       } else {
         Seq(partition)
       }
-    }
+    }.roundrobin()
   }
 
 }

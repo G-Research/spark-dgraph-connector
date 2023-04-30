@@ -63,7 +63,9 @@ trait SchemaProvider {
           )
 
         // just rethrow any other exception
-        throw exc
+        throw new RuntimeException(
+          s"Failed to retrieve the schema from one of the targets: ${targets.mkString(", ")}", exc
+        )
     } finally {
       channels.foreach(_.shutdown())
     }

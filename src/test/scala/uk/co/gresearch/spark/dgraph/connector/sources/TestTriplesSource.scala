@@ -850,6 +850,25 @@ class TestTriplesSource extends AnyFunSpec
       )
     }
 
+    Seq(1, 3, 5).foreach( partitions =>
+      it(f"should work with first partitioner and $partitions partitions") {
+        val triples =
+          reader
+            .options(Map(
+              PartitionerOption -> f"$FirstPartitionerOption+$PredicatePartitionerOption+$UidRangePartitionerOption",
+              FirstPartitionerPartitionsOption -> partitions.toString,
+              PredicatePartitionerPredicatesOption -> "4",
+              UidRangePartitionerUidsPerPartOption -> "4",
+              ChunkSizeOption -> "2",
+              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            ))
+            .dgraph.triples(dgraph.target)
+            .mapPartitions(it => Iterator.single(it.length))
+            .count
+        assert(triples === partitions)
+      }
+    )
+
   }
 
 }

@@ -121,7 +121,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
                           |    uid
                           |  }
                           |}
-                          |""".stripMargin)
+                          |""".stripMargin, "result")
 
     @tailrec
     def attempt(no: Int, limit: Int): Uid = {

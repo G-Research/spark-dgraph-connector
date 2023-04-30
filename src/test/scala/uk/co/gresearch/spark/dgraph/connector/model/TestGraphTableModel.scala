@@ -271,7 +271,7 @@ class TestGraphTableModel extends AnyFunSpec {
 
       val executor = new JsonGraphQlExecutor {
         override def query(query: GraphQl): Json =
-          results.get(query.string).map(Json)
+          results.get(query.string).map(Json(_, None))
             .getOrElse(fail(s"unexpected query:\n${query.string}\n\nexpected queries:\n${results.keys.mkString("\n")}"))
       }
 

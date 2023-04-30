@@ -16,14 +16,16 @@
 
 package uk.co.gresearch.spark.dgraph
 
-import java.sql.Timestamp
-
+import scala.collection.mutable
+import com.google.gson.JsonElement
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
 import io.dgraph.dgraph4j.shaded.io.grpc.netty.NettyChannelBuilder
 import io.dgraph.dgraph4j.shaded.io.grpc.{ManagedChannel, Status, StatusRuntimeException}
 import org.apache.spark.sql.DataFrameReader
+
+import java.sql.Timestamp
 
 package object connector {
 
@@ -151,8 +153,61 @@ package object connector {
   }
 
   // typed strings
-  case class GraphQl(string: String) // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
-  case class Json(string: String)
+  // technically not GraphQl but GraphQl±: https://dgraph.io/docs/query-language/
+  case class GraphQl(string: String, resultName: String, chunk: Option[connector.Chunk] = None)
+  case class Json(string: String, bytes: Option[Long] = None)
+
+  case class Perf(partitionTargets: Seq[String],
+                  partitionPredicates: Option[Seq[String]],
+                  partitionFirstUid: Option[Long],
+                  partitionUidLength: Option[Long],
+
+                  chunkAfterUid: Long,
+                  chunkUidLength: Long,
+                  chunkBytes: Long,
+                  chunkNodes: Int,
+
+                  sparkStageId: Int,
+                  sparkStageAttemptNumber: Int,
+                  sparkPartitionId: Int,
+                  sparkAttemptNumber: Int,
+                  sparkTaskAttemptId: Long,
+
+                  dgraphAssignTimestampNanos: Option[Long],
+                  dgraphParsingNanos: Option[Long],
+                  dgraphProcessingNanos: Option[Long],
+                  dgraphEncodingNanos: Option[Long],
+                  dgraphTotalNanos: Option[Long],
+
+                  connectorWireNanos: Long,
+                  connectorDecodeNanos: Long)
+
+  // this is a Java version of Perf so that Gson can generate proper JSON for it
+  // java.lang.Long are used for null-able Longs, scala Long for non-nullable Longs
+  class PerfJava(val partitionTargets: Array[String],
+                 val partitionPredicates: Array[String],
+                 val partitionFirstUid: java.lang.Long,
+                 val partitionUidLength: java.lang.Long,
+
+                 val chunkAfterUid: java.lang.Long,
+                 val chunkUidLength: java.lang.Long,
+                 val chunkBytes: Long,
+                 val chunkNodes: Int,
+
+                 val sparkStageId: Int,
+                 val sparkStageAttemptNumber: Int,
+                 val sparkPartitionId: Int,
+                 val sparkAttemptNumber: Int,
+                 val sparkTaskAttemptId: Long,
+
+                 val dgraphAssignTimestampNanos: java.lang.Long,
+                 val dgraphParsingNanos: java.lang.Long,
+                 val dgraphProcessingNanos: java.lang.Long,
+                 val dgraphEncodingNanos: java.lang.Long,
+                 val dgraphTotalNanos: java.lang.Long,
+
+                 val connectorWireNanos: Long,
+                 val connectorDecodeNanos: Long)
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"
@@ -164,6 +219,8 @@ package object connector {
   val NodesModeOption: String = "dgraph.nodes.mode"
   val NodesModeTypedOption: String = "typed"
   val NodesModeWideOption: String = "wide"
+
+  val PerfPredicatesOption: String = "dgraph.perf.predicates"
 
   val IncludeReservedPredicatesOption: String = "dgraph.include.reserved-predicates"
   val ExcludeReservedPredicatesOption: String = "dgraph.exclude.reserved-predicates"
@@ -182,6 +239,7 @@ package object connector {
   val AlphaPartitionerOption: String = "alpha"
   val PredicatePartitionerOption: String = "predicate"
   val UidRangePartitionerOption: String = "uid-range"
+  val FirstPartitionerOption: String = "first"
   val PartitionerDefault: String = s"$PredicatePartitionerOption+$UidRangePartitionerOption"
 
   val AlphaPartitionerPartitionsOption: String = "dgraph.partitioner.alpha.partitionsPerAlpha"
@@ -195,6 +253,7 @@ package object connector {
   val UidRangePartitionerEstimatorDefault: String = MaxLeaseIdEstimatorOption
   // for testing purposes only
   val MaxLeaseIdEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxLeaseIdEstimatorOption.id"
+  val FirstPartitionerPartitionsOption: String = "dgraph.partitioner.first.partitions"
 
   def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 
@@ -264,6 +323,19 @@ package object connector {
       sre.getStatus.getCode == Status.Code.RESOURCE_EXHAUSTED
     case _ =>
       throwable.getCause != null && isCausedByResourceExhausted(throwable.getCause)
+  }
+
+
+  implicit class ExtendedSeq[T](s: Seq[TraversableOnce[T]]) {
+    def roundrobin(): Seq[T] = {
+      var iterators = mutable.Seq(s.map(_.toIterator): _*)
+      val values: mutable.ListBuffer[T] = mutable.ListBuffer()
+      while (iterators.nonEmpty) {
+        iterators = iterators.filter(_.nonEmpty)
+        values.append(iterators.map(_.next()): _*)
+      }
+      values
+    }
   }
 
 }
