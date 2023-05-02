@@ -105,7 +105,7 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
     valueType match {
       // the uid of a node, the subject of a triple
       case "subject" => Uid(value.getAsString)
-      // https://dgraph.io/docs/query-language/#schema-types
+      // https://dgraph.io/docs/dql/predicate-types/#scalar-types
       case "uid" => Uid(value.getAsJsonObject.get("uid").getAsString)
       case "string" => value.getAsString
       case "int" | "long" => value.getAsLong
