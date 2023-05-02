@@ -23,7 +23,8 @@ import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Logging, Partiti
 case class UidRangePartitioner(partitioner: Partitioner,
                                uidsPerPartition: Int,
                                maxPartitions: Int,
-                               uidCardinalityEstimator: UidCardinalityEstimator) extends Partitioner with Logging {
+                               uidCardinalityEstimator: UidCardinalityEstimator,
+                               denseAndSparseUidRangeDetector: UidRangeDetector = NoUidRangeDetector()) extends Partitioner with Logging {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
@@ -70,15 +71,12 @@ case class UidRangePartitioner(partitioner: Partitioner,
         // is data has been loaded via live loader, which allocates a dense section of uids at the beginning
         // of the uids range (here called dense), and randomly distributed uids in the remaining part of the
         // uid range (here called sparse)
-        val (densePartitions, sparsePartitions, denseUids) = getDenseAndSparsePartitions(uidCardinality)
+        val (densePartitions, sparsePartitions, denseUids) = getDenseAndSparsePartitions(partition, uidCardinality, denseAndSparseUidRangeDetector)
         createUniformPartitions(partition, densePartitions.intValue(), divideAndCeil(denseUids, densePartitions).intValue(), UnsignedLong.ONE) ++
           createUniformPartitions(partition, sparsePartitions.intValue(), divideAndCeil(uidCardinality.minus(denseUids), sparsePartitions).intValue(), denseUids)
       }
     }
   }
-
-  private def getDenseAndSparseUids(uids: UnsignedLong): (UnsignedLong, UnsignedLong) =
-    (uids, UnsignedLong.ZERO)
 
   private[connector] def divideAndCeil(devisor: UnsignedLong, denominator: UnsignedLong): UnsignedLong = {
     if (devisor.compareTo(UnsignedLong.ZERO) == 0) {
@@ -105,11 +103,12 @@ case class UidRangePartitioner(partitioner: Partitioner,
     }
   }
 
-  private[connector] def getDenseAndSparsePartitions(uids: UnsignedLong): (UnsignedLong, UnsignedLong, UnsignedLong) = {
+  private[connector] def getDenseAndSparsePartitions(partition: Partition, uids: UnsignedLong, detector: UidRangeDetector): (UnsignedLong, UnsignedLong, UnsignedLong) = {
     // try to find dense and sparse sections and partition those with individual uids per partition
     // assumption is a dense region from uids [0x1 … denseUids] and a sparse region
     // from [denseUids+1 … uidCardinality] containing estimated sparseUids uids
-    val (denseUids, sparseUids) = getDenseAndSparseUids(uids)
+    val (denseUids, sparseGap) = detector.detectDenseRegion(partition, uids)
+    val sparseUids = uids.minus(denseUids).dividedBy(sparseGap)
 
     // we put uidsPerPartition into dense and sparse partitions
     // when this requires more than maxPartitions, then we first reduce the number of sparse partitions down to 1

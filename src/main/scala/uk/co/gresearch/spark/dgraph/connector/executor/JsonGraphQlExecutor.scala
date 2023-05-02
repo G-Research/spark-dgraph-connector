@@ -19,6 +19,6 @@ package uk.co.gresearch.spark.dgraph.connector.executor
 import uk.co.gresearch.spark.dgraph.connector.Json
 
 /**
- * Executes a GraphQl query and returns the query result of type R.
+ * Executes a GraphQl query and returns the query result as Json.
  */
 trait JsonGraphQlExecutor extends GraphQlExecutor[Json]
