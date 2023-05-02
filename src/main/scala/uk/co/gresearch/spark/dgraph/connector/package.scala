@@ -61,7 +61,7 @@ package object connector {
 
   case class Uid(uid: UnsignedLong) {
     if (uid.compareTo(UnsignedLong.ZERO) < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
-    override def toString: String = uid.toString
+    override def toString: String = uid.longValue().toString
     def toHexString: String = s"0x${uid.toString(16)}"
     def <(other: Uid): Boolean = uid.compareTo(other.uid) < 0
     def >=(other: Uid): Boolean = uid.compareTo(other.uid) >= 0
@@ -70,12 +70,11 @@ package object connector {
   }
 
   object Uid {
-    def apply(uid: String): Uid = Uid(toUnsignedLong(uid))
-
     def apply(uid: Any): Uid = uid match {
+      case ul: UnsignedLong => Uid(ul)
       case l: Long => Uid(UnsignedLong.valueOf(l))
-      case i: Int => Uid(i.toLong)
-      case a => Uid(a.toString)
+      case i: Int => Uid(UnsignedLong.valueOf(i.toLong))
+      case a => Uid(toUnsignedLong(a.toString))
     }
 
     private def toUnsignedLong(uid: String): UnsignedLong =

@@ -79,122 +79,6 @@ class TestStringTripleEncoder extends AnyFunSpec {
   }
 
   it("should parse JSON response") {
-    val schema = Schema(Set(
-      Predicate("name", "string"),
-      Predicate("release_date", "datetime"),
-      Predicate("revenue", "float"),
-      Predicate("running_time", "int"),
-      Predicate("director", "uid"),
-      Predicate("starring", "uid")
-    ))
-
-    val json =
-      """
-        |{
-        |    "result": [
-        |      {
-        |        "uid": "0x1",
-        |        "name": "Star Wars: Episode IV - A New Hope",
-        |        "release_date": "1977-05-25T00:00:00Z",
-        |        "revenue": "775000000",
-        |        "running_time": 121,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x4"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0x2",
-        |        "name": "Luke Skywalker"
-        |      },
-        |      {
-        |        "uid": "0x3",
-        |        "name": "Han Solo"
-        |      },
-        |      {
-        |        "uid": "0x4",
-        |        "name": "George Lucas"
-        |      },
-        |      {
-        |        "uid": "0x5",
-        |        "name": "Irvin Kernshner"
-        |      },
-        |      {
-        |        "uid": "0x6",
-        |        "name": "Richard Marquand"
-        |      },
-        |      {
-        |        "uid": "0x7",
-        |        "name": "Princess Leia"
-        |      },
-        |      {
-        |        "uid": "0x8",
-        |        "name": "Star Wars: Episode V - The Empire Strikes Back",
-        |        "release_date": "1980-05-21T00:00:00Z",
-        |        "revenue": "534000000",
-        |        "running_time": 124,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x5"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0x9",
-        |        "name": "Star Wars: Episode VI - Return of the Jedi",
-        |        "release_date": "1983-05-25T00:00:00Z",
-        |        "revenue": "572000000",
-        |        "running_time": 131,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x6"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0xa",
-        |        "name": "Star Trek: The Motion Picture",
-        |        "release_date": "1979-12-07T00:00:00Z",
-        |        "revenue": "139000000",
-        |        "running_time": 132
-        |      }
-        |    ]
-        |  }""".stripMargin
-
     val encoder = StringTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(json), "result")
     assert(rows.toSeq === Seq(
@@ -233,7 +117,21 @@ class TestStringTripleEncoder extends AnyFunSpec {
       InternalRow(10L, UTF8String.fromString("revenue"), UTF8String.fromString("1.39E8"), UTF8String.fromString("double")),
       InternalRow(10L, UTF8String.fromString("running_time"), UTF8String.fromString("132"), UTF8String.fromString("long")),
     ))
+  }
 
+  it("should parse JSON response with large uids") {
+    val encoder = StringTripleEncoder(schema.predicateMap)
+    val rows = encoder.fromJson(Json(jsonWithLargeUids), "result")
+    assert(rows.toSeq === Seq(
+      InternalRow(-6346846686373277921L, UTF8String.fromString("name"), UTF8String.fromString("Star Wars: Episode IV - A New Hope"), UTF8String.fromString("string")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("release_date"), UTF8String.fromString("1977-05-25 00:00:00.0"), UTF8String.fromString("timestamp")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("revenue"), UTF8String.fromString("7.75E8"), UTF8String.fromString("double")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("running_time"), UTF8String.fromString("121"), UTF8String.fromString("long")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), UTF8String.fromString("3100520392254949455"), UTF8String.fromString("uid")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), UTF8String.fromString("999257064750498476"), UTF8String.fromString("uid")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), UTF8String.fromString("-1877623327044447073"), UTF8String.fromString("uid")),
+      InternalRow(-6346846686373277921L, UTF8String.fromString("director"), UTF8String.fromString("8214320560726473464"), UTF8String.fromString("uid")),
+    ))
   }
 
 }

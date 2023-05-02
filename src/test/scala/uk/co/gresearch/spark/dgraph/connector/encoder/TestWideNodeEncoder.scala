@@ -120,112 +120,6 @@ class TestWideNodeEncoder extends AnyFunSpec {
         |    ]
         |  }""".stripMargin
 
-    val fullJsonWithEdges =
-      """{
-        |    "result": [
-        |      {
-        |        "uid": "0x1",
-        |        "name": "Star Wars: Episode IV - A New Hope",
-        |        "release_date": "1977-05-25T00:00:00Z",
-        |        "revenue": "775000000",
-        |        "running_time": 121,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x4"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0x2",
-        |        "name": "Luke Skywalker"
-        |      },
-        |      {
-        |        "uid": "0x3",
-        |        "name": "Han Solo"
-        |      },
-        |      {
-        |        "uid": "0x4",
-        |        "name": "George Lucas"
-        |      },
-        |      {
-        |        "uid": "0x5",
-        |        "name": "Irvin Kernshner"
-        |      },
-        |      {
-        |        "uid": "0x6",
-        |        "name": "Richard Marquand"
-        |      },
-        |      {
-        |        "uid": "0x7",
-        |        "name": "Princess Leia"
-        |      },
-        |      {
-        |        "uid": "0x8",
-        |        "name": "Star Wars: Episode V - The Empire Strikes Back",
-        |        "release_date": "1980-05-21T00:00:00Z",
-        |        "revenue": "534000000",
-        |        "running_time": 124,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x5"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0x9",
-        |        "name": "Star Wars: Episode VI - Return of the Jedi",
-        |        "release_date": "1983-05-25T00:00:00Z",
-        |        "revenue": "572000000",
-        |        "running_time": 131,
-        |        "starring": [
-        |          {
-        |            "uid": "0x2"
-        |          },
-        |          {
-        |            "uid": "0x3"
-        |          },
-        |          {
-        |            "uid": "0x7"
-        |          }
-        |        ],
-        |        "director": [
-        |          {
-        |            "uid": "0x6"
-        |          }
-        |        ]
-        |      },
-        |      {
-        |        "uid": "0xa",
-        |        "name": "Star Trek: The Motion Picture",
-        |        "release_date": "1979-12-07T00:00:00Z",
-        |        "revenue": "139000000",
-        |        "running_time": 132
-        |      }
-        |    ]
-        |  }""".stripMargin
-
     // only name, release_date and director selected
     val projectedJsonWithEdges =
       """{
@@ -351,8 +245,18 @@ class TestWideNodeEncoder extends AnyFunSpec {
     }
 
     it("should parse JSON response and ignore edges") {
-      val rows = encoder.fromJson(Json(fullJsonWithEdges), "result").toSeq
+      val rows = encoder.fromJson(Json(json), "result").toSeq
       assert(rows === expectedRowsFullSchema)
+      assert(encoder.schema === expectedSchema)
+      assert(encoder.readSchema === expectedSchema)
+    }
+
+    it("should parse JSON response with large uids") {
+      val rows = encoder.fromJson(Json(jsonWithLargeUids), "result").toSeq
+      val expected = Seq(
+        InternalRow(-6346846686373277921L, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), ts("1977-05-25 00:00:00"), 7.75E8, 121),
+      )
+      assert(rows === expected)
       assert(encoder.schema === expectedSchema)
       assert(encoder.readSchema === expectedSchema)
     }
