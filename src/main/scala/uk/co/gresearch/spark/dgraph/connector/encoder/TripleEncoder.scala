@@ -70,6 +70,7 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
         .flatMap { case (p, v, t) =>
           getValues(v)
             .flatMap(v =>
+              // give more context to non-parsable values
               Try(asInternalRow(uid, p, getValue(v, t))) match {
                 case Failure(exception) =>
                   throw new IllegalArgumentException(s"Cannot parse value '$v' of type $t for predicate $p and uid $uid", exception)
