@@ -16,8 +16,9 @@
 
 package uk.co.gresearch.spark.dgraph
 
-import java.sql.Timestamp
+import com.google.common.primitives.UnsignedLong
 
+import java.sql.Timestamp
 import io.dgraph.DgraphGrpc.DgraphStub
 import io.dgraph.DgraphProto.TxnContext
 import io.dgraph.{DgraphClient, DgraphGrpc}
@@ -58,29 +59,28 @@ package object connector {
                        objectPassword: Option[String],
                        objectType: String)
 
-  case class Uid(uid: Long) {
-    if (uid < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
-    override def toString: String = uid.toString
-    def toHexString: String = s"0x${uid.toHexString}"
-    def <(other: Uid): Boolean = uid < other.uid
-    def >=(other: Uid): Boolean = uid >= other.uid
-    def next: Uid = Uid(uid+1)
-    def before: Uid = Uid(uid-1)
+  case class Uid(uid: UnsignedLong) {
+    if (uid.compareTo(UnsignedLong.ZERO) < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
+    override def toString: String = uid.longValue().toString
+    def toHexString: String = s"0x${uid.toString(16)}"
+    def <(other: Uid): Boolean = uid.compareTo(other.uid) < 0
+    def >=(other: Uid): Boolean = uid.compareTo(other.uid) >= 0
+    def next: Uid = Uid(uid.plus(UnsignedLong.ONE))
+    def before: Uid = Uid(uid.minus(UnsignedLong.ONE))
   }
 
   object Uid {
-    def apply(uid: String): Uid = Uid(toLong(uid))
-
     def apply(uid: Any): Uid = uid match {
-      case l: Long => Uid(l)
-      case i: Int => Uid(i.toLong)
-      case a => Uid(a.toString)
+      case ul: UnsignedLong => Uid(ul)
+      case l: Long => Uid(UnsignedLong.valueOf(l))
+      case i: Int => Uid(UnsignedLong.valueOf(i.toLong))
+      case a => Uid(toUnsignedLong(a.toString))
     }
 
-    private def toLong(uid: String): Long =
+    private def toUnsignedLong(uid: String): UnsignedLong =
       Some(uid)
         .filter(_.startsWith("0x"))
-        .map(uid => java.lang.Long.valueOf(uid.substring(2), 16))
+        .map(uid => UnsignedLong.valueOf(uid.substring(2), 16))
         .getOrElse(throw new IllegalArgumentException("Dgraph uid is not a long prefixed with '0x': " + uid))
   }
 

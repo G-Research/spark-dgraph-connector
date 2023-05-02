@@ -21,6 +21,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import uk.co.gresearch.spark.dgraph.connector.{Json, Logging, Predicate, Uid}
 
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 /**
  * Encodes triples as InternalRows from Dgraph json results.
@@ -69,7 +70,12 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
         .flatMap { case (p, v, t) =>
           getValues(v)
             .flatMap(v =>
-              asInternalRow(uid, p, getValue(v, t))
+              // give more context to non-parsable values
+              Try(asInternalRow(uid, p, getValue(v, t))) match {
+                case Failure(exception) =>
+                  throw new IllegalArgumentException(s"Cannot parse value '$v' of type $t for predicate $p and uid $uid", exception)
+                case Success(value) => value
+              }
             )
         }
     } catch {

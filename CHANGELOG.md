@@ -9,8 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Estimator "maxLeaseId" renamed to "maxUid", as used with option `dgraph.partitioner.uidRange.estimator`
 
 ### Fixed
-- Work with maxUid values that cannot be parsed
-- Handle maxUid values larger than Long.MaxValue
+- Work with maxUid values that cannot be parsed ([pull #216](https://github.com/G-Research/spark-dgraph-connector/pull/216)).
+- Handle maxUid values larger than Long.MaxValue ([pull #216](https://github.com/G-Research/spark-dgraph-connector/pull/216)).
+- Handle Dgraph data type "default" as plain strings ([pull #223](https://github.com/G-Research/spark-dgraph-connector/pull/223)).
+- Supports full unsigned long (64 bits) value range of Dgraph uids, mapped into signed longs ([pull #222](https://github.com/G-Research/spark-dgraph-connector/pull/222)).
 
 ## [0.9.0] - 2022-07-14
 

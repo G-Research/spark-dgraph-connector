@@ -30,7 +30,7 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
       val partition = Partition(Seq.empty, Set(range))
       val actual = estimator.uidCardinality(partition)
       assert(actual.isDefined === true)
-      assert(actual.get.intValue() === range.length)
+      assert(actual.get.intValue() === range.length.intValue())
     }
 
     it("should estimate partition's uids cardinality") {
