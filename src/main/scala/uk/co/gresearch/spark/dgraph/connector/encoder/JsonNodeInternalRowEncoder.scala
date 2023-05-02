@@ -115,7 +115,7 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
       case "bool" | "boolean" => value.getAsString == "true"
       case "geo" => Geo(value.getAsJsonObject.toString)
       case "password" => Password(value.getAsJsonObject.getAsString)
-      case "default" => value.getAsJsonObject.getAsString
+      case "default" => value.getAsString
       case _ => value.getAsString
     }
 
