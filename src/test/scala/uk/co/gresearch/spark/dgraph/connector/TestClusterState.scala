@@ -27,18 +27,18 @@ class TestClusterState extends AnyFunSpec {
 
   describe("ClusterState") {
 
-    it("should handle numeric maxLeaseIds") {
+    it("should handle numeric unsigned longs") {
       assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("1234")) === Success(UnsignedLong.valueOf(1234)))
       assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(UnsignedLong.valueOf(Long.MaxValue)))
       assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(UnsignedLong.valueOf("9223372036854775808")))
       assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("18446055125930680484")) === Success(UnsignedLong.valueOf("18446055125930680484")))
     }
 
-    it("should handle non-numeric maxLeaseIds") {
-      val bigint = ClusterState.getUnsignedLongFromJson(new JsonPrimitive("123e4"))
-      assert(bigint.isFailure)
-      assert(bigint.asInstanceOf[Failure[UnsignedLong]].exception.isInstanceOf[NumberFormatException])
-      assert(bigint.asInstanceOf[Failure[UnsignedLong]].exception.getMessage === "123e4")
+    it("should handle non-numeric unsigned longs") {
+      val long = ClusterState.getUnsignedLongFromJson(new JsonPrimitive("123e4"))
+      assert(long.isFailure)
+      assert(long.asInstanceOf[Failure[UnsignedLong]].exception.isInstanceOf[NumberFormatException])
+      assert(long.asInstanceOf[Failure[UnsignedLong]].exception.getMessage === "123e4")
     }
 
     it("should handle un-prefixed predicates") {
@@ -138,7 +138,7 @@ class TestClusterState extends AnyFunSpec {
           |      "leader": true
           |    }
           |  },
-          |  "maxLeaseId": "10000",
+          |  "maxUID": "10000",
           |  "maxTxnTs": "20000",
           |  "maxRaftId": "1",
           |  "cid": "5aacce50-a95f-440b-a32e-fbe6b4003980",
@@ -160,7 +160,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
         "2" -> Set("name", "release_date", "revenue")
       ))
-      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
+      assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
 
@@ -177,7 +177,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
+        assert(state.maxUid.map(_.intValue()) === Some(10000))
       }
 
       it(s"should handle Json with large $field") {
@@ -192,7 +192,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === Some(UnsignedLong.valueOf("18446055125930680484")))
+        assert(state.maxUid === Some(UnsignedLong.valueOf("18446055125930680484")))
       }
 
       it(s"should handle Json with zero $field") {
@@ -207,7 +207,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === Some(UnsignedLong.ZERO))
+        assert(state.maxUid === Some(UnsignedLong.ZERO))
       }
 
       it(s"should handle Json with negative $field") {
@@ -222,7 +222,7 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === None)
+        assert(state.maxUid === None)
       }
 
       it(s"should handle Json with non-numeric $field") {
@@ -237,11 +237,11 @@ class TestClusterState extends AnyFunSpec {
 
         val state = ClusterState.fromJson(Json(json))
 
-        assert(state.maxLeaseId === None)
+        assert(state.maxUid === None)
       }
     }
 
-    it("should handle Json with no maxLeasId / maxUID") {
+    it("should handle Json with no maxLeaseId / maxUID") {
       val json =
         """{
            |  "groups": {},
@@ -252,7 +252,7 @@ class TestClusterState extends AnyFunSpec {
 
       val state = ClusterState.fromJson(Json(json))
 
-      assert(state.maxLeaseId === None)
+      assert(state.maxUid === None)
     }
 
     it("should handle Json with null predicate prefix") {
@@ -400,7 +400,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director", "name")
       ))
-      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
+      assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
 
@@ -549,7 +549,7 @@ class TestClusterState extends AnyFunSpec {
         "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
         "2" -> Set("director")  // predicate name is ignored as it is not in the default namespace
       ))
-      assert(state.maxLeaseId.map(_.intValue()) === Some(10000))
+      assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
   }

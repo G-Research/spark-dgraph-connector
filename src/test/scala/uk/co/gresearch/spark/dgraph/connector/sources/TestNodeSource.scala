@@ -417,7 +417,7 @@ class TestNodeSource extends AnyFunSpec
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "1",
             UidRangePartitionerUidsPerPartOption -> "1",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            MaxUidEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.nodes(dgraph.target)
       )
@@ -519,7 +519,7 @@ class TestNodeSource extends AnyFunSpec
             .options(Map(
               PartitionerOption -> UidRangePartitionerOption,
               UidRangePartitionerUidsPerPartOption -> "7",
-              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+              MaxUidEstimatorIdOption -> dgraph.highestUid.toString
             ))
             .dgraph.nodes(target)
             .as[TypedNode]

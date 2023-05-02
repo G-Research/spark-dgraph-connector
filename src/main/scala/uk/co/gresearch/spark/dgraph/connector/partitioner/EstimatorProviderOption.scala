@@ -26,10 +26,10 @@ trait EstimatorProviderOption extends ConfigParser with ClusterStateHelper with 
                          clusterState: ClusterState): UidCardinalityEstimator = {
     val name = getStringOption(option, options, default)
     name match {
-      case MaxLeaseIdEstimatorOption =>
-        val maxLeaseId = getIntOption(MaxLeaseIdEstimatorIdOption, options).map(UnsignedLong.valueOf(_))
-        maxLeaseId.foreach(id => log.warn(s"using configured maxLeaseId=$id for uid cardinality estimator"))
-        UidCardinalityEstimator.forMaxLeaseId(maxLeaseId.orElse(clusterState.maxLeaseId))
+      case MaxUidEstimatorOption =>
+        val maxUid = getIntOption(MaxUidEstimatorIdOption, options).map(UnsignedLong.valueOf(_))
+        maxUid.foreach(id => log.warn(s"using configured $MaxUidEstimatorIdOption=$id for uid cardinality estimator"))
+        UidCardinalityEstimator.forMaxUid(maxUid.orElse(clusterState.maxUid))
       case _ => throw new IllegalArgumentException(s"Unknown uid cardinality estimator: $name")
     }
   }

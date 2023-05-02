@@ -49,10 +49,10 @@ abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
 
 }
 
-case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[UnsignedLong]) extends UidCardinalityEstimatorBase {
+case class MaxUidUidCardinalityEstimator(maxUid: Option[UnsignedLong]) extends UidCardinalityEstimatorBase {
 
-  if (maxLeaseId.exists(_.compareTo(UnsignedLong.ZERO) <= 0))
-    throw new IllegalArgumentException(s"uidCardinality must be larger than zero: $maxLeaseId")
+  if (maxUid.exists(_.compareTo(UnsignedLong.ZERO) <= 0))
+    throw new IllegalArgumentException(s"uidCardinality maxUid must be larger than zero: $maxUid")
 
   /**
    * Estimates the cardinality of uids in the given partition,
@@ -62,11 +62,11 @@ case class MaxLeaseIdUidCardinalityEstimator(maxLeaseId: Option[UnsignedLong]) e
    * @return estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[UnsignedLong] =
-    super.uidCardinality(partition).orElse(maxLeaseId)
+    super.uidCardinality(partition).orElse(maxUid)
 
 }
 
 object UidCardinalityEstimator {
-  def forMaxLeaseId(maxLeaseId: Option[UnsignedLong]): UidCardinalityEstimator =
-    MaxLeaseIdUidCardinalityEstimator(maxLeaseId)
+  def forMaxUid(maxUid: Option[UnsignedLong]): UidCardinalityEstimator =
+    MaxUidUidCardinalityEstimator(maxUid)
 }

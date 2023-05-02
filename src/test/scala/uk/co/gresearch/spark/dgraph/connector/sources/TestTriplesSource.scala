@@ -473,7 +473,7 @@ class TestTriplesSource extends AnyFunSpec
           .options(Map(
             PartitionerOption -> s"$UidRangePartitionerOption",
             UidRangePartitionerUidsPerPartOption -> "7",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            MaxUidEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.triples(dgraph.target)
           .rdd
@@ -497,7 +497,7 @@ class TestTriplesSource extends AnyFunSpec
             PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
             PredicatePartitionerPredicatesOption -> "2",
             UidRangePartitionerUidsPerPartOption -> "5",
-            MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+            MaxUidEstimatorIdOption -> dgraph.highestUid.toString
           ))
           .dgraph.triples(dgraph.target)
           .rdd
@@ -525,7 +525,7 @@ class TestTriplesSource extends AnyFunSpec
             .options(Map(
               PartitionerOption -> UidRangePartitionerOption,
               UidRangePartitionerUidsPerPartOption -> "7",
-              MaxLeaseIdEstimatorIdOption -> dgraph.highestUid.toString
+              MaxUidEstimatorIdOption -> dgraph.highestUid.toString
             ))
             .dgraph.triples(dgraph.target)
         )

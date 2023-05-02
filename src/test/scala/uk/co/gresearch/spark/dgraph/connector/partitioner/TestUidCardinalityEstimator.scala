@@ -53,20 +53,20 @@ class TestUidCardinalityEstimator extends AnyFunSpec {
     doTestUidCardinalityEstimatorBase(new UidCardinalityEstimatorBase {}, None)
   }
 
-  describe("MaxLeaseIdUidCardinalityEstimator") {
-    describe("with some maxLeaseId") {
-      doTestUidCardinalityEstimatorBase(MaxLeaseIdUidCardinalityEstimator(Some(UnsignedLong.valueOf(1234))), Some(1234))
+  describe("MaxUidUidCardinalityEstimator") {
+    describe("with some maxUid") {
+      doTestUidCardinalityEstimatorBase(MaxUidUidCardinalityEstimator(Some(UnsignedLong.valueOf(1234))), Some(1234))
     }
-    describe("with no maxLeaseId") {
-      doTestUidCardinalityEstimatorBase(MaxLeaseIdUidCardinalityEstimator(None), None)
+    describe("with no maxUid") {
+      doTestUidCardinalityEstimatorBase(MaxUidUidCardinalityEstimator(None), None)
     }
 
     it("should fail on negative or zero max uids") {
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(Some(UnsignedLong.valueOf(-1)))
+        UidCardinalityEstimator.forMaxUid(Some(UnsignedLong.valueOf(-1)))
       }
       assertThrows[IllegalArgumentException] {
-        UidCardinalityEstimator.forMaxLeaseId(Some(UnsignedLong.valueOf(0)))
+        UidCardinalityEstimator.forMaxUid(Some(UnsignedLong.valueOf(0)))
       }
     }
 
