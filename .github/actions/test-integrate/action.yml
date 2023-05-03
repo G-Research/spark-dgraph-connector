@@ -113,11 +113,13 @@ runs:
       shell: bash
 
     - name: Stop Dgraph cluster
+      if: inputs.dgraph-version != '21.12.0'
       run: docker stop ${{ steps.dgraph-small.outputs.docker }}
       shell: bash
 
     - name: Start Dgraph cluster (Large)
       id: dgraph
+      if: inputs.dgraph-version != '21.12.0'
       run: |
         if [[ "${{ inputs.dgraph-version }}" < "21.03.0" ]]
         then
@@ -148,6 +150,7 @@ runs:
       shell: bash
 
     - name: Integration Test (Sparse)
+      if: inputs.dgraph-version != '21.12.0'
       env:
         SPARK_LOCAL_IP: 127.0.0.1
         SPARK_HOME: ${{ steps.params.outputs.home }}/spark

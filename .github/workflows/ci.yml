@@ -160,7 +160,7 @@ jobs:
 
   test-integration:
     name: "Test Integration"
-    needs: build
+    needs: [test-dgraph, test-spark]
     uses: "./.github/workflows/test-integration.yml"
 
   delete_binaries:
