@@ -1,4 +1,5 @@
-package uk.co.gresearch.spark.dgraph.connector.partitioner
+package uk.co.gresearch.spark.dgraph.connector.partitioner.sparse
+
 import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector.Uid
 
@@ -6,7 +7,7 @@ import uk.co.gresearch.spark.dgraph.connector.Uid
  * A sequence of uids is considered sparse if there are no more than
  * denseGapRepetitionThreshold consecutive dense gaps.
  *
- * @param denseGapThreshold gaps below this threshold are considered dense
+ * @param denseGapThreshold           gaps below this threshold are considered dense
  * @param denseGapRepetitionThreshold observe consecutive dense gaps to consider uids dense
  */
 case class ThresholdSparseDetector(denseGapThreshold: Int, denseGapRepetitionThreshold: Int) extends SparseDetector {
@@ -17,12 +18,12 @@ case class ThresholdSparseDetector(denseGapThreshold: Int, denseGapRepetitionThr
     if (uids.length <= denseGapRepetitionThreshold) {
       false
     } else {
-      val repetition = uids.map(_.uid)
-        .sliding(2)
-        .map(seq => seq.last.minus(seq.head))
-        .foldLeft(0)((count, gap) => if (count >= denseGapRepetitionThreshold) count else
-          if (gap.compareTo(denseGapThresholdUnsigned) > 0) count + 1 else 0)
-      repetition >= denseGapRepetitionThreshold
+      val repetitions = getSparseGaps(uids)
+        .foldLeft(0)((count, gap) =>
+          if (count >= denseGapRepetitionThreshold) count
+          else if (gap.compareTo(denseGapThresholdUnsigned) < 0) count + 1 else 0
+        )
+      repetitions < denseGapRepetitionThreshold
     }
   }
 }

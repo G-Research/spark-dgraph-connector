@@ -41,7 +41,7 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
     copy(operators = operators + Get(properties, edges))
 
   def getNone: Partition =
-    copy(operators = operators.filter(!_.isInstanceOf[Get]))
+    copy(operators = operators.filter(!_.isInstanceOf[Get]) ++ Set(Get(Set.empty, Set.empty)))
 
   def getAll: Partition =
     copy(operators = operators ++ operators.filter(_.isInstanceOf[Has]).map(_.asInstanceOf[Has]).map(has => Get(has.properties, has.edges)))

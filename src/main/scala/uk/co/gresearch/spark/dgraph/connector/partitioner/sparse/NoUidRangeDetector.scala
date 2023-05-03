@@ -1,4 +1,5 @@
-package uk.co.gresearch.spark.dgraph.connector.partitioner
+package uk.co.gresearch.spark.dgraph.connector.partitioner.sparse
+
 import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector.Partition
 

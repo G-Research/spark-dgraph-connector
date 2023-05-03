@@ -1,5 +1,5 @@
-package uk.co.gresearch.spark.dgraph.connector.partitioner
-import com.google.common.primitives.UnsignedLong
+package uk.co.gresearch.spark.dgraph.connector.partitioner.sparse
+
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.encoder.JsonGraphQlResultParser
 import uk.co.gresearch.spark.dgraph.connector.executor.JsonGraphQlExecutor
@@ -29,13 +29,13 @@ case class JsonGraphQlUidDetector(executor: JsonGraphQlExecutor) extends UidDete
       .map(Uid.apply)
       .toSeq
 
-    log.debug(s"read uid chunk " +
+    log.info(s"read uid chunk " +
       s"of ${loggingFormat.format(json.string.length)} bytes " +
       s"with ${loggingFormat.format(partition.predicates.size)} predicates " +
       s"for ${loggingFormat.format(uids)} uids " +
       s"at ${uid.toHexString} " +
       s"with ${loggingFormat.format(uids)} uids " +
-      s"in ${loggingFormat.format((endTs - startTs)/1000.0)}s")
+      s"in ${loggingFormat.format((endTs - startTs) / 1000.0)}s")
 
     uidRegion
   }

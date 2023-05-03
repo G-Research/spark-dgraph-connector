@@ -18,13 +18,14 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector
+import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.{NoUidRangeDetector, UidRangeDetector}
 import uk.co.gresearch.spark.dgraph.connector.{Filter, Filters, Logging, Partition, Uid, UidRange, UidRangePartitionerMaxPartsOption, UidRangePartitionerUidsPerPartOption}
 
 case class UidRangePartitioner(partitioner: Partitioner,
                                uidsPerPartition: Int,
                                maxPartitions: Int,
                                uidCardinalityEstimator: UidCardinalityEstimator,
-                               denseAndSparseUidRangeDetector: UidRangeDetector = NoUidRangeDetector()) extends Partitioner with Logging {
+                               uidRangeDetector: UidRangeDetector = NoUidRangeDetector()) extends Partitioner with Logging {
 
   if (partitioner == null)
     throw new IllegalArgumentException("partitioner must not be null")
@@ -35,10 +36,9 @@ case class UidRangePartitioner(partitioner: Partitioner,
   if (maxPartitions <= 0)
     throw new IllegalArgumentException(s"maxPartitions must be larger than zero: $maxPartitions")
 
-  val uidsPerPartitionUnsigned: UnsignedLong = UnsignedLong.valueOf(uidsPerPartition)
-  val maxPartitionsUnsigned: UnsignedLong = UnsignedLong.valueOf(maxPartitions)
-
-  val partitions: Seq[Partition] = partitioner.getPartitions
+  private val uidsPerPartitionUnsigned: UnsignedLong = UnsignedLong.valueOf(uidsPerPartition)
+  private val maxPartitionsUnsigned: UnsignedLong = UnsignedLong.valueOf(maxPartitions)
+  private val partitions: Seq[Partition] = partitioner.getPartitions
 
   if (partitions.exists(_.uidRange.isDefined))
     throw new IllegalArgumentException(s"UidRangePartitioner cannot be combined with " +
@@ -63,7 +63,7 @@ case class UidRangePartitioner(partitioner: Partitioner,
         Seq(partition)
       } else if (numPartitions.compareTo(maxPartitionsUnsigned) <= 0) {
         // number of partitions is allowed
-        createUniformPartitions(partition, numPartitions.intValue(), uidsPerPartition, UnsignedLong.ONE)
+        createUniformPartitions(partition, numPartitions.intValue(), uidsPerPartitionUnsigned, UnsignedLong.ONE)
       } else {
         // uniform partitions over uid cardinality would create too many partitions
         //
@@ -71,9 +71,22 @@ case class UidRangePartitioner(partitioner: Partitioner,
         // is data has been loaded via live loader, which allocates a dense section of uids at the beginning
         // of the uids range (here called dense), and randomly distributed uids in the remaining part of the
         // uid range (here called sparse)
-        val (densePartitions, sparsePartitions, denseUids) = getDenseAndSparsePartitions(partition, uidCardinality, denseAndSparseUidRangeDetector)
-        createUniformPartitions(partition, densePartitions.intValue(), divideAndCeil(denseUids, densePartitions).intValue(), UnsignedLong.ONE) ++
-          createUniformPartitions(partition, sparsePartitions.intValue(), divideAndCeil(uidCardinality.minus(denseUids), sparsePartitions).intValue(), denseUids)
+        val (densePartitions, sparsePartitions, denseUids) = getDenseAndSparsePartitions(partition, uidCardinality, uidRangeDetector)
+
+        Some(densePartitions)
+          .filter(_.compareTo(UnsignedLong.ZERO) > 0 )
+          .map { partitions =>
+            val uidsPerDensePartition = divideAndCeil(denseUids, partitions)
+            createUniformPartitions(partition, densePartitions.intValue(), uidsPerDensePartition, UnsignedLong.ONE).toSeq
+          }
+          .getOrElse(Seq.empty) ++
+        Some(sparsePartitions)
+          .filter(_.compareTo(UnsignedLong.ZERO) > 0 )
+          .map { partitions =>
+            val uidsPerSparsePartition = divideAndCeil(uidCardinality.minus(denseUids), partitions)
+            createUniformPartitions(partition, sparsePartitions.intValue(), uidsPerSparsePartition, denseUids).toSeq
+          }
+          .getOrElse(Seq.empty)
       }
     }
   }
@@ -86,12 +99,12 @@ case class UidRangePartitioner(partitioner: Partitioner,
     }
   }
 
-  private[connector] def createUniformPartitions(partition: Partition, partitions: Int, uidsPerPartition: Int, first: UnsignedLong): Iterator[Partition] = {
+  private[connector] def createUniformPartitions(partition: Partition, partitions: Int, uidsPerPartition: UnsignedLong, first: UnsignedLong): Iterator[Partition] = {
     if (partitions == 0) {
       Iterator.empty
     } else {
       (0 to partitions.intValue())
-        .map(idx => first.plus(UnsignedLong.valueOf(idx * uidsPerPartition)))
+        .map(idx => first.plus(uidsPerPartition.times(UnsignedLong.valueOf(idx))))
         .map(Uid(_))
         .sliding(2)
         .map(uids => UidRange(uids.head, uids.last))
@@ -108,7 +121,7 @@ case class UidRangePartitioner(partitioner: Partitioner,
     // assumption is a dense region from uids [0x1 … denseUids] and a sparse region
     // from [denseUids+1 … uidCardinality] containing estimated sparseUids uids
     val (denseUids, sparseGap) = detector.detectDenseRegion(partition, uids)
-    val sparseUids = uids.minus(denseUids).dividedBy(sparseGap)
+    val sparseUids = if (sparseGap.compareTo(UnsignedLong.ZERO) > 0) uids.minus(denseUids).dividedBy(sparseGap) else UnsignedLong.ZERO
 
     // we put uidsPerPartition into dense and sparse partitions
     // when this requires more than maxPartitions, then we first reduce the number of sparse partitions down to 1

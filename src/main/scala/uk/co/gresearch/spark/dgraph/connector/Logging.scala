@@ -31,7 +31,7 @@ trait Logging {
   @transient
   lazy val log: Logger = LogManager.getLogger(this.getClass)
 
-  def abbreviate(string: String): String =
-    StringUtils.abbreviateMiddle(string, loggingStringAbbreviateMiddle, loggingStringMaxLength)
+  def abbreviate(string: String, maxLength: Int = loggingStringMaxLength): String =
+    StringUtils.abbreviateMiddle(string, loggingStringAbbreviateMiddle, maxLength)
 
 }

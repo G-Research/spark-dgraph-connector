@@ -18,6 +18,8 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
+import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.{JsonGraphQlUidDetector, LogSearchStrategy, SearchUidRangeDetector, ThresholdSparseDetector, UidRangeDetector}
 
 class ConfigPartitionerOption extends PartitionerProviderOption
   with EstimatorProviderOption
@@ -51,7 +53,8 @@ class ConfigPartitionerOption extends PartitionerProviderOption
         val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
         val targets = getAllClusterTargets(clusterState)
         val singleton = SingletonPartitioner(targets, schema)
-        UidRangePartitioner(singleton, uidsPerPartition, maxPartitions, estimator)
+        val detector = getUidRangeDetector(targets, uidsPerPartition, options)
+        UidRangePartitioner(singleton, uidsPerPartition, maxPartitions, estimator, detector)
       case option if option.endsWith(s"+$UidRangePartitionerOption") =>
         val name = option.substring(0, option.indexOf('+'))
         val partitioner = getPartitioner(name, schema, clusterState, transaction, options)
@@ -59,5 +62,16 @@ class ConfigPartitionerOption extends PartitionerProviderOption
           .asInstanceOf[UidRangePartitioner].copy(partitioner = partitioner)
       case unknown => throw new IllegalArgumentException(s"Unknown partitioner: $unknown")
     }
+
+  def getUidRangeDetector(targets: Seq[Target],
+                          uidsPerPartition: Int,
+                          options: CaseInsensitiveStringMap): UidRangeDetector = {
+    val executor = DgraphExecutor(None, targets)
+    val uidDetector = JsonGraphQlUidDetector(executor)
+    val sparseDetector = ThresholdSparseDetector(Int.MaxValue, 2)
+    val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
+    val detectLength = math.max(chunkSize / 100, 10)
+    SearchUidRangeDetector(uidDetector, sparseDetector, uidsPerPartition, detectLength, LogSearchStrategy())
+  }
 
 }
