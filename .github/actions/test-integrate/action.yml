@@ -103,8 +103,13 @@ runs:
         curl -L -o dgraph/1million.rdf.gz "https://github.com/dgraph-io/tutorial/blob/master/resources/1million.rdf.gz?raw=true"
         docker run -d -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -v $(pwd)/dgraph:/dgraph --name dgraph dgraph/dgraph:v${{ inputs.dgraph-version }} dgraph zero
         docker exec -d dgraph dgraph alpha $cache --zero localhost:5080 $whitelist
-        sleep 30
-        curl --data-binary @dgraph-instance.schema.live-loader.dql -H "Content-Type: text/plain;charset=UTF-8" http://localhost:8080/alter
+        for attempt in {1..10}
+        do
+          echo "attempt $attempt"
+          if curl --data-binary @dgraph-instance.schema.live-loader.dql -H "Content-Type: text/plain;charset=UTF-8" http://localhost:8080/alter; then break; fi
+          if [ $attempt -eq 10 ]; then exit 1; fi
+          sleep 10
+        done
         docker exec dgraph dgraph live -f 1million.rdf.gz --alpha localhost:9080 --zero localhost:5080 -c 1
       shell: bash
 
