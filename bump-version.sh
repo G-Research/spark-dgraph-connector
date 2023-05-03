@@ -35,7 +35,7 @@ function next_version {
   patch=${version/*./}
   majmin=${version%.${patch}}
 
-  if [[ $branch == "master" ]]
+  if [[ $branch == "main" ]]
   then
     # minor version bump
     if [[ $version != *".0" ]]
