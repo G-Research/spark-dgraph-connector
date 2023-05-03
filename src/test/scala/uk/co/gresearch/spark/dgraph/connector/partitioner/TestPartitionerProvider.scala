@@ -21,6 +21,7 @@ import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
+import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.UidRangeDetector
 
 import java.util.UUID
 import scala.jdk.CollectionConverters._
@@ -39,13 +40,16 @@ class TestPartitionerProvider extends AnyFunSpec {
   val maxLeaseEstimator: UidCardinalityEstimator = MaxUidUidCardinalityEstimator(state.maxUid)
   assert(UidRangePartitionerEstimatorDefault === MaxUidEstimatorOption, "tests assume this default estimator")
 
+  def detector(uidsPerPartition: Int): UidRangeDetector =
+    new ConfigPartitionerOption().getUidRangeDetector(target, uidsPerPartition, CaseInsensitiveStringMap.empty())
+
   describe("PartitionerProvider") {
 
     val singleton = SingletonPartitioner(target, schema)
     val group = GroupPartitioner(schema, state)
     val alpha = AlphaPartitioner(schema, state, AlphaPartitionerPartitionsDefault)
     val pred = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
+    val uidRange = UidRangePartitioner(singleton, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator, detector(1000000))
 
     Seq(
       ("singleton", singleton),
@@ -75,7 +79,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, PredicatePartitionerPredicatesDefault)
-      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator)
+      val expected = UidRangePartitioner(predicatePart, UidRangePartitionerUidsPerPartDefault, UidRangePartitionerMaxPartsDefault, maxLeaseEstimator, detector(1000000))
       assert(partitioner === expected)
     }
 
@@ -92,7 +96,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
 
       val predicatePart = PredicatePartitioner(schema, state, 1)
-      val expected = UidRangePartitioner(predicatePart, 2, 3, MaxUidUidCardinalityEstimator(state.maxUid))
+      val expected = UidRangePartitioner(predicatePart, 2, 3, MaxUidUidCardinalityEstimator(state.maxUid), detector(2))
       assert(partitioner === expected)
     }
 
@@ -134,7 +138,7 @@ class TestPartitionerProvider extends AnyFunSpec {
         UidRangePartitionerEstimatorOption -> MaxUidEstimatorOption,
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
-      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
+      assert(partitioner === uidRange.copy(uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator, uidRangeDetector = detector(2)))
     }
 
     it(s"should provide alpha uid-range partitioner with non-default values via option") {
@@ -147,7 +151,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
       assert(partitioner === uidRange.copy(partitioner = alpha.copy(partitionsPerAlpha = 2),
-        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
+        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator, uidRangeDetector = detector(2)))
     }
 
     it(s"should provide predicate partitioner with non-default values via option") {
@@ -160,7 +164,7 @@ class TestPartitionerProvider extends AnyFunSpec {
       ).asJava)
       val partitioner = provider.getPartitioner(schema, state, transaction, options)
       assert(partitioner === uidRange.copy(partitioner = pred.copy(predicatesPerPartition = 2),
-        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator))
+        uidsPerPartition = 2, uidCardinalityEstimator = maxLeaseEstimator, uidRangeDetector = detector(2)))
     }
 
   }
