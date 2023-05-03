@@ -17,16 +17,13 @@
 package uk.co.gresearch.spark.dgraph.connector.partitioner
 
 import com.google.common.primitives.UnsignedLong
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector._
-import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
-import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.{JsonGraphQlUidDetector, LogSearchStrategy, SearchUidRangeDetector, ThresholdSparseDetector}
 
 import java.util.UUID
 
-class TestUidRangePartitioner extends AnyFunSpec with SchemaProvider with ConnectorSparkTestSession {
+class TestUidRangePartitioner extends AnyFunSpec {
 
   describe("UidRangePartitioner") {
 
@@ -89,44 +86,6 @@ class TestUidRangePartitioner extends AnyFunSpec with SchemaProvider with Connec
         assert(uidPartitioner.getPartitions === partitioner.getPartitions)
       }
 
-    }
-
-    import spark.implicits._
-
-    it("should read sparse graph") {
-      spark.read
-        .option("dgraph.partitioner.predicate.predicatesPerPartition", 1)
-        .dgraph.triples("localhost:9080")
-        .select($"subject")
-        .distinct
-        .groupBy((($"subject" / 1000000000000000000L).cast("long")*1000000000000000000L).as("id-group"))
-        .count
-        .orderBy($"id-group")
-        .show
-    }
-
-    it("should partition large sparse uid region") {
-      val targets = Seq(Target("localhost:9080"))
-      val schema = getSchema(targets, CaseInsensitiveStringMap.empty())
-      val partition = SingletonPartitioner(targets, schema)
-      val executor = DgraphExecutor(None, targets)
-      val uidDetector = JsonGraphQlUidDetector(executor)
-      val sparseDetector = ThresholdSparseDetector(Int.MaxValue, 2)
-      val detector = SearchUidRangeDetector(uidDetector, sparseDetector, 1, 1000, LogSearchStrategy())
-      val partitioner = UidRangePartitioner(partition, 1000000, 10, UidCardinalityEstimator.forMaxUid(Some(UnsignedLong.MAX_VALUE)), detector)
-
-      val ranges = Seq(
-        UidRange(Uid(1), Uid(838862)),
-        UidRange(Uid(838862), Uid(1677723)),
-        UidRange(Uid(1677723), Uid(2516584)),
-        UidRange(Uid(2516584), Uid(3355445)),
-        UidRange(Uid(3355445), Uid(4194306)),
-        UidRange(Uid(4194303), Uid(UnsignedLong.MAX_VALUE))
-      )
-      val sourcePartition = partition.getPartitions.head
-      val expected = ranges.map(range => sourcePartition.copy(operators = sourcePartition.operators + range))
-
-      assert(partitioner.getPartitions === expected)
     }
 
     it("should fail on null partitioner") {
