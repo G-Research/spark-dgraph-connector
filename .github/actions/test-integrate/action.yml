@@ -103,7 +103,7 @@ runs:
         curl -L -o dgraph/1million.rdf.gz "https://github.com/dgraph-io/tutorial/blob/master/resources/1million.rdf.gz?raw=true"
         docker run -d -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -v $(pwd)/dgraph:/dgraph --name dgraph dgraph/dgraph:v${{ inputs.dgraph-version }} dgraph zero
         docker exec -d dgraph dgraph alpha $cache --zero localhost:5080 $whitelist
-        sleep 10
+        sleep 30
         curl --data-binary @dgraph-instance.schema.live-loader.dql -H "Content-Type: text/plain;charset=UTF-8" http://localhost:8080/alter
         docker exec dgraph dgraph live -f 1million.rdf.gz --alpha localhost:9080 --zero localhost:5080 -c 1
       shell: bash
@@ -115,7 +115,7 @@ runs:
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION} --class uk.co.gresearch.spark.dgraph.connector.example.SparseApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},org.scalactic:scalactic_2.12:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.SparseApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
     - name: Start Dgraph cluster (Small)
@@ -142,7 +142,7 @@ runs:
         VERSION: ${{ steps.params.outputs.version }}
       # There is only a Spark 3.0 release of graphframes
       run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }} --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
     - name: Stop Dgraph cluster

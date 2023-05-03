@@ -34,6 +34,12 @@
     </dependency>
 
     <dependency>
+      <groupId>org.scalactic</groupId>
+      <artifactId>scalactic_${scala.compat.version}</artifactId>
+      <version>3.2.15</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.compat.version}</artifactId>
       <version>${spark.version}</version>

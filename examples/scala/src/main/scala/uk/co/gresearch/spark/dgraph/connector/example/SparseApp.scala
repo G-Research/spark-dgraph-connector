@@ -46,8 +46,7 @@ object SparseApp {
     val df = spark.read
       .option("dgraph.partitioner.predicate.predicatesPerPartition", 1)
       .dgraph.triples(target)
-
-    Console.println(s"${df.count()} rows")
+      .cache
 
     df.select($"subject")
       .distinct
@@ -55,6 +54,8 @@ object SparseApp {
       .count
       .orderBy($"id-group")
       .show
+
+    Console.println(s"${df.count()} rows")
 
     assert(df.count() === 1041295)
   }
