@@ -85,8 +85,43 @@ runs:
         mvn --batch-mode dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
       shell: bash
 
-    - name: Start Dgraph cluster
+    - name: Start Dgraph cluster (Large)
       id: dgraph
+      env:
+        DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
+      run: |
+        if [[ $dgraph < "v21.03.0" ]]
+        then
+          cache=""
+          whitelist="--whitelist=0.0.0.0/0"
+          maxUID="maxLeaseId"
+        else
+          cache="--cache size-mb=2048"
+          whitelist="--security whitelist=0.0.0.0/0"
+          maxUID="maxUID"
+        fi
+
+        mkdir dgraph
+        curl -L -o dgraph/1million.rdf.gz "https://github.com/dgraph-io/tutorial/blob/master/resources/1million.rdf.gz?raw=true"
+        docker run -d -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -v $(pwd)/dgraph:/dgraph --name dgraph dgraph/dgraph:$dgraph dgraph zero
+        docker exec -d dgraph dgraph alpha $cache --zero localhost:5080 $whitelist
+        sleep 10
+        curl --data-binary @dgraph-instance.schema.live-loader.dql -H "Content-Type: text/plain;charset=UTF-8" http://localhost:8080/alter
+        docker exec -it dgraph dgraph live -f 1million.rdf.gz --alpha localhost:9080 --zero localhost:5080 -c 1
+      shell: bash
+
+    - name: Integration Test (Sparse)
+      env:
+        SPARK_LOCAL_IP: 127.0.0.1
+        SPARK_HOME: ${{ steps.params.outputs.home }}/spark
+        ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
+        VERSION: ${{ steps.params.outputs.version }}
+      run: |
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION} --class uk.co.gresearch.spark.dgraph.connector.example.SparseApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
+
+    - name: Start Dgraph cluster (Small)
+      id: dgraph-small
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
       run: |
@@ -101,7 +136,7 @@ runs:
         /tmp/dgraph-instance.insert.sh
       shell: bash
 
-    - name: Integration Tests
+    - name: Integration Test (Example)
       env:
         SPARK_LOCAL_IP: 127.0.0.1
         SPARK_HOME: ${{ steps.params.outputs.home }}/spark
@@ -110,6 +145,10 @@ runs:
       # There is only a Spark 3.0 release of graphframes
       run: |
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }} --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+      shell: bash
+
+    - name: Stop Dgraph cluster
+      run: docker stop ${{ steps.dgraph-small.outputs.docker }}
       shell: bash
 
 branding:
