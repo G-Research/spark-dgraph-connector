@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.example
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import org.scalactic.TripleEquals
 import org.graphframes.GraphFrame
 import uk.co.gresearch.spark.dgraph.connector.{IncludeReservedPredicatesOption, TypedNode}
 import uk.co.gresearch.spark.dgraph.connector._
@@ -27,6 +28,7 @@ import uk.co.gresearch.spark.dgraph.graphx.{EdgeProperty, VertexProperty}
 object SparseApp {
 
   def main(args: Array[String]): Unit = {
+    import TripleEquals._
 
     val spark: SparkSession = {
       SparkSession
