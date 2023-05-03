@@ -81,14 +81,14 @@ The connector has the following known limitations:
 
 The Spark Dgraph Connector is available for Spark 3.0, 3.1, 3.2, 3.3 and 3.4, all with Scala 2.12.
 Use Maven artifact ID `spark-dgraph-connector_2.12`. The Spark version is part of the package version,
-i.e. 0.9.0-3.0, 0.9.0-3.1, 0.9.0-3.2, 0.9.0-3.3 and 0.9.0-3.4, respectively.
+i.e. 0.10.0-3.0, 0.10.0-3.1, 0.10.0-3.2, 0.10.0-3.3 and 0.10.0-3.4, respectively.
 
 ### SBT
 
 Add this line to your `build.sbt` file to use the latest version for Spark 3.4:
 
 ```sbt
-libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "0.9.0-3.4"
+libraryDependencies += "uk.co.gresearch.spark" %% "spark-dgraph-connector" % "0.10.0-3.4"
 ```
 
 ### Maven
@@ -99,7 +99,7 @@ Add this dependency to your `pom.xml` file to use the latest version:
 <dependency>
   <groupId>uk.co.gresearch.spark</groupId>
   <artifactId>spark-dgraph-connector_2.12</artifactId>
-  <version>0.9.0-3.4</version>
+  <version>0.10.0-3.4</version>
 </dependency>
 ```
 
@@ -108,7 +108,7 @@ Add this dependency to your `pom.xml` file to use the latest version:
 Launch the Scala Spark REPL (Spark ≥3.0.0) with the Spark Dgraph Connector dependency (version ≥0.5.0) as follows:
 
 ```shell script
-spark-shell --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.9.0-3.4
+spark-shell --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.10.0-3.4
 ```
 
 ### PySpark Shell and Python script
@@ -116,13 +116,13 @@ spark-shell --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.9.0-3
 Launch the Python Spark REPL (pyspark ≥3.0.0) with the Spark Dgraph Connector dependency (version ≥0.5.0) as follows:
 
 ```shell script
-pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.9.0-3.4
+pyspark --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.10.0-3.4
 ```
 
 Run your Python scripts that use PySpark (pyspark ≥3.0.0) and the Spark Dgraph Connector (version ≥0.5.0) via `spark-submit`:
 
 ```shell script
-spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.9.0-3.4 [script.py]
+spark-submit --packages uk.co.gresearch.spark:spark-dgraph-connector_2.12:0.10.0-3.4 [script.py]
 ```
 
 ## Examples

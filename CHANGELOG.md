@@ -3,10 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [UNRELEASED] - YYYY-MM-DD
+## [0.10.0] - 2023-05-03
 
 ### Changed
-- Estimator "maxLeaseId" renamed to "maxUid", as used with option `dgraph.partitioner.uidRange.estimator`
+- Estimator "maxLeaseId" renamed to "maxUid", as used with option `dgraph.partitioner.uidRange.estimator` ([pull #221](https://github.com/G-Research/spark-dgraph-connector/pull/221)).
+- Upgraded gson and requests dependencies ([pull #225](https://github.com/G-Research/spark-dgraph-connector/pull/225)).
 
 ### Fixed
 - Work with maxUid values that cannot be parsed ([pull #216](https://github.com/G-Research/spark-dgraph-connector/pull/216)).
@@ -25,7 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Moved Java Dgraph client to 21.12.0.
 
 ### Fixed
-- Support latest dgraph release 21.12.0 (#147)
+- Support latest dgraph release 21.12.0 ([pull #147](https://github.com/G-Research/spark-dgraph-connector/pull/147))
 
 ## [0.7.0] - 2021-10-01
 
@@ -33,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Moved Java Dgraph client to 21.03.1.
 
 ### Fixed
-- Support latest dgraph release 21.03.0 (#101)
+- Support latest dgraph release 21.03.0 ([pull #101](https://github.com/G-Research/spark-dgraph-connector/pull/101))
 
 ## [0.6.0] - 2021-03-05
 
