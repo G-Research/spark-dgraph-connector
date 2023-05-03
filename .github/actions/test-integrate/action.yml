@@ -105,7 +105,7 @@ runs:
         docker exec -d dgraph dgraph alpha $cache --zero localhost:5080 $whitelist
         sleep 10
         curl --data-binary @dgraph-instance.schema.live-loader.dql -H "Content-Type: text/plain;charset=UTF-8" http://localhost:8080/alter
-        docker exec -it dgraph dgraph live -f 1million.rdf.gz --alpha localhost:9080 --zero localhost:5080 -c 1
+        docker exec dgraph dgraph live -f 1million.rdf.gz --alpha localhost:9080 --zero localhost:5080 -c 1
       shell: bash
 
     - name: Integration Test (Sparse)
