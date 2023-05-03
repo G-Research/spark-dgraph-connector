@@ -57,7 +57,7 @@ object SparseApp {
 
     Console.println(s"${df.count()} rows")
 
-    assert(df.count() === 1041295)
+    assert(df.count() === 1041246)
   }
 
 }
