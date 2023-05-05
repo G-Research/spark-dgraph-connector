@@ -68,11 +68,11 @@ else
 fi
 
 # testing all versions
-./set-version.sh 3.0.3 2.12.10 && mvn clean deploy -Dsign && ./test-release.sh || exit 1
-./set-version.sh 3.1.3 2.12.10 && mvn clean deploy -Dsign && ./test-release.sh || exit 1
-./set-version.sh 3.2.4 2.12.15 && mvn clean deploy -Dsign && ./test-release.sh || exit 1
-./set-version.sh 3.3.2 2.12.15 && mvn clean deploy -Dsign && ./test-release.sh || exit 1
-./set-version.sh 3.4.0 2.12.17 && mvn clean deploy -Dsign && ./test-release.sh || exit 1
+./set-version.sh 3.0.3 2.12.10; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.1.3 2.12.10; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.2.4 2.12.15; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.3.2 2.12.15; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.4.0 2.12.17; mvn clean deploy -Dsign; ./test-release.sh
 
 # stop dgraph test instance
 docker stop "$docker"
@@ -111,11 +111,11 @@ echo
 
 # create release
 echo "Creating release packages"
-./set-version.sh 3.0.3 2.12.10 && mvn clean deploy -Dsign && mvn nexus-staging:release
-./set-version.sh 3.1.3 2.12.10 && mvn clean deploy -Dsign && mvn nexus-staging:release
-./set-version.sh 3.2.4 2.12.15 && mvn clean deploy -Dsign && mvn nexus-staging:release
-./set-version.sh 3.3.2 2.12.15 && mvn clean deploy -Dsign && mvn nexus-staging:release
-./set-version.sh 3.4.0 2.12.17 && mvn clean deploy -Dsign && mvn nexus-staging:release
+./set-version.sh 3.0.3 2.12.10; mvn clean deploy -Dsign; mvn nexus-staging:release
+./set-version.sh 3.1.3 2.12.10; mvn clean deploy -Dsign; mvn nexus-staging:release
+./set-version.sh 3.2.4 2.12.15; mvn clean deploy -Dsign; mvn nexus-staging:release
+./set-version.sh 3.3.2 2.12.15; mvn clean deploy -Dsign; mvn nexus-staging:release
+./set-version.sh 3.4.0 2.12.17; mvn clean deploy -Dsign; mvn nexus-staging:release
 
 echo
 
