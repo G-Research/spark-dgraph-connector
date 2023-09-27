@@ -1,4 +1,4 @@
-name: Test DGraph
+name: Test Dgraph
 
 on:
   workflow_call:
