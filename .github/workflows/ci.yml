@@ -205,7 +205,7 @@ jobs:
         spark-compat-version: ["3.5"]
         scala-compat-version: ["2.12"]
         dgraph-minor-version: ["21.12", "22.0", "23.0"]
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8", "3.9"]
         include:
           - spark-compat-version: '3.5'
             spark-version: '3.5.0'
