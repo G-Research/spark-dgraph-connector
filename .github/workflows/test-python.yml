@@ -1,0 +1,45 @@
+name: Test Python
+
+on:
+  workflow_call:
+
+jobs:
+  test-python:
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-minor-version }} Python ${{ matrix.python-version }} Spark ${{ matrix.spark-compat-version }} Scala ${{ matrix.scala-compat-version }})
+    runs-on: ubuntu-latest
+    needs: [test-dgraph, test-spark]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        spark-compat-version: ["3.5"]
+        scala-compat-version: ["2.12"]
+        dgraph-minor-version: ["21.12", "22.0", "23.0"]
+        python-version: ["3.8", "3.9"]
+        include:
+          - spark-compat-version: '3.5'
+            spark-version: '3.5.0'
+            scala-compat-version: '2.12'
+            scala-version: '2.12.18'
+
+          - dgraph-minor-version: "21.12"
+            dgraph-version: "21.12.0"
+          - dgraph-minor-version: "22.0"
+            dgraph-version: "22.0.2"
+          - dgraph-minor-version: "23.0"
+            dgraph-version: "23.0.0-rc1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Test
+        uses: ./.github/actions/test-python
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          scala-compat-version: ${{ matrix.scala-compat-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
+          python-version: ${{ matrix.python-version }}
+
