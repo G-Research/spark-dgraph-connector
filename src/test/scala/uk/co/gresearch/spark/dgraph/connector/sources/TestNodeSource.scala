@@ -999,7 +999,7 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
   ))
 
   def getExpectedWideNodeDf(spark: SparkSession): DataFrame =
-    spark.createDataset(getExpectedWideNodes.toSeq)(RowEncoder(getExpectedWideNodeSchema)).toDF()
+    spark.createDataset(getExpectedWideNodes.toSeq)(getExpectedWideNodeSchema.encoder).toDF()
 
   def getExpectedWideNodes: Set[Row] =
     Set(
