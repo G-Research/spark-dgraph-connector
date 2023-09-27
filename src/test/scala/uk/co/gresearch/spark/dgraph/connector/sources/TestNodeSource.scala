@@ -17,7 +17,6 @@
 package uk.co.gresearch.spark.dgraph.connector.sources
 
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Expression, In, Literal}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceRDDPartition
 import org.apache.spark.sql.functions.col
@@ -28,6 +27,7 @@ import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import java.sql.Timestamp
+import scala.collection.JavaConverters._
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 class TestNodeSource extends AnyFunSpec
@@ -999,7 +999,7 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
   ))
 
   def getExpectedWideNodeDf(spark: SparkSession): DataFrame =
-    spark.createDataset(getExpectedWideNodes.toSeq)(getExpectedWideNodeSchema.encoder).toDF()
+    spark.createDataFrame(getExpectedWideNodes.toList.asJava, getExpectedWideNodeSchema)
 
   def getExpectedWideNodes: Set[Row] =
     Set(
