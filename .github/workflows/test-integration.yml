@@ -5,7 +5,7 @@ on:
 
 jobs:
   test-integration:
-    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
+    name: Integration Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-version }} Scala ${{ matrix.scala-compat-version }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -40,7 +40,7 @@ jobs:
             spark-version: '3.3.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.15'
-            hadoop-version: '2'
+            hadoop-version: '3'
           - spark-compat-version: '3.4'
             spark-version: '3.4.1'
             scala-compat-version: '2.12'
