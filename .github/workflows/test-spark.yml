@@ -68,6 +68,10 @@ jobs:
             spark-compat-version: "3.3"
             scala-compat-version: "2.12"
             scala-version: "2.12.15"
+          - spark-version: "3.3.3"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
 
           - spark-version: "3.4.0"
             spark-compat-version: "3.4"

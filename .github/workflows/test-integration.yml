@@ -37,7 +37,7 @@ jobs:
             scala-version: '2.12.15'
             hadoop-version: '2.7'
           - spark-compat-version: '3.3'
-            spark-version: '3.3.2'
+            spark-version: '3.3.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.15'
             hadoop-version: '2'
