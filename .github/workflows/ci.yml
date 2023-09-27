@@ -37,7 +37,8 @@ jobs:
         include:
           - dgraph-version: "21.12.0"
           - dgraph-version: "22.0.2"
-          - dgraph-version: "23.0.0-rc1"
+          - dgraph-version: "23.0.1"
+          - dgraph-version: "23.1.0"
     uses: "./.github/workflows/test-spark.yml"
     with:
       dgraph-version: ${{ matrix.dgraph-version }}

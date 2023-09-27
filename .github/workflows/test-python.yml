@@ -13,7 +13,7 @@ jobs:
       matrix:
         spark-compat-version: ["3.5"]
         scala-compat-version: ["2.12"]
-        dgraph-minor-version: ["21.12", "22.0", "23.0"]
+        dgraph-minor-version: ["21.12", "22.0", "23.0", "23.1"]
         python-version: ["3.8", "3.9"]
         include:
           - spark-compat-version: '3.5'
@@ -26,7 +26,9 @@ jobs:
           - dgraph-minor-version: "22.0"
             dgraph-version: "22.0.2"
           - dgraph-minor-version: "23.0"
-            dgraph-version: "23.0.0-rc1"
+            dgraph-version: "23.0.1"
+          - dgraph-minor-version: "23.1"
+            dgraph-version: "23.1.0"
 
     steps:
       - name: Checkout
