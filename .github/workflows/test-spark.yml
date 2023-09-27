@@ -1,0 +1,97 @@
+name: Test Spark
+
+on:
+  workflow_call:
+    inputs:
+      dgraph-version:
+        required: true
+        type: string
+
+jobs:
+  test-spark:
+    name: Unit Tests (Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        spark-version: [
+            "3.0.3",
+            "3.1.3",
+            "3.2.0", "3.2.1", "3.2.2", "3.2.3", "3.2.4",
+            "3.3.0", "3.3.1", "3.3.2",
+            "3.4.0", "3.4.1"
+            # main spark versions tested in test-dgraph, not testes here again
+        ]
+        scala-compat-version: ["2.12"]
+        include:
+          - spark-version: "3.0.3"
+            spark-compat-version: "3.0"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.10"
+
+          - spark-version: "3.1.3"
+            spark-compat-version: "3.1"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.10"
+
+          - spark-version: "3.2.0"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.1"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.2"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.3"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.2.4"
+            spark-compat-version: "3.2"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+
+          - spark-version: "3.3.0"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.3.1"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.3.2"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+          - spark-version: "3.3.3"
+            spark-compat-version: "3.3"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.15"
+
+          - spark-version: "3.4.0"
+            spark-compat-version: "3.4"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.17"
+          - spark-version: "3.4.1"
+            spark-compat-version: "3.4"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.17"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Test
+        uses: ./.github/actions/test-scala
+        with:
+          spark-version: ${{ matrix.spark-version }}
+          scala-version: ${{ matrix.scala-version }}
+          spark-compat-version: ${{ matrix.spark-compat-version }}
+          scala-compat-version: ${{ matrix.scala-compat-version }}
+          dgraph-version: ${{ inputs.dgraph-version }}
+
