@@ -21,6 +21,7 @@ from spark_common import SparkTest
 class Object(object):
     pass
 
+
 class DgraphClusterTest(SparkTest):
 
     _jdgraph = None
