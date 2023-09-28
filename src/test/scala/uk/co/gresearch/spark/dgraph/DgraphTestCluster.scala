@@ -459,7 +459,7 @@ object DgraphTestCluster extends Logging {
   lazy val isDockerInstalled: Boolean = run("docker", "--version") == 0
 
   def run(cmd: String*): Int = {
-    val lines = mutable.MutableList.empty[String]
+    val lines = mutable.Queue.empty[String]
     try {
       val logger = ProcessLogger((line: String) => lines += line, (line: String) => lines += line)
       Process(cmd).run(logger).exitValue()

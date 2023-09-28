@@ -16,12 +16,12 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import java.sql.Timestamp
-
 import org.apache.spark.sql
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.{EqualTo, In, IsNotNull}
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfoProvider
+
+import java.sql.Timestamp
 
 class TestFilterTranslator extends AnyFunSpec {
 
@@ -357,7 +357,8 @@ class TestFilterTranslator extends AnyFunSpec {
           testSimplify(filters, notSupported, filters)
 
           // contradicting PredicateNameIsIn simplify to AlwaysFalse, when it is supported
-          testSimplify(filters, supported, Filters.fromOptional(AlwaysFalse))
+          // all filters supported, so they simplify to promised filters
+          testSimplify(filters, supported, Filters.fromPromised(AlwaysFalse))
         }
 
       }
