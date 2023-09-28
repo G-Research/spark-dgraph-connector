@@ -50,25 +50,27 @@ jobs:
     with:
       matrix: |
         {
-          "dgraph-version": "22.0.2",
           "include": [
             {
               "spark-version": "3.4.0",
               "spark-compat-version": "3.4",
               "scala-compat-version": "2.13",
-              "scala-version": "2.13.8"
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
             },
             {
-              "spark-version": "3.4.1"
-              "spark-compat-version": "3.4"
-              "scala-compat-version": "2.13"
-              "scala-version": "2.13.8"
+              "spark-version": "3.4.1",
+              "spark-compat-version": "3.4",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
             },
             {
-              "spark-version": "3.5.0"
-              "spark-compat-version": "3.5"
-              "scala-compat-version": "2.13"
-              "scala-version": "2.13.8"
+              "spark-version": "3.5.0",
+              "spark-compat-version": "3.5",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
             }
           ]
         }

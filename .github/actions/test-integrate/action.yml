@@ -68,7 +68,7 @@ runs:
       run: |
         echo "artifact-id=$(grep --max-count=1 "<artifactId>.*</artifactId>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")" >> $GITHUB_OUTPUT
         echo "version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")" >> $GITHUB_OUTPUT
-        echo "graphframes-version=$(grep -A 5 "<artifactId>graphframes</artifactId>" pom.xml | grep -v "<\!--" | tail -n +2 | head -n 1 | sed -E -e "s/^ +<version>//" -e "s/-.*//")" >> $GITHUB_OUTPUT
+        echo "graphframes-version=$(grep --max-count=1 "<graphframes.version>.*</graphframes.version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g")" >> $GITHUB_OUTPUT
         echo "home=$(cd ~; pwd)" >> $GITHUB_OUTPUT
       shell: bash
 
@@ -109,7 +109,7 @@ runs:
         VERSION: ${{ steps.params.outputs.version }}
       # There is only a Spark 3.0 release of graphframes
       run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-spark3.0-s_${{ inputs.scala-compat-version }} --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }} --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
 branding:

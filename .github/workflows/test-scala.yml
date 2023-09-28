@@ -9,13 +9,12 @@ on:
 
 jobs:
   test-spark:
-    name: Unit Tests (Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
+    name: Unit Tests (Spark ${{ matrix.spark-version }} Scala ${{ matrix.scala-compat-version }})
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
-      matrix:
-        ${{ toJSON(inputs.matrix) }}
+      matrix: ${{ fromJSON(inputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -28,5 +27,5 @@ jobs:
           scala-version: ${{ matrix.scala-version }}
           spark-compat-version: ${{ matrix.spark-compat-version }}
           scala-compat-version: ${{ matrix.scala-compat-version }}
-          dgraph-version: ${{ inputs.dgraph-version }}
+          dgraph-version: ${{ matrix.dgraph-version }}
 
