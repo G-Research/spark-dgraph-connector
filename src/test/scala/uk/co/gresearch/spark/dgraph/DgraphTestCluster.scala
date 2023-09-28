@@ -16,9 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph
 
-import java.util.UUID
-import java.nio.file.Paths
-
 import com.google.gson.{Gson, JsonArray, JsonObject}
 import io.dgraph.DgraphProto.TxnContext
 import org.apache.spark.sql.catalyst.InternalRow
@@ -30,9 +27,11 @@ import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncode
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Logging, Target, Transaction, Uid}
 
+import java.nio.file.Paths
+import java.util.UUID
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.sys.process.{Process, ProcessLogger}
 
 trait DgraphTestCluster extends BeforeAndAfterAll {

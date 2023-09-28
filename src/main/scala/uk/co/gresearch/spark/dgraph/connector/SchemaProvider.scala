@@ -21,9 +21,8 @@ import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Response
 import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import java.util.regex.Pattern
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 trait SchemaProvider {
 

@@ -20,7 +20,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
 

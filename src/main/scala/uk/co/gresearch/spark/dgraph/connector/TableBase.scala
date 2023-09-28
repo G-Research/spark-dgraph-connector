@@ -16,12 +16,11 @@
 
 package uk.co.gresearch.spark.dgraph.connector
 
-import java.util
-import java.util.UUID
-
 import org.apache.spark.sql.connector.catalog.{SupportsRead, Table, TableCapability}
 
-import scala.collection.JavaConverters._
+import java.util
+import java.util.UUID
+import scala.jdk.CollectionConverters._
 
 trait TableBase extends Table with SupportsRead{
 
