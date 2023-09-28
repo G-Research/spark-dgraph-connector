@@ -26,7 +26,7 @@ import uk.co.gresearch.spark.dgraph.connector.model.GraphTableModel.filter
 import uk.co.gresearch.spark.dgraph.connector.{Chunk, Logging, Partition, PartitionMetrics, Uid}
 
 import java.time.Clock
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Represents a specific model of graph data in a tabular form.

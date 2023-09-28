@@ -24,7 +24,7 @@ import uk.co.gresearch.spark.dgraph.connector.encoder.TypedTripleEncoder
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutorProvider
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluster {
 

@@ -23,7 +23,7 @@ import java.time.Clock
 trait ClusterStateProvider extends Logging {
 
   def getClusterState(targets: Seq[Target], options: CaseInsensitiveStringMap): ClusterState = {
-    val clusterStates = targets.map(getClusterState).flatten
+    val clusterStates = targets.flatMap(target => getClusterState(target))
     val cids = clusterStates.map(_.cid).toSet
     if (cids.size > 1)
       throw new RuntimeException(s"Retrieved multiple cluster ids from " +
@@ -34,7 +34,8 @@ trait ClusterStateProvider extends Logging {
 
     // filter out reserved predicates as configured
     val reservedPredicateFilter = ReservedPredicateFilter(options)
-    val filteredGroupPredicates = clusterState.groupPredicates.mapValues(_.filter(reservedPredicateFilter.apply))
+    val filteredGroupPredicates = clusterState.groupPredicates
+      .map { case (key, predicates) => key -> predicates.filter(reservedPredicateFilter.apply) }
     clusterState.copy(
       groupPredicates = filteredGroupPredicates
     )

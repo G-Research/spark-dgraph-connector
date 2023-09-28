@@ -29,6 +29,6 @@ case class TriplePartitionReader(partition: Partition, model: GraphTableModel)
 
   def get: InternalRow = rows.next()
 
-  def close(): Unit = Unit
+  def close(): Unit = {}
 
 }

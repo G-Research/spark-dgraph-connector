@@ -43,6 +43,38 @@ jobs:
     with:
       dgraph-version: ${{ matrix.dgraph-version }}
 
+  test-scala:
+    name: "Test Scala (2.13)"
+    needs: build
+    uses: "./.github/workflows/test-scala.yml"
+    with:
+      matrix: |
+        {
+          "include": [
+            {
+              "spark-version": "3.4.0",
+              "spark-compat-version": "3.4",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
+            },
+            {
+              "spark-version": "3.4.1",
+              "spark-compat-version": "3.4",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
+            },
+            {
+              "spark-version": "3.5.0",
+              "spark-compat-version": "3.5",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.8",
+              "dgraph-version": "22.0.2"
+            }
+          ]
+        }
+
   test-python:
     name: "Test Python"
     needs: [test-dgraph, test-spark]
@@ -56,7 +88,7 @@ jobs:
   delete_binaries:
     name: "Delete Binaries"
     runs-on: ubuntu-latest
-    needs: [test-dgraph, test-spark, test-python, test-integration]
+    needs: [test-dgraph, test-spark, test-scala, test-python, test-integration]
     steps:
       - name: Delete Binaries Artifact
         uses: geekyeggo/delete-artifact@v2

@@ -23,7 +23,7 @@ import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector._
 
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class TestPartitionerProvider extends AnyFunSpec {
 

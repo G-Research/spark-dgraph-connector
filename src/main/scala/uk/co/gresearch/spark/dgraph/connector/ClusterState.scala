@@ -20,7 +20,7 @@ import com.google.common.primitives.UnsignedLong
 import com.google.gson.{Gson, JsonObject, JsonPrimitive}
 
 import java.util.UUID
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 case class ClusterState(groupMembers: Map[String, Set[Target]],
@@ -39,9 +39,9 @@ object ClusterState extends Logging {
         .map(e => e.getKey -> e.getValue.getAsJsonObject)
         .toMap
 
-    val groupMembers = groupMap.mapValues(getMembersFromGroup)
-      .mapValues(_.map(Target).map(t => t.withPort(t.port + 2000)))
-    val groupPredicates = groupMap.mapValues(getPredicatesFromGroup)
+    val groupMembers = groupMap.map { case (key, group) => key -> getMembersFromGroup(group) }
+      .map { case (key, members) => key -> members.map(Target).map(t => t.withPort(t.port + 2000)) }
+    val groupPredicates = groupMap.map { case (key, group) => key -> getPredicatesFromGroup(group) }
     val cid = UUID.fromString(root.getAsJsonPrimitive("cid").getAsString)
 
     val maxUid = (if (root.has("maxUID")) {

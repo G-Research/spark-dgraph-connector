@@ -17,7 +17,7 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 import org.apache.spark.sql
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.{IsNotNull, EqualTo, In}
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
 
 /**
@@ -52,7 +52,7 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
     case EqualTo(ColumnName(column), value) if columnInfo.isPredicateValueColumn(column) && Option(value).isDefined =>
       Some(Set(SinglePredicateValueIsIn(column, Set(value))))
     case EqualTo(ColumnName(column), value) if columnInfo.isObjectValueColumn(column) && Option(value).isDefined =>
-      Some(Set(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
+      Some(Set(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty[Filter]))
     case EqualTo(ColumnName(column), value) if columnInfo.isObjectTypeColumn(column) && Option(value).isDefined =>
       Some(Set(ObjectTypeIsIn(value.toString)))
 
@@ -75,7 +75,7 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
       if columnInfo.isObjectValueColumn(column) &&
         // check for non-null null-less non-empty values array
         Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty))
+      Some(Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty[Filter]))
     case In(ColumnName(column), values)
       if columnInfo.isObjectTypeColumn(column) &&
         // check for non-null null-less non-empty values array
@@ -99,20 +99,19 @@ object FilterTranslator {
         .groupBy(_.getClass)
         .flatMap { case (cls, filters) =>
           cls match {
-            case cls if cls == classOf[SubjectIsIn] => Set[Filter](filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
-            case cls if cls == classOf[IntersectPredicateNameIsIn] => Set[Filter](filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
-            case cls if cls == classOf[IntersectPredicateValueIsIn] => Set[Filter](filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
+            case cls if cls == classOf[SubjectIsIn] => Set(filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
+            case cls if cls == classOf[IntersectPredicateNameIsIn] => Set(filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
+            case cls if cls == classOf[IntersectPredicateValueIsIn] => Set(filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
             case cls if cls == classOf[SinglePredicateValueIsIn] =>
               filters
                 .map(_.asInstanceOf[SinglePredicateValueIsIn])
                 .groupBy(_.name)
-                .mapValues(fs => Set[Filter](fs.reduce(intersectSinglePredicateValueIsIn)))
-                .values.flatten
-            case cls if cls == classOf[ObjectTypeIsIn] => Set[Filter](filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
-            case cls if cls == classOf[ObjectValueIsIn] => Set[Filter](filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
+                .flatMap { case (_, fs) => Set(fs.reduce(intersectSinglePredicateValueIsIn)) }
+            case cls if cls == classOf[ObjectTypeIsIn] => Set(filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
+            case cls if cls == classOf[ObjectValueIsIn] => Set(filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
             case _ => filters
           }
-        }
+        }.map(_.asInstanceOf[Filter])
         .toSet
 
     // we can simplify some trivial expressions
@@ -166,7 +165,7 @@ object FilterTranslator {
    * @return simplified filters
    */
   def simplify(filters: Filters, supported: Set[Filter] => Boolean): Filters = {
-    val allSimplified = simplify(filters)
+    val allSimplified = simplify(filters.toSet)
     val promisedSimplified = simplify(filters.promised)
     val optionalSimplified = simplify(filters.optional)
 

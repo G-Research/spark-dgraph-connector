@@ -16,16 +16,15 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
-import java.sql.Timestamp
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-
 import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Logging, Password, Uid}
 
-import scala.collection.JavaConverters._
+import java.sql.Timestamp
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import scala.jdk.CollectionConverters._
 
 /**
  * Helper methods to turn Dgraph json results into JsonObjects representing Dgraph nodes.

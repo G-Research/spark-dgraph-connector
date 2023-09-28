@@ -16,8 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
-import java.util
-
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.StructType
@@ -28,7 +26,8 @@ import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, 
 import uk.co.gresearch.spark.dgraph.connector.model.NodeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
-import scala.collection.JavaConverters._
+import java.util
+import scala.jdk.CollectionConverters._
 
 class NodeSource() extends TableProviderBase
   with TargetsConfigParser with SchemaProvider
@@ -50,7 +49,7 @@ class NodeSource() extends TableProviderBase
       }
 
       new CaseInsensitiveStringMap(
-        (options.asScala.filterKeys(!_.equalsIgnoreCase(PredicatePartitionerPredicatesOption)) ++
+        (options.asScala.filterNot { case (key, _) => key.equalsIgnoreCase(PredicatePartitionerPredicatesOption) } ++
           Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
           ).asJava
       )

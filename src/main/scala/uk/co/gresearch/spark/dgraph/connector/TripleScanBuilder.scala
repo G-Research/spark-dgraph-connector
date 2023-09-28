@@ -59,7 +59,7 @@ case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel)
     if (unsupported.nonEmpty) log.debug(s"unsupported filters: ${unsupported.keys.mkString(", ")}")
     // only report pushed filters if filters are given
     if (filters.nonEmpty) log.debug(s"pushed filters: ${translated.filter(_._2.isDefined).keys.mkString(", ")}")
-    if (simplifiedFilters.nonEmpty) log.trace(s"applied filters: ${simplifiedFilters.mkString(", ")}")
+    if (simplifiedFilters.toSet.nonEmpty) log.trace(s"applied filters: ${simplifiedFilters.toSet.mkString(", ")}")
 
     unsupported.keys.toArray
   }

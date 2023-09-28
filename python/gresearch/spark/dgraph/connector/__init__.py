@@ -68,7 +68,7 @@ class DgraphReader:
 
     def _toSeq(self, list) -> JavaObject:
         array = self._jvm.java.util.ArrayList(list)
-        return self._jvm.scala.collection.JavaConverters.asScalaIteratorConverter(array.iterator()).asScala().toSeq()
+        return self._jvm.scala.jdk.CollectionConverters.iterableAsScalaIterable(array).toSeq()
 
     def triples(self, target, *targets) -> DataFrame:
         jdf = self._reader.triples(target, self._toSeq(targets))

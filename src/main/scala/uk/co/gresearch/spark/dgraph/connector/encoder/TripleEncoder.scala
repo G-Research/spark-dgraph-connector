@@ -18,9 +18,9 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 
 import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
-import uk.co.gresearch.spark.dgraph.connector.{Json, Logging, Predicate, Uid}
+import uk.co.gresearch.spark.dgraph.connector.{Logging, Predicate, Uid}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 /**

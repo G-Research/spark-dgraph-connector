@@ -63,7 +63,7 @@ case class PredicatePartitioner(schema: Schema,
 
   override def getPartitions: Seq[Partition] = {
     val processedFilters = replaceObjectTypeIsInFilter(filters)
-    val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters)
+    val simplifiedFilters = FilterTranslator.simplify(processedFilters, supportsFilters).toSet
     val cState = filter(clusterState, simplifiedFilters)
 
     log.trace(s"replaced filters: $processedFilters")
@@ -108,11 +108,11 @@ case class PredicatePartitioner(schema: Schema,
       case _: AlwaysFalse => clusterState.copy(groupPredicates = Map.empty)
       // only intersect PredicateNameIsIn limits the predicates for Has and Get
       case f: IntersectPredicateNameIsIn => clusterState.copy(
-        groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
+        groupPredicates = clusterState.groupPredicates.map { case (group, predicates) => group -> predicates.filter(f.names) }
       )
       // only intersect PredicateValueIsIn limits the predicates for Has and Get
       case f: IntersectPredicateValueIsIn => clusterState.copy(
-        groupPredicates = clusterState.groupPredicates.mapValues(_.filter(f.names))
+        groupPredicates = clusterState.groupPredicates.map { case (group, predicates) => group -> predicates.filter(f.names) }
       )
       case _: ObjectTypeIsIn =>
         throw new IllegalArgumentException("any ObjectTypeIsIn filter should have been replaced in replaceObjectTypeIsInFilter")

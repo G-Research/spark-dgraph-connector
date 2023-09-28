@@ -16,8 +16,6 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
-import java.sql.Timestamp
-
 import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -26,7 +24,8 @@ import org.apache.spark.unsafe.types.UTF8String
 import uk.co.gresearch.spark.dgraph.connector.Predicate.{columnNameForPredicateName, predicateNameForColumnName}
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Logging, Password, Predicate, Uid}
 
-import scala.collection.JavaConverters._
+import java.sql.Timestamp
+import scala.jdk.CollectionConverters._
 
 /**
  * Encodes nodes as wide InternalRows from Dgraph json results.

@@ -70,7 +70,7 @@ case class PartitionQuery(resultName: String, operators: Set[Operator]) {
       .filter(op => op.isInstanceOf[PredicateOperator])
       .flatMap { case op: PredicateOperator => op.predicates.map(predicate => predicate -> op) }
       .groupBy(_._1)
-      .mapValues(_.map(_._2))
+      .map { case (key, group) => key -> group.map(_._2) }
 
   val langPredicates: Set[String] =
     operators

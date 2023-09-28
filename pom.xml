@@ -41,6 +41,7 @@
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.5</spark.compat.version>
     <spark.version>${spark.compat.version}.0</spark.version>
+    <graphframes.version>0.8.3-spark3.4</graphframes.version>
   </properties>
 
   <repositories>
@@ -96,7 +97,7 @@
       <groupId>graphframes</groupId>
       <artifactId>graphframes</artifactId>
       <!-- latest release is Spark 3.0 -->
-      <version>0.8.1-spark3.0-s_${scala.compat.version}</version>
+      <version>${graphframes.version}-s_${scala.compat.version}</version>
       <scope>provided</scope>
     </dependency>
 

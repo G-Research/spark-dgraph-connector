@@ -21,16 +21,18 @@ package uk.co.gresearch.spark.dgraph.connector
  */
 abstract class Filter()
 
-case class Filters(promised: Set[Filter], optional: Set[Filter]) extends Set[Filter] {
+case class Filters(promised: Set[Filter], optional: Set[Filter]) {
   val filters: Set[Filter] = promised ++ optional
 
-  override def iterator: Iterator[Filter] = filters.iterator
+  def iterator: Iterator[Filter] = filters.iterator
 
-  override def contains(elem: Filter): Boolean = filters.contains(elem)
+  def contains(elem: Filter): Boolean = filters.contains(elem)
 
-  override def +(elem: Filter): Set[Filter] = filters + elem
+  def +(elem: Filter): Set[Filter] = filters + elem
 
-  override def -(elem: Filter): Set[Filter] = filters - elem
+  def -(elem: Filter): Set[Filter] = filters - elem
+
+  def toSet: Set[Filter] = filters
 }
 
 object Filters {

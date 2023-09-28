@@ -59,7 +59,7 @@ trait FilterPushdownTestHelper extends Assertions {
     assert(scan.partitioner.isInstanceOf[PredicatePartitioner])
 
     val partitioner = scan.partitioner.asInstanceOf[PredicatePartitioner]
-    assert(partitioner.filters === expectedFilters)
+    assert(partitioner.filters.toSet === expectedFilters)
 
     val actual = conditionedDs.collect()
     assert(actual.toSet === expectedDs)

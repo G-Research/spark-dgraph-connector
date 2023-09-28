@@ -27,7 +27,7 @@ import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import java.sql.Timestamp
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
 class TestNodeSource extends AnyFunSpec
@@ -792,7 +792,7 @@ class TestNodeSource extends AnyFunSpec
           expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L)))
         )
 
-        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getLong(columns.indexOf("running_time")))).exists(_.equals(121)))
+        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getLong(columns.indexOf("running_time")))).exists(_.equals(121L)))
         assert(expected.isEmpty, "expect empty result for this query, check query")
         doTestFilterPushDown(wideNodes,
           $"name" === "Luke Skywalker" && $"running_time" === 121,
