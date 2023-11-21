@@ -23,10 +23,13 @@ jobs:
     name: "Linting"
     runs-on: ubuntu-latest
     steps:
-      - uses: jrouly/scalafmt-native-action@v2
+      - uses: actions/checkout@v4
         with:
-          version: '3.7.14'
-          arguments: '--test'
+          fetch-depth: 1
+      - name: Check for scalafmt conformance
+        uses: openlawteam/scalafmt-ci@v2
+        with:
+          args: '--test'
 
   build:
     name: "Build"
