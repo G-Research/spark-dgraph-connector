@@ -15,6 +15,7 @@
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.5</spark.compat.version>
     <spark.version>${spark.compat.version}.0</spark.version>
+    <graphframes.version>0.8.3-spark3.5</graphframes.version>
   </properties>
 
   <!-- required to resolve GraphFrames dependency -->
@@ -69,8 +70,7 @@
     <dependency>
       <groupId>graphframes</groupId>
       <artifactId>graphframes</artifactId>
-      <!-- no Spark 3.3 release for graphframes yet -->
-      <version>0.8.1-spark3.0-s_${scala.compat.version}</version>
+      <version>${graphframes.version}-s_${scala.compat.version}</version>
     </dependency>
   </dependencies>
 

@@ -107,7 +107,6 @@ runs:
         SPARK_HOME: ${{ steps.params.outputs.home }}/spark
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
-      # There is only a Spark 3.0 release of graphframes
       run: |
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash

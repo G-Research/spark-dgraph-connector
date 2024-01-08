@@ -17,7 +17,10 @@ then
     spark=$1
     scala=$2
 
-    if [[ "$spark" == "3.4."* ]] || [[ "$spark" > "3.4." ]] || [[ "$scala" > "2.13." ]]
+    if [[ "$spark" == "3.5."* ]] || [[ "$spark" > "3.5." ]]
+    then
+      graphframes="0.8.3-spark3.5"
+    elif [[ "$spark" == "3.4."* ]] || [[ "$scala" > "2.13." ]]
     then
       graphframes="0.8.3-spark3.4"
     else
