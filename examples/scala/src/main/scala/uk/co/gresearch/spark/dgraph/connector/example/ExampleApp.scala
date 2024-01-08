@@ -19,6 +19,7 @@ package uk.co.gresearch.spark.dgraph.connector.example
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import org.scalactic.TripleEquals
 import org.graphframes.GraphFrame
 import uk.co.gresearch.spark.dgraph.connector.{IncludeReservedPredicatesOption, TypedNode}
 import uk.co.gresearch.spark.dgraph.graphx.{EdgeProperty, VertexProperty}
@@ -29,6 +30,7 @@ object ExampleApp {
     property.property == "dgraph.type" && Option(property.value).exists(_.toString.startsWith("dgraph."))
 
   def main(args: Array[String]): Unit = {
+    import TripleEquals._
 
     val spark: SparkSession = {
       SparkSession
@@ -65,10 +67,10 @@ object ExampleApp {
       val dgraphVertexIds = reader.dgraph.vertices(target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
       val edges: RDD[Edge[EdgeProperty]] = removeDgraphEdges(reader.dgraph.edges(target), dgraphVertexIds)
 
-      assert(graph.edges.count() == 12, graph.edges.count())
-      assert(graph.vertices.count() == 10, graph.vertices.count())
-      assert(edges.count() == 12, edges.count())
-      assert(vertices.count() == 49, vertices.count())
+      assert(graph.edges.count() === 12)
+      assert(graph.vertices.count() === 10)
+      assert(edges.count() === 12)
+      assert(vertices.count() === 49)
     }
 
     {
@@ -95,9 +97,9 @@ object ExampleApp {
       val edges: DataFrame = removeDgraphEdges(reader.dgraph.edges(target), dgraphNodes)
 
       val triangles = graph.triangleCount.run().select($"id", $"count").orderBy($"id").as[(Long, Long)].collect().toSeq
-      assert(triangles.length == 10, triangles)
-      assert(edges.count() == 12, edges.count())
-      assert(vertices.count() == 10, vertices.count())
+      assert(triangles.length === 10)
+      assert(edges.count() === 12)
+      assert(vertices.count() === 10)
     }
 
     {
@@ -120,9 +122,9 @@ object ExampleApp {
       val edges: DataFrame = reader.dgraph.edges(target)
       val nodes: DataFrame = removeDgraphTypedNodes(reader.dgraph.nodes(target).as[TypedNode]).toDF()
 
-      assert(triples.count() == 61, triples.count())
-      assert(edges.count() == 12, edges.count())
-      assert(nodes.count() == 49, nodes.count())
+      assert(triples.count() === 61)
+      assert(edges.count() === 12)
+      assert(nodes.count() === 49)
     }
 
   }

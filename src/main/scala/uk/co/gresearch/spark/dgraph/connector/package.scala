@@ -268,4 +268,6 @@ package object connector {
       throwable.getCause != null && isCausedByResourceExhausted(throwable.getCause)
   }
 
+  protected[connector] val TWO: UnsignedLong = UnsignedLong.valueOf(2)
+
 }

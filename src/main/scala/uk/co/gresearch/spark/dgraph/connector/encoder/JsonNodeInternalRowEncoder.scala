@@ -16,7 +16,7 @@
 
 package uk.co.gresearch.spark.dgraph.connector.encoder
 
-import com.google.gson.{Gson, JsonArray, JsonElement, JsonObject}
+import com.google.gson.{JsonArray, JsonElement, JsonObject}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Logging, Password, Uid}
@@ -29,7 +29,7 @@ import scala.jdk.CollectionConverters._
 /**
  * Helper methods to turn Dgraph json results into JsonObjects representing Dgraph nodes.
  */
-trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
+trait JsonNodeInternalRowEncoder extends InternalRowEncoder with JsonGraphQlResultParser with Logging {
 
   /**
    * Sets the schema of this encoder. This encoder may only partially or not at all use the given schema.
@@ -56,33 +56,6 @@ trait JsonNodeInternalRowEncoder extends InternalRowEncoder with Logging {
    * @return internal rows
    */
   def fromJson(result: JsonArray): Iterator[InternalRow]
-
-  /**
-   * Parses the given Json result and returns the result array.
-   * @param json Json result
-   * @param member member in the json that has the result
-   * @return Json array
-   */
-  def getResult(json: Json, member: String): JsonArray = {
-    try {
-      new Gson().fromJson(json.string, classOf[JsonObject]).getAsJsonArray(member)
-    } catch {
-      case t: Throwable =>
-        log.error(s"failed to parse element '$member' in dgraph json result: ${abbreviate(json.string)}")
-        throw t
-    }
-  }
-
-  /**
-   * Provides the result elements as JsonObjects
-   * @param result Json array
-   * @return result elements
-   */
-  def getNodes(result: JsonArray): Iterator[JsonObject] =
-    result
-      .iterator()
-      .asScala
-      .map(_.getAsJsonObject)
 
   def getValues(value: JsonElement): Iterable[JsonElement] = value match {
     case a: JsonArray => a.asScala

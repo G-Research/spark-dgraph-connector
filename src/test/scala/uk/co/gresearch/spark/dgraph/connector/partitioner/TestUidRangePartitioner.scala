@@ -123,9 +123,9 @@ class TestUidRangePartitioner extends AnyFunSpec {
 
     it("should not partition into more than max partitions") {
       val uidPartitioner1 = UidRangePartitioner(singleton, 100, 5, UidCardinalityEstimator.forMaxUid(Some(UnsignedLong.valueOf(1000))))
-      assert(uidPartitioner1.getPartitions === singleton.getPartitions)
+      assert(uidPartitioner1.getPartitions.length === 5)
       val uidPartitioner2 = UidRangePartitioner(singleton, 100, 10, UidCardinalityEstimator.forMaxUid(Some(UnsignedLong.valueOf(1000))))
-      assert(uidPartitioner2.getPartitions !== singleton.getPartitions)
+      assert(uidPartitioner2.getPartitions.length === 10)
     }
 
     it("should support what decorated partitioner supports") {
