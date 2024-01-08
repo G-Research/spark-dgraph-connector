@@ -3,7 +3,7 @@ package uk.co.gresearch.spark.dgraph.connector.encoder
 import com.google.gson.{Gson, JsonArray, JsonObject}
 import uk.co.gresearch.spark.dgraph.connector.{Json, Logging}
 
-import scala.jdk.CollectionConverters.asScalaIteratorConverter
+import scala.jdk.CollectionConverters._
 
 trait JsonGraphQlResultParser extends Logging {
   /**
