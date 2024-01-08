@@ -17,7 +17,7 @@ then
     spark=$1
     scala=$2
 
-    if [[ "$spark" == "3.4."* ]] || [[ "$spark" > "3.4." ]]
+    if [[ "$spark" == "3.4."* ]] || [[ "$spark" > "3.4." ]] || [[ "$scala" > "2.13." ]]
     then
       graphframes="0.8.3-spark3.4"
     else
@@ -46,5 +46,4 @@ else
     echo "Provide the Spark-Dgraph-Connector version (e.g. 2.5.0 or 2.5.0-SNAPSHOT), or the Spark and Scala version"
     exit 1
 fi
-
 
