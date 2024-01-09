@@ -76,8 +76,8 @@ fi
 ./set-version.sh 3.5.0 2.12.18; mvn clean deploy -Dsign; ./test-release.sh
 
 ./set-version.sh 3.2.4 2.13.5; mvn clean deploy -Dsign; ./test-release.sh
-./set-version.sh 3.3.2 2.13.8; mvn clean deploy -Dsign; ./test-release.sh
-./set-version.sh 3.4.0 2.13.8; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.3.4 2.13.8; mvn clean deploy -Dsign; ./test-release.sh
+./set-version.sh 3.4.2 2.13.8; mvn clean deploy -Dsign; ./test-release.sh
 ./set-version.sh 3.5.0 2.13.8; mvn clean deploy -Dsign; ./test-release.sh
 
 # stop dgraph test instance
