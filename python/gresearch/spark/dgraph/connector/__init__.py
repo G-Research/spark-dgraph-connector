@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from py4j.java_gateway import JavaObject
+from py4j.java_gateway import JavaObject, Py4JError
 from pyspark.sql import DataFrameReader
 from pyspark.sql.dataframe import DataFrame
 
@@ -66,9 +66,20 @@ class DgraphReader:
         self._spark = reader._spark
         self._reader = self._jvm.uk.co.gresearch.spark.dgraph.connector.DgraphReader(reader._jreader)
 
+        try:
+            # usually, PySpark uses Scala 2.12, so we try this first
+            self._it_scala_converter = self._jvm.scala.jdk.CollectionConverters.asScalaIteratorConverter
+        except Py4JError:
+            try:
+                # maybe this is Scala 2.13
+                self._it_scala_converter = self._jvm.scala.jdk.CollectionConverters.IteratorHasAsScala
+            except Py4JError as e:
+                raise RuntimeError("Neither scala.jdk.CollectionConverters.asScalaIteratorConverter (Scala 2.12)"
+                                   "nor scala.jdk.CollectionConverters.IteratorHasAsScala (Scala 2.13) exist in JVM", e)
+
     def _toSeq(self, list) -> JavaObject:
         array = self._jvm.java.util.ArrayList(list)
-        return self._jvm.scala.jdk.CollectionConverters.iterableAsScalaIterable(array).toSeq()
+        return self._it_scala_converter(array.iterator()).asScala().toSeq()
 
     def triples(self, target, *targets) -> DataFrame:
         jdf = self._reader.triples(target, self._toSeq(targets))
