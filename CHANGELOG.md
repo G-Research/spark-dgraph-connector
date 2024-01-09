@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.11.0] - 2024-01-09
+
+### Added
+- Detect and partition sparse region of UIDs ([pull #224](https://github.com/G-Research/spark-dgraph-connector/pull/224))
+
 ## [0.10.0] - 2023-05-03
 
 ### Changed
