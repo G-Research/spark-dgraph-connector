@@ -16,8 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.{DataFrame, Encoders, Row, SQLContext, SaveMode}
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
@@ -30,6 +32,7 @@ import java.util
 import scala.jdk.CollectionConverters._
 
 class NodeSource() extends TableProviderBase
+  with CreatableRelationProvider
   with TargetsConfigParser with SchemaProvider
   with ClusterStateProvider with PartitionerProvider
   with TransactionProvider with Logging {
@@ -99,4 +102,8 @@ class NodeSource() extends TableProviderBase
     TripleTable(partitioner, model, clusterState.cid)
   }
 
+  override def createRelation(context: SQLContext, mode: SaveMode, parameters: Map[String, String], df: DataFrame): BaseRelation = {
+    Console.println(s"Creating relation with mode $mode and params ${parameters.mkString(", ")}")
+    TripleRelation(context, inferSchema(new CaseInsensitiveStringMap(parameters.asJava)))
+  }
 }
