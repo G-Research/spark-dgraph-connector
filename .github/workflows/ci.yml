@@ -20,8 +20,21 @@ jobs:
           name: Event File
           path: ${{ github.event_path }}
 
+  lint:
+    name: "Linting"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Check for scalafmt conformance
+        uses: openlawteam/scalafmt-ci@v2
+        with:
+          args: '--test'
+
   build:
     name: "Build"
+    needs: lint
     uses: "./.github/workflows/build.yml"
 
   test-dgraph:
