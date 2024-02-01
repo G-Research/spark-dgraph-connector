@@ -169,6 +169,6 @@ jobs:
     needs: [test-dgraph, test-spark, test-scala, test-python, test-integration]
     steps:
       - name: Delete Binaries Artifact
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v4
         with:
           name: "Binaries-*"
