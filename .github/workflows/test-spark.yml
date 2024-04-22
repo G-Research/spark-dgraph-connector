@@ -6,7 +6,6 @@ on:
       dgraph-version:
         required: true
         type: string
-  pull_request:
 
 jobs:
   test-spark:

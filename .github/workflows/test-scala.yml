@@ -6,7 +6,6 @@ on:
       matrix:
         required: true
         type: string
-  pull_request:
 
 jobs:
   test-spark:
