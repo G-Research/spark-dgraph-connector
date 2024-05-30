@@ -26,14 +26,14 @@ runs:
       shell: bash
 
     - name: Cache Maven packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
         restore-keys: ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Setup JDK 1.11
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         java-version: '11'
         distribution: 'zulu'
@@ -46,7 +46,7 @@ runs:
       shell: bash
 
     - name: Upload Binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: |

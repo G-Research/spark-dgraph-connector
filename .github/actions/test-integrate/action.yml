@@ -32,13 +32,13 @@ runs:
       shell: bash
 
     - name: Fetch Binaries Artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: .
 
     - name: Cache Maven packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.m2/repository
         key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
@@ -47,7 +47,7 @@ runs:
           ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Cache Spark Binaries
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/spark
         key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}

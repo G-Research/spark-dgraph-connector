@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Event File
           path: ${{ github.event_path }}
@@ -169,6 +169,6 @@ jobs:
     needs: [test-dgraph, test-spark, test-scala, test-python, test-integration]
     steps:
       - name: Delete Binaries Artifact
-        uses: geekyeggo/delete-artifact@v2
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: "Binaries-*"
