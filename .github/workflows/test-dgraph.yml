@@ -5,7 +5,7 @@ on:
 
 jobs:
   test-dgraph:
-    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
+    name: Unit Tests (Dgraph ${{ matrix.dgraph-version }} Spark ${{ matrix.spark-compat-version }} Scala ${{ matrix.scala-compat-version }})
     runs-on: ubuntu-latest
 
     strategy:

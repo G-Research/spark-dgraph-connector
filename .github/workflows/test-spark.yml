@@ -9,7 +9,7 @@ on:
 
 jobs:
   test-spark:
-    name: Unit Tests (Spark ${{ matrix.spark-compat-version }}.${{ matrix.spark-patch-version }} Scala ${{ matrix.scala-compat-version }})
+    name: Unit Tests (Spark ${{ matrix.spark-version }} Scala ${{ matrix.scala-compat-version }})
     runs-on: ubuntu-latest
 
     strategy:
