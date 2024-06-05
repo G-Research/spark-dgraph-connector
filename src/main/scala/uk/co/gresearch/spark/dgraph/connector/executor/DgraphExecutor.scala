@@ -18,16 +18,29 @@ package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.dgraph.DgraphClient
 import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
-import uk.co.gresearch.spark.dgraph.connector.{ExtendedThrowable, GraphQl, Json, Logging, Target, Transaction, getClientFromChannel, toChannel}
+import uk.co.gresearch.spark.dgraph.connector.{
+  ExtendedThrowable,
+  GraphQl,
+  Json,
+  Logging,
+  Target,
+  Transaction,
+  getClientFromChannel,
+  toChannel
+}
 
 /**
- * A QueryExecutor implementation that executes a GraphQl query against a Dgraph cluster returning a Json result.
- * All queries are executed in the given transaction.
+ * A QueryExecutor implementation that executes a GraphQl query against a Dgraph cluster returning a Json result. All
+ * queries are executed in the given transaction.
  *
- * @param transaction transaction
- * @param targets dgraph cluster targets
+ * @param transaction
+ *   transaction
+ * @param targets
+ *   dgraph cluster targets
  */
-case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]) extends JsonGraphQlExecutor with Logging {
+case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target])
+    extends JsonGraphQlExecutor
+    with Logging {
 
   private def getTransaction(client: DgraphClient): io.dgraph.Transaction =
     transaction.fold(client.newReadOnlyTransaction())(txn => client.newReadOnlyTransaction(txn.context))
@@ -35,8 +48,10 @@ case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]
   /**
    * Executes a GraphQl query against a Dgraph cluster and returns the JSON query result.
    *
-   * @param query: the query
-   * @return a Json result
+   * @param query:
+   *   the query
+   * @return
+   *   a Json result
    */
   override def query(query: GraphQl): Json = {
     log.trace(s"querying dgraph cluster at [${targets.mkString(",")}] with:\n${abbreviate(query.string)}")
@@ -58,10 +73,11 @@ case class DgraphExecutor(transaction: Option[Transaction], targets: Seq[Target]
 
         // provide a useful exception when we see an RESOURCE_EXHAUSTED gRPC code
         if (exc.causedByResourceExhausted())
-          throw new RuntimeException("Query failed because the result is too large. " +
-            "Try a different chunk size or partition configuration: " +
-            "https://github.com/g-research/spark-dgraph-connector#streamed-partitions and " +
-            "https://github.com/g-research/spark-dgraph-connector#partitioning",
+          throw new RuntimeException(
+            "Query failed because the result is too large. " +
+              "Try a different chunk size or partition configuration: " +
+              "https://github.com/g-research/spark-dgraph-connector#streamed-partitions and " +
+              "https://github.com/g-research/spark-dgraph-connector#partitioning",
             exc
           )
 

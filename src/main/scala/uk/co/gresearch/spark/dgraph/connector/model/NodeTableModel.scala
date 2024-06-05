@@ -23,11 +23,12 @@ import uk.co.gresearch.spark.dgraph.connector.{NoPartitionMetrics, PartitionMetr
 /**
  * Models only the nodes of a graph as a table.
  */
-case class NodeTableModel(execution: ExecutorProvider,
-                          encoder: JsonNodeInternalRowEncoder,
-                          chunkSize: Int,
-                          metrics: PartitionMetrics = NoPartitionMetrics())
-  extends GraphTableModel {
+case class NodeTableModel(
+    execution: ExecutorProvider,
+    encoder: JsonNodeInternalRowEncoder,
+    chunkSize: Int,
+    metrics: PartitionMetrics = NoPartitionMetrics()
+) extends GraphTableModel {
 
   override def withMetrics(metrics: PartitionMetrics): NodeTableModel = copy(metrics = metrics)
 

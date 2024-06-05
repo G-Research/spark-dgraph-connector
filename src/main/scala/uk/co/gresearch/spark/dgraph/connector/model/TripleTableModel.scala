@@ -23,11 +23,12 @@ import uk.co.gresearch.spark.dgraph.connector.{NoPartitionMetrics, PartitionMetr
 /**
  * Models all triples of a graph as a table, nodes with properties and edges.
  */
-case class TripleTableModel(execution: ExecutorProvider,
-                            encoder: JsonNodeInternalRowEncoder,
-                            chunkSize: Int,
-                            metrics: PartitionMetrics = NoPartitionMetrics())
-  extends GraphTableModel {
+case class TripleTableModel(
+    execution: ExecutorProvider,
+    encoder: JsonNodeInternalRowEncoder,
+    chunkSize: Int,
+    metrics: PartitionMetrics = NoPartitionMetrics()
+) extends GraphTableModel {
 
   override def withMetrics(metrics: PartitionMetrics): TripleTableModel = copy(metrics = metrics)
 

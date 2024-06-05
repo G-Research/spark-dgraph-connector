@@ -19,38 +19,61 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
-import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.{JsonGraphQlUidDetector, LogSearchStrategy, SearchUidRangeDetector, ThresholdSparseDetector, UidRangeDetector}
+import uk.co.gresearch.spark.dgraph.connector.partitioner.sparse.{
+  JsonGraphQlUidDetector,
+  LogSearchStrategy,
+  SearchUidRangeDetector,
+  ThresholdSparseDetector,
+  UidRangeDetector
+}
 
-class ConfigPartitionerOption extends PartitionerProviderOption
-  with EstimatorProviderOption
-  with ClusterStateHelper
-  with ConfigParser {
+class ConfigPartitionerOption
+    extends PartitionerProviderOption
+    with EstimatorProviderOption
+    with ClusterStateHelper
+    with ConfigParser {
 
-  override def getPartitioner(schema: Schema,
-                              clusterState: ClusterState,
-                              transaction: Option[Transaction],
-                              options: CaseInsensitiveStringMap): Option[Partitioner] =
+  override def getPartitioner(
+      schema: Schema,
+      clusterState: ClusterState,
+      transaction: Option[Transaction],
+      options: CaseInsensitiveStringMap
+  ): Option[Partitioner] =
     getStringOption(PartitionerOption, options)
       .map(getPartitioner(_, schema, clusterState, transaction, options))
 
-  def getPartitioner(partitionerName: String,
-                     schema: Schema,
-                     clusterState: ClusterState,
-                     transaction: Option[Transaction],
-                     options: CaseInsensitiveStringMap): Partitioner =
+  def getPartitioner(
+      partitionerName: String,
+      schema: Schema,
+      clusterState: ClusterState,
+      transaction: Option[Transaction],
+      options: CaseInsensitiveStringMap
+  ): Partitioner =
     partitionerName match {
       case SingletonPartitionerOption => SingletonPartitioner(getAllClusterTargets(clusterState), schema)
-      case GroupPartitionerOption => GroupPartitioner(schema, clusterState)
+      case GroupPartitionerOption     => GroupPartitioner(schema, clusterState)
       case AlphaPartitionerOption =>
-        AlphaPartitioner(schema, clusterState,
-          getIntOption(AlphaPartitionerPartitionsOption, options, AlphaPartitionerPartitionsDefault))
+        AlphaPartitioner(
+          schema,
+          clusterState,
+          getIntOption(AlphaPartitionerPartitionsOption, options, AlphaPartitionerPartitionsDefault)
+        )
       case PredicatePartitionerOption =>
-        PredicatePartitioner(schema, clusterState,
-          getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault))
+        PredicatePartitioner(
+          schema,
+          clusterState,
+          getIntOption(PredicatePartitionerPredicatesOption, options, PredicatePartitionerPredicatesDefault)
+        )
       case UidRangePartitionerOption =>
-        val uidsPerPartition = getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
+        val uidsPerPartition =
+          getIntOption(UidRangePartitionerUidsPerPartOption, options, UidRangePartitionerUidsPerPartDefault)
         val maxPartitions = getIntOption(UidRangePartitionerMaxPartsOption, options, UidRangePartitionerMaxPartsDefault)
-        val estimator = getEstimatorOption(UidRangePartitionerEstimatorOption, options, UidRangePartitionerEstimatorDefault, clusterState)
+        val estimator = getEstimatorOption(
+          UidRangePartitionerEstimatorOption,
+          options,
+          UidRangePartitionerEstimatorDefault,
+          clusterState
+        )
         val targets = getAllClusterTargets(clusterState)
         val singleton = SingletonPartitioner(targets, schema)
         val detector = getUidRangeDetector(targets, uidsPerPartition, options)
@@ -59,13 +82,16 @@ class ConfigPartitionerOption extends PartitionerProviderOption
         val name = option.substring(0, option.indexOf('+'))
         val partitioner = getPartitioner(name, schema, clusterState, transaction, options)
         getPartitioner(UidRangePartitionerOption, schema, clusterState, transaction, options)
-          .asInstanceOf[UidRangePartitioner].copy(partitioner = partitioner)
+          .asInstanceOf[UidRangePartitioner]
+          .copy(partitioner = partitioner)
       case unknown => throw new IllegalArgumentException(s"Unknown partitioner: $unknown")
     }
 
-  def getUidRangeDetector(targets: Seq[Target],
-                          uidsPerPartition: Int,
-                          options: CaseInsensitiveStringMap): UidRangeDetector = {
+  def getUidRangeDetector(
+      targets: Seq[Target],
+      uidsPerPartition: Int,
+      options: CaseInsensitiveStringMap
+  ): UidRangeDetector = {
     val executor = DgraphExecutor(None, targets)
     val uidDetector = JsonGraphQlUidDetector(executor)
     val sparseDetector = ThresholdSparseDetector(Int.MaxValue, 2)

@@ -40,27 +40,39 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
       try {
         val client: DgraphClient = getClientFromChannel(channels)
 
-        val mutationInsert = Mutation.newBuilder()
-          .setSetNquads(ByteString.copyFromUtf8(
-            s"""
+        val mutationInsert = Mutation
+          .newBuilder()
+          .setSetNquads(
+            ByteString.copyFromUtf8(
+              s"""
                |_:1 <dgraph.type> "Person" .
                |_:1 <name> "Obi-Wan 'Ben' Kenobi" .
                |<0x${dgraph.sw1.toHexString}> <starring> _:1 .
                |""".stripMargin
-          ))
-          .setCommitNow(true).build()
+            )
+          )
+          .setCommitNow(true)
+          .build()
 
-        val mutationUpdate = Mutation.newBuilder()
-          .setSetNquads(ByteString.copyFromUtf8(
-            s"""<0x${dgraph.leia.toHexString}> <name> "Princess Leia Organa" .""".stripMargin
-          ))
-          .setCommitNow(true).build()
+        val mutationUpdate = Mutation
+          .newBuilder()
+          .setSetNquads(
+            ByteString.copyFromUtf8(
+              s"""<0x${dgraph.leia.toHexString}> <name> "Princess Leia Organa" .""".stripMargin
+            )
+          )
+          .setCommitNow(true)
+          .build()
 
-        val mutationDelete = Mutation.newBuilder()
-          .setDelNquads(ByteString.copyFromUtf8(
-            s"""<0x${dgraph.sw1.toHexString}> <starring> <0x${dgraph.leia.toHexString}> .""".stripMargin
-          ))
-          .setCommitNow(true).build()
+        val mutationDelete = Mutation
+          .newBuilder()
+          .setDelNquads(
+            ByteString.copyFromUtf8(
+              s"""<0x${dgraph.sw1.toHexString}> <starring> <0x${dgraph.leia.toHexString}> .""".stripMargin
+            )
+          )
+          .setCommitNow(true)
+          .build()
 
         val transactionInsert = client.newTransaction()
         transactionInsert.mutate(mutationInsert)
@@ -80,11 +92,15 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
 
     it("should read in transaction") {
       // the graph before any mutations, read with transaction ...
-      val beforeWithTransaction = removeDgraphTriples(reader.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target))
+      val beforeWithTransaction = removeDgraphTriples(
+        reader.option(TransactionModeOption, TransactionModeReadOption).dgraph.triples(dgraph.target)
+      )
       val beforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
       // ... and without transaction
-      val beforeWithoutTransaction = removeDgraphTriples(reader.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target))
+      val beforeWithoutTransaction = removeDgraphTriples(
+        reader.option(TransactionModeOption, TransactionModeNoneOption).dgraph.triples(dgraph.target)
+      )
       val beforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
       assert(beforeWithoutTransactionTriples === TriplesSourceExpecteds(dgraph).getExpectedTypedTriples)
 
@@ -110,9 +126,45 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
               .map(_.copy(objectString = Some("Princess Leia Organa")))
               .get,
             // plus insterted
-            TypedTriple(dgraph.highestUid + 1, "dgraph.type", None, Some("Person"), None, None, None, None, None, None, "string"),
-            TypedTriple(dgraph.highestUid + 1, "name", None, Some("Obi-Wan 'Ben' Kenobi"), None, None, None, None, None, None, "string"),
-            TypedTriple(dgraph.sw1, "starring", Some(dgraph.highestUid + 1), None, None, None, None, None, None, None, "uid")
+            TypedTriple(
+              dgraph.highestUid + 1,
+              "dgraph.type",
+              None,
+              Some("Person"),
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              "string"
+            ),
+            TypedTriple(
+              dgraph.highestUid + 1,
+              "name",
+              None,
+              Some("Obi-Wan 'Ben' Kenobi"),
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              "string"
+            ),
+            TypedTriple(
+              dgraph.sw1,
+              "starring",
+              Some(dgraph.highestUid + 1),
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              "uid"
+            )
           ).toSet
 
       // no change in the dataframe with transaction

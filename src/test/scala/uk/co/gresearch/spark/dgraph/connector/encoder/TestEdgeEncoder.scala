@@ -47,31 +47,35 @@ class TestEdgeEncoder extends AnyFunSpec {
     it("should parse JSON response") {
       val encoder = EdgeEncoder(schema.predicateMap)
       val rows = encoder.fromJson(Json(json), "result")
-      assert(rows.toSeq === Seq(
-        InternalRow(1L, UTF8String.fromString("starring"), 2L),
-        InternalRow(1L, UTF8String.fromString("starring"), 3L),
-        InternalRow(1L, UTF8String.fromString("starring"), 7L),
-        InternalRow(1L, UTF8String.fromString("director"), 4L),
-        InternalRow(8L, UTF8String.fromString("starring"), 2L),
-        InternalRow(8L, UTF8String.fromString("starring"), 3L),
-        InternalRow(8L, UTF8String.fromString("starring"), 7L),
-        InternalRow(8L, UTF8String.fromString("director"), 5L),
-        InternalRow(9L, UTF8String.fromString("starring"), 2L),
-        InternalRow(9L, UTF8String.fromString("starring"), 3L),
-        InternalRow(9L, UTF8String.fromString("starring"), 7L),
-        InternalRow(9L, UTF8String.fromString("director"), 6L),
-      ))
+      assert(
+        rows.toSeq === Seq(
+          InternalRow(1L, UTF8String.fromString("starring"), 2L),
+          InternalRow(1L, UTF8String.fromString("starring"), 3L),
+          InternalRow(1L, UTF8String.fromString("starring"), 7L),
+          InternalRow(1L, UTF8String.fromString("director"), 4L),
+          InternalRow(8L, UTF8String.fromString("starring"), 2L),
+          InternalRow(8L, UTF8String.fromString("starring"), 3L),
+          InternalRow(8L, UTF8String.fromString("starring"), 7L),
+          InternalRow(8L, UTF8String.fromString("director"), 5L),
+          InternalRow(9L, UTF8String.fromString("starring"), 2L),
+          InternalRow(9L, UTF8String.fromString("starring"), 3L),
+          InternalRow(9L, UTF8String.fromString("starring"), 7L),
+          InternalRow(9L, UTF8String.fromString("director"), 6L),
+        )
+      )
     }
 
     it("should parse JSON response with large uids") {
       val encoder = EdgeEncoder(schema.predicateMap)
       val rows = encoder.fromJson(Json(jsonWithLargeUids), "result")
-      assert(rows.toSeq === Seq(
-        InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), 3100520392254949455L),
-        InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), 999257064750498476L),
-        InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), -1877623327044447073L),
-        InternalRow(-6346846686373277921L, UTF8String.fromString("director"), 8214320560726473464L),
-      ))
+      assert(
+        rows.toSeq === Seq(
+          InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), 3100520392254949455L),
+          InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), 999257064750498476L),
+          InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), -1877623327044447073L),
+          InternalRow(-6346846686373277921L, UTF8String.fromString("director"), 8214320560726473464L),
+        )
+      )
     }
 
   }

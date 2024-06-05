@@ -28,19 +28,24 @@ import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, 
 import uk.co.gresearch.spark.dgraph.connector.model.EdgeTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
-class EdgeSource() extends TableProviderBase
-  with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider
-  with TransactionProvider {
+class EdgeSource()
+    extends TableProviderBase
+    with TargetsConfigParser
+    with SchemaProvider
+    with ClusterStateProvider
+    with PartitionerProvider
+    with TransactionProvider {
 
   override def shortName(): String = "dgraph-edges"
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType =
     EdgeEncoder.schema
 
-  override def getTable(schema: StructType,
-                        partitioning: Array[Transform],
-                        properties: util.Map[String, String]): Table = {
+  override def getTable(
+      schema: StructType,
+      partitioning: Array[Transform],
+      properties: util.Map[String, String]
+  ): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
     val transaction = getTransaction(targets, options)

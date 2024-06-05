@@ -35,7 +35,8 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       assert(state.get.groupMembers === Map("1" -> Set(Target(dgraph.target))))
       assert(state.get.groupPredicates.contains("1"))
       val actualPredicates = state.get.groupPredicates("1")
-      val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
+      val expectedPredicates =
+        Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
       assert(expectedPredicates.diff(actualPredicates) === Set.empty)
       assert(state.get.maxUid.map(_.intValue()) === Some(10000))
     }
@@ -46,7 +47,8 @@ class TestClusterStateProvider extends AnyFunSpec with DgraphTestCluster {
       assert(state.groupMembers === Map("1" -> Set(Target(dgraph.target))))
       assert(state.groupPredicates.contains("1"))
       val actualPredicates = state.groupPredicates("1")
-      val expectedPredicates = Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
+      val expectedPredicates =
+        Set("name", "title", "starring", "running_time", "release_date", "director", "revenue", "dgraph.type")
       assert(actualPredicates === expectedPredicates)
       assert(state.maxUid.map(_.intValue()) === Some(10000))
     }

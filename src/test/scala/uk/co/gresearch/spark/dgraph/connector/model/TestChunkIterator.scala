@@ -50,9 +50,10 @@ class TestChunkIterator extends AnyFunSpec {
         uidChunks
           .map(getChunk)
           .zip(Seq(zero) ++ uidChunks.map(_.last).dropRight(1))
-          .map {
-            case (chunk, uid) => Chunk(uid, 5) -> chunk
-          }.toMap
+          .map { case (chunk, uid) =>
+            Chunk(uid, 5) -> chunk
+          }
+          .toMap
 
       val it = ChunkIterator(zero, None, 5, chunk => chunks.getOrElse(chunk, fail(s"unexpected chunk: $chunk")))
       assert(it.toSeq === chunks.values.toStream)
@@ -64,7 +65,8 @@ class TestChunkIterator extends AnyFunSpec {
         Chunk(Uid(10), 4) -> getChunk(11 to 14 map { id => Uid(id) })
       )
 
-      val it = ChunkIterator(zero, Some(Uid(15)), 10, chunk => chunks.getOrElse(chunk, fail(s"unexpected chunk: $chunk")))
+      val it =
+        ChunkIterator(zero, Some(Uid(15)), 10, chunk => chunks.getOrElse(chunk, fail(s"unexpected chunk: $chunk")))
       assert(it.toSeq === chunks.values.toStream)
     }
 

@@ -119,16 +119,25 @@ class TestFilterTranslator extends AnyFunSpec {
 
         testTranslate(EqualTo(predicateColumn, "val"), Some(Set(IntersectPredicateNameIsIn("val"))))
 
-        testTranslate(EqualTo(predicateValueColumn, "val"), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
+        testTranslate(
+          EqualTo(predicateValueColumn, "val"),
+          Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val"))))
+        )
 
         testTranslate(EqualTo(objectUidColumn, 1L), Some(Set(ObjectValueIsIn(1L), ObjectTypeIsIn("uid"))))
         testTranslate(EqualTo(objectStringColumn, "val"), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
         testTranslate(EqualTo(objectLongColumn, 1L), Some(Set(ObjectValueIsIn(1L), ObjectTypeIsIn("long"))))
         testTranslate(EqualTo(objectDoubleColumn, 1.0), Some(Set(ObjectValueIsIn(1.0), ObjectTypeIsIn("double"))))
-        testTranslate(EqualTo(objectTimestampColumn, timestamp), Some(Set(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp"))))
+        testTranslate(
+          EqualTo(objectTimestampColumn, timestamp),
+          Some(Set(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp")))
+        )
         testTranslate(EqualTo(objectBooleanColumn, true), Some(Set(ObjectValueIsIn(true), ObjectTypeIsIn("boolean"))))
         testTranslate(EqualTo(objectGeoColumn, "geo"), Some(Set(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
-        testTranslate(EqualTo(objectPasswordColumn, "pass"), Some(Set(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
+        testTranslate(
+          EqualTo(objectPasswordColumn, "pass"),
+          Some(Set(ObjectValueIsIn("pass"), ObjectTypeIsIn("password")))
+        )
 
         testTranslate(EqualTo(allObjectStringColumn, "val"), Some(Set(ObjectValueIsIn("val"))))
 
@@ -140,16 +149,25 @@ class TestFilterTranslator extends AnyFunSpec {
 
         testTranslate(In(predicateColumn, Array("val")), Some(Set(IntersectPredicateNameIsIn("val"))))
 
-        testTranslate(In(predicateValueColumn, Array("val")), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
+        testTranslate(
+          In(predicateValueColumn, Array("val")),
+          Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val"))))
+        )
 
         testTranslate(In(objectUidColumn, Array(1L)), Some(Set(ObjectValueIsIn(1L), ObjectTypeIsIn("uid"))))
         testTranslate(In(objectStringColumn, Array("val")), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
         testTranslate(In(objectLongColumn, Array(1L)), Some(Set(ObjectValueIsIn(1L), ObjectTypeIsIn("long"))))
         testTranslate(In(objectDoubleColumn, Array(1.0)), Some(Set(ObjectValueIsIn(1.0), ObjectTypeIsIn("double"))))
-        testTranslate(In(objectTimestampColumn, Array(timestamp)), Some(Set(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp"))))
+        testTranslate(
+          In(objectTimestampColumn, Array(timestamp)),
+          Some(Set(ObjectValueIsIn(timestamp), ObjectTypeIsIn("timestamp")))
+        )
         testTranslate(In(objectBooleanColumn, Array(true)), Some(Set(ObjectValueIsIn(true), ObjectTypeIsIn("boolean"))))
         testTranslate(In(objectGeoColumn, Array("geo")), Some(Set(ObjectValueIsIn("geo"), ObjectTypeIsIn("geo"))))
-        testTranslate(In(objectPasswordColumn, Array("pass")), Some(Set(ObjectValueIsIn("pass"), ObjectTypeIsIn("password"))))
+        testTranslate(
+          In(objectPasswordColumn, Array("pass")),
+          Some(Set(ObjectValueIsIn("pass"), ObjectTypeIsIn("password")))
+        )
 
         testTranslate(In(allObjectStringColumn, Array("val")), Some(Set(ObjectValueIsIn("val"))))
 
@@ -171,15 +189,27 @@ class TestFilterTranslator extends AnyFunSpec {
         testTranslate(IsNotNull(backtick(objectStringColumn)), Some(Set(ObjectTypeIsIn("string"))))
 
         testTranslate(EqualTo(backtick(predicateColumn), "val"), Some(Set(IntersectPredicateNameIsIn("val"))))
-        testTranslate(EqualTo(backtick(predicateValueColumn), "val"), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
-        testTranslate(EqualTo(backtick(objectStringColumn), "val"), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
+        testTranslate(
+          EqualTo(backtick(predicateValueColumn), "val"),
+          Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val"))))
+        )
+        testTranslate(
+          EqualTo(backtick(objectStringColumn), "val"),
+          Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string")))
+        )
         testTranslate(EqualTo(backtick(allObjectStringColumn), "val"), Some(Set(ObjectValueIsIn("val"))))
         testTranslate(EqualTo(backtick(objectTypeColumn), "type"), Some(Set(ObjectTypeIsIn("type"))))
 
         testTranslate(In(backtick(subjectColumn), Array(1)), Some(Set(SubjectIsIn(Uid(1)))))
         testTranslate(In(backtick(predicateColumn), Array("val")), Some(Set(IntersectPredicateNameIsIn("val"))))
-        testTranslate(In(backtick(predicateValueColumn), Array("val")), Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val")))))
-        testTranslate(In(backtick(objectStringColumn), Array("val")), Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string"))))
+        testTranslate(
+          In(backtick(predicateValueColumn), Array("val")),
+          Some(Set(SinglePredicateValueIsIn(predicateValueColumn, Set("val"))))
+        )
+        testTranslate(
+          In(backtick(objectStringColumn), Array("val")),
+          Some(Set(ObjectValueIsIn("val"), ObjectTypeIsIn("string")))
+        )
         testTranslate(In(backtick(allObjectStringColumn), Array("val")), Some(Set(ObjectValueIsIn("val"))))
         testTranslate(In(backtick(objectTypeColumn), Array("type")), Some(Set(ObjectTypeIsIn("type"))))
       }
@@ -208,23 +238,52 @@ class TestFilterTranslator extends AnyFunSpec {
       describe("IntersectPredicateNameIsIn") {
 
         it("should be simplified with another IntersectPredicateNameIsIn to intersection") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("b", "c")), Set(IntersectPredicateNameIsIn(Set("b"))))
+          testSimplify(
+            Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("b", "c")),
+            Set(IntersectPredicateNameIsIn(Set("b")))
+          )
         }
 
         it("should be simplified with another IntersectPredicateNameIsIn to intersection and AlwaysFalse") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("c", "d")), Set(AlwaysFalse))
+          testSimplify(
+            Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("c", "d")),
+            Set(AlwaysFalse)
+          )
         }
 
         it("should be simplified with ObjectValueIsIn to IntersectPredicateValueIsIn") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a", "b"), ObjectValueIsIn("c", "d")), Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("c", "d"))))
+          testSimplify(
+            Set(IntersectPredicateNameIsIn("a", "b"), ObjectValueIsIn("c", "d")),
+            Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("c", "d")))
+          )
         }
 
-        it("should be simplified with another IntersectPredicateNameIsIn and ObjectValueIsIn to intersection and IntersectPredicateValueIsIn") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("b", "c"), ObjectValueIsIn("1", "2"), ObjectValueIsIn("2", "3")), Set(IntersectPredicateValueIsIn(Set("b"), Set("2"))))
+        it(
+          "should be simplified with another IntersectPredicateNameIsIn and ObjectValueIsIn to intersection and IntersectPredicateValueIsIn"
+        ) {
+          testSimplify(
+            Set(
+              IntersectPredicateNameIsIn("a", "b"),
+              IntersectPredicateNameIsIn("b", "c"),
+              ObjectValueIsIn("1", "2"),
+              ObjectValueIsIn("2", "3")
+            ),
+            Set(IntersectPredicateValueIsIn(Set("b"), Set("2")))
+          )
         }
 
-        it("should be simplified with another IntersectPredicateNameIsIn and ObjectValueIsIn to intersection and AlwaysFalse") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a", "b"), IntersectPredicateNameIsIn("c", "d"), ObjectValueIsIn("1", "2"), ObjectValueIsIn("3", "4")), Set(AlwaysFalse))
+        it(
+          "should be simplified with another IntersectPredicateNameIsIn and ObjectValueIsIn to intersection and AlwaysFalse"
+        ) {
+          testSimplify(
+            Set(
+              IntersectPredicateNameIsIn("a", "b"),
+              IntersectPredicateNameIsIn("c", "d"),
+              ObjectValueIsIn("1", "2"),
+              ObjectValueIsIn("3", "4")
+            ),
+            Set(AlwaysFalse)
+          )
         }
 
         it("should be simplified with PredicateValueIsIn to PredicateValueIsIn only") {
@@ -239,8 +298,14 @@ class TestFilterTranslator extends AnyFunSpec {
         }
 
         it("should not be simplified with PredicateNameIs") {
-          testSimplify(Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("a")), Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("a")))
-          testSimplify(Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("b")), Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("b")))
+          testSimplify(
+            Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("a")),
+            Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("a"))
+          )
+          testSimplify(
+            Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("b")),
+            Set(IntersectPredicateNameIsIn("a"), PredicateNameIs("b"))
+          )
         }
 
       }
@@ -248,19 +313,61 @@ class TestFilterTranslator extends AnyFunSpec {
       describe("IntersectPredicateValueIsIn") {
 
         it("should be simplified with another IntersectPredicateValueIsIn to intersection") {
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), IntersectPredicateValueIsIn(Set("b", "c"), Set("2", "3"))), Set(IntersectPredicateValueIsIn(Set("b"), Set("2"))))
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              IntersectPredicateValueIsIn(Set("b", "c"), Set("2", "3"))
+            ),
+            Set(IntersectPredicateValueIsIn(Set("b"), Set("2")))
+          )
         }
 
         it("should be simplified with another IntersectPredicateNameIsIn to intersection and AlwaysFalse") {
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), IntersectPredicateValueIsIn(Set("b", "c"), Set("3", "4"))), Set(AlwaysFalse))
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), IntersectPredicateValueIsIn(Set("c", "d"), Set("2", "3"))), Set(AlwaysFalse))
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), IntersectPredicateValueIsIn(Set("c", "d"), Set("3", "4"))), Set(AlwaysFalse))
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              IntersectPredicateValueIsIn(Set("b", "c"), Set("3", "4"))
+            ),
+            Set(AlwaysFalse)
+          )
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              IntersectPredicateValueIsIn(Set("c", "d"), Set("2", "3"))
+            ),
+            Set(AlwaysFalse)
+          )
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              IntersectPredicateValueIsIn(Set("c", "d"), Set("3", "4"))
+            ),
+            Set(AlwaysFalse)
+          )
         }
 
         it("should not be simplified with SinglePredicateValueIsIn") {
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3"))), Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3"))))
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("3", "4"))), Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("3", "4"))))
-          testSimplify(Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("c", Set("2", "3"))), Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("c", Set("2", "3"))))
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              SinglePredicateValueIsIn("b", Set("2", "3"))
+            ),
+            Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3")))
+          )
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              SinglePredicateValueIsIn("b", Set("3", "4"))
+            ),
+            Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("b", Set("3", "4")))
+          )
+          testSimplify(
+            Set(
+              IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")),
+              SinglePredicateValueIsIn("c", Set("2", "3"))
+            ),
+            Set(IntersectPredicateValueIsIn(Set("a", "b"), Set("1", "2")), SinglePredicateValueIsIn("c", Set("2", "3")))
+          )
         }
 
       }
@@ -272,7 +379,10 @@ class TestFilterTranslator extends AnyFunSpec {
         }
 
         it("should be simplified with ObjectValueIsIn to SinglePredicateValueIsIn") {
-          testSimplify(Set(PredicateNameIs("a"), ObjectValueIsIn("c", "d")), Set(SinglePredicateValueIsIn("a", Set("c", "d"))))
+          testSimplify(
+            Set(PredicateNameIs("a"), ObjectValueIsIn("c", "d")),
+            Set(SinglePredicateValueIsIn("a", Set("c", "d")))
+          )
         }
 
         it("should be simplified with PredicateValueIsIn to PredicateValueIsIn only") {
@@ -291,11 +401,17 @@ class TestFilterTranslator extends AnyFunSpec {
       describe("SinglePredicateValueIsIn") {
 
         it("should be simplified with same predicate SinglePredicateValueIsIn by value intersection") {
-          testSimplify(Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("a", Set("2", "3"))), Set(SinglePredicateValueIsIn("a", Set("2"))))
+          testSimplify(
+            Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("a", Set("2", "3"))),
+            Set(SinglePredicateValueIsIn("a", Set("2")))
+          )
         }
 
         it("should not be simplified with different SinglePredicateValueIsIn") {
-          testSimplify(Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3"))), Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3"))))
+          testSimplify(
+            Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3"))),
+            Set(SinglePredicateValueIsIn("a", Set("1", "2")), SinglePredicateValueIsIn("b", Set("2", "3")))
+          )
         }
 
       }

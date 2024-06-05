@@ -34,30 +34,34 @@ package object connector {
 
   case class StringTriple(subject: Long, predicate: String, objectString: String, objectType: String)
 
-  case class TypedTriple(subject: Long,
-                         predicate: String,
-                         objectUid: Option[Long],
-                         objectString: Option[String],
-                         objectLong: Option[Long],
-                         objectDouble: Option[Double],
-                         objectTimestamp: Option[Timestamp],
-                         objectBoolean: Option[Boolean],
-                         objectGeo: Option[String],
-                         objectPassword: Option[String],
-                         objectType: String)
+  case class TypedTriple(
+      subject: Long,
+      predicate: String,
+      objectUid: Option[Long],
+      objectString: Option[String],
+      objectLong: Option[Long],
+      objectDouble: Option[Double],
+      objectTimestamp: Option[Timestamp],
+      objectBoolean: Option[Boolean],
+      objectGeo: Option[String],
+      objectPassword: Option[String],
+      objectType: String
+  )
 
   case class Edge(subject: Long, predicate: String, objectUid: Long)
 
-  case class TypedNode(subject: Long,
-                       predicate: String,
-                       objectString: Option[String],
-                       objectLong: Option[Long],
-                       objectDouble: Option[Double],
-                       objectTimestamp: Option[Timestamp],
-                       objectBoolean: Option[Boolean],
-                       objectGeo: Option[String],
-                       objectPassword: Option[String],
-                       objectType: String)
+  case class TypedNode(
+      subject: Long,
+      predicate: String,
+      objectString: Option[String],
+      objectLong: Option[Long],
+      objectDouble: Option[Double],
+      objectTimestamp: Option[Timestamp],
+      objectBoolean: Option[Boolean],
+      objectGeo: Option[String],
+      objectPassword: Option[String],
+      objectType: String
+  )
 
   case class Uid(uid: UnsignedLong) {
     if (uid.compareTo(UnsignedLong.ZERO) < 0) throw new IllegalArgumentException(s"Uid must be positive (is $uid)")
@@ -72,9 +76,9 @@ package object connector {
   object Uid {
     def apply(uid: Any): Uid = uid match {
       case ul: UnsignedLong => Uid(ul)
-      case l: Long => Uid(UnsignedLong.valueOf(l))
-      case i: Int => Uid(UnsignedLong.valueOf(i.toLong))
-      case a => Uid(toUnsignedLong(a.toString))
+      case l: Long          => Uid(UnsignedLong.valueOf(l))
+      case i: Int           => Uid(UnsignedLong.valueOf(i.toLong))
+      case a                => Uid(toUnsignedLong(a.toString))
     }
 
     private def toUnsignedLong(uid: String): UnsignedLong =
@@ -107,26 +111,26 @@ package object connector {
 
     def columnNameForPredicateName(predicateName: String): String = predicateName match {
       case "uid" => "subject"
-      case x => x
+      case x     => x
     }
 
     def predicateNameForColumnName(columnName: String): String = columnName match {
       case "subject" => "uid"
-      case x => x
+      case x         => x
     }
 
     def sparkDataType(dgraphDataType: String): String = dgraphDataType match {
-      case "subject" => "uid"
-      case "uid" => "uid"
-      case "string" => "string"
-      case "int" => "long"
-      case "float" => "double"
+      case "subject"  => "uid"
+      case "uid"      => "uid"
+      case "string"   => "string"
+      case "int"      => "long"
+      case "float"    => "double"
       case "datetime" => "timestamp"
-      case "bool" => "boolean"
-      case "geo" => "geo"
+      case "bool"     => "boolean"
+      case "geo"      => "geo"
       case "password" => "password"
-      case "default" => "default"
-      case s => throw new IllegalArgumentException(s"unknown dgraph type: $s")
+      case "default"  => "default"
+      case s          => throw new IllegalArgumentException(s"unknown dgraph type: $s")
     }
 
   }
@@ -137,15 +141,19 @@ package object connector {
 
     /**
      * Returns a new Chunk with the same length but given after.
-     * @param after after
-     * @return chunk with new after
+     * @param after
+     *   after
+     * @return
+     *   chunk with new after
      */
     def withAfter(after: Uid): Chunk = copy(after = after)
 
     /**
      * Returns a new Chunk with the same after but given length.
-     * @param length length
-     * @return chunk with new length
+     * @param length
+     *   length
+     * @return
+     *   chunk with new length
      */
     def withLength(length: Long): Chunk = copy(length = length)
   }
@@ -198,7 +206,8 @@ package object connector {
   // for testing purposes only
   val MaxUidEstimatorIdOption: String = s"$UidRangePartitionerEstimatorOption.$MaxUidEstimatorOption.id"
 
-  def toChannel(target: Target): ManagedChannel = NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
+  def toChannel(target: Target): ManagedChannel =
+    NettyChannelBuilder.forTarget(target.toString).usePlaintext().maxInboundMessageSize(24 * 1024 * 1024).build()
 
   def toStub(channel: ManagedChannel): DgraphStub = DgraphGrpc.newStub(channel)
 
@@ -215,6 +224,7 @@ package object connector {
   case class Transaction(context: TxnContext)
 
   implicit class DgraphDataFrameReader(reader: DataFrameReader) {
+
     /**
      * Helper to load data of a Dgraph database into a DataFrame.
      */
@@ -223,10 +233,10 @@ package object connector {
 
   implicit class AnyValue(value: Any) {
     def toLong: Long = value match {
-      case v: Int => v.toLong
-      case v: Long => v
+      case v: Int    => v.toLong
+      case v: Long   => v
       case v: String => v.toLong
-      case _ => value.asInstanceOf[Long]
+      case _         => value.asInstanceOf[Long]
     }
   }
 

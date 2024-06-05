@@ -28,27 +28,32 @@ import uk.co.gresearch.spark.dgraph.connector.executor.{DgraphExecutorProvider, 
 import uk.co.gresearch.spark.dgraph.connector.model.TripleTableModel
 import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 
-class TripleSource() extends TableProviderBase
-  with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider
-  with TransactionProvider {
+class TripleSource()
+    extends TableProviderBase
+    with TargetsConfigParser
+    with SchemaProvider
+    with ClusterStateProvider
+    with PartitionerProvider
+    with TransactionProvider {
 
   override def shortName(): String = "dgraph-triples"
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType =
     getTripleMode(options) match {
       case Some(TriplesModeStringOption) => StringTripleEncoder.schema
-      case Some(TriplesModeTypedOption) => TypedTripleEncoder.schema
-      case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => TypedTripleEncoder.schema
+      case Some(TriplesModeTypedOption)  => TypedTripleEncoder.schema
+      case Some(mode)                    => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
+      case None                          => TypedTripleEncoder.schema
     }
 
   def getTripleMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(TriplesModeOption, options)
 
-  override def getTable(schema: StructType,
-                        partitioning: Array[Transform],
-                        properties: util.Map[String, String]): Table = {
+  override def getTable(
+      schema: StructType,
+      partitioning: Array[Transform],
+      properties: util.Map[String, String]
+  ): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val targets = getTargets(options)
     val transaction = getTransaction(targets, options)
@@ -59,9 +64,9 @@ class TripleSource() extends TableProviderBase
     val tripleMode = getTripleMode(options)
     val encoder = tripleMode match {
       case Some(TriplesModeStringOption) => StringTripleEncoder(schema.predicateMap)
-      case Some(TriplesModeTypedOption) => TypedTripleEncoder(schema.predicateMap)
-      case Some(mode) => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
-      case None => TypedTripleEncoder(schema.predicateMap)
+      case Some(TriplesModeTypedOption)  => TypedTripleEncoder(schema.predicateMap)
+      case Some(mode)                    => throw new IllegalArgumentException(s"Unknown triple mode: ${mode}")
+      case None                          => TypedTripleEncoder(schema.predicateMap)
     }
     val chunkSize = getIntOption(ChunkSizeOption, options, ChunkSizeDefault)
     val model = TripleTableModel(execution, encoder, chunkSize)

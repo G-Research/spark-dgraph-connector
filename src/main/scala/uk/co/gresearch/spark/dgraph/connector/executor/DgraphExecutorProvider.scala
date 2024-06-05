@@ -22,8 +22,10 @@ case class DgraphExecutorProvider(transaction: Option[Transaction]) extends Exec
   /**
    * Provide an executor for the given partition.
    *
-   * @param partition a partitioon
-   * @return an executor
+   * @param partition
+   *   a partitioon
+   * @return
+   *   an executor
    */
   override def getExecutor(partition: Partition): JsonGraphQlExecutor =
     DgraphExecutor(transaction, partition.targets)

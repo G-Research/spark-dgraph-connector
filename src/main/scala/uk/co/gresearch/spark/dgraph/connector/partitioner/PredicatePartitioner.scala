@@ -24,12 +24,14 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 import scala.language.implicitConversions
 
-case class PredicatePartitioner(schema: Schema,
-                                clusterState: ClusterState,
-                                predicatesPerPartition: Int,
-                                filters: Filters = EmptyFilters,
-                                projection: Option[Seq[Predicate]] = None)
-  extends Partitioner with Logging {
+case class PredicatePartitioner(
+    schema: Schema,
+    clusterState: ClusterState,
+    predicatesPerPartition: Int,
+    filters: Filters = EmptyFilters,
+    projection: Option[Seq[Predicate]] = None
+) extends Partitioner
+    with Logging {
 
   if (predicatesPerPartition <= 0)
     throw new IllegalArgumentException(s"predicatesPerPartition must be larger than zero: $predicatesPerPartition")
@@ -40,22 +42,25 @@ case class PredicatePartitioner(schema: Schema,
   val props: Set[String] = schema.predicates.filter(_.isProperty).map(_.predicateName)
   val edges: Set[String] = schema.predicates.filter(_.isEdge).map(_.predicateName)
 
-  override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters.map {
-    case _: AlwaysFalse => true
-    case _: SubjectIsIn => true
-    case _: PredicateNameIsIn => true
-    // with multiple predicates in a partition we cannot filter for predicate value
-    case _: PredicateValueIsIn => predicatesPerPartition == 1
-    case _: ObjectTypeIsIn => true
-    // only supported together with PredicateNameIsIn or ObjectTypeIsIn
-    // with multiple predicates in a partition we cannot filter for predicate value
-    case _: ObjectValueIsIn => predicatesPerPartition == 1 && filters.exists {
+  override def supportsFilters(filters: Set[connector.Filter]): Boolean = filters
+    .map {
+      case _: AlwaysFalse       => true
+      case _: SubjectIsIn       => true
       case _: PredicateNameIsIn => true
-      case _: ObjectTypeIsIn => true
+      // with multiple predicates in a partition we cannot filter for predicate value
+      case _: PredicateValueIsIn => predicatesPerPartition == 1
+      case _: ObjectTypeIsIn     => true
+      // only supported together with PredicateNameIsIn or ObjectTypeIsIn
+      // with multiple predicates in a partition we cannot filter for predicate value
+      case _: ObjectValueIsIn =>
+        predicatesPerPartition == 1 && filters.exists {
+          case _: PredicateNameIsIn => true
+          case _: ObjectTypeIsIn    => true
+          case _                    => false
+        }
       case _ => false
     }
-    case _ => false
-  }.forall(identity)
+    .forall(identity)
 
   override def withFilters(filters: Filters): Partitioner = copy(filters = filters)
 
@@ -69,15 +74,23 @@ case class PredicatePartitioner(schema: Schema,
     log.trace(s"replaced filters: $processedFilters")
     log.trace(s"simplified filters: $simplifiedFilters")
 
-    PredicatePartitioner.getPartitions(schema, cState, (_, predicates) => getPartitionsForPredicates(predicates), simplifiedFilters, projection)
+    PredicatePartitioner.getPartitions(
+      schema,
+      cState,
+      (_, predicates) => getPartitionsForPredicates(predicates),
+      simplifiedFilters,
+      projection
+    )
   }
 
   /**
-   * Replaces ObjectTypeIsIn filter in required and optional filters
-   * using replaceObjectTypeIsInFilter(filters: Seq[Filter]).
+   * Replaces ObjectTypeIsIn filter in required and optional filters using replaceObjectTypeIsInFilter(filters:
+   * Seq[Filter]).
    *
-   * @param filters filters
-   * @return filters with ObjectTypeIsIn replaced
+   * @param filters
+   *   filters
+   * @return
+   *   filters with ObjectTypeIsIn replaced
    */
   def replaceObjectTypeIsInFilter(filters: Filters): Filters =
     Filters(
@@ -86,11 +99,13 @@ case class PredicatePartitioner(schema: Schema,
     )
 
   /**
-   * Replaces ObjectTypeIsIn filter with IntersectPredicateNameIsIn filter having all predicate names
-   * of the respective type. Only with (Intersect)PredicateNameIsIn we can apply ObjectValueIsIn filters.
+   * Replaces ObjectTypeIsIn filter with IntersectPredicateNameIsIn filter having all predicate names of the respective
+   * type. Only with (Intersect)PredicateNameIsIn we can apply ObjectValueIsIn filters.
    *
-   * @param filters filters
-   * @return filters with ObjectTypeIsIn replaced
+   * @param filters
+   *   filters
+   * @return
+   *   filters with ObjectTypeIsIn replaced
    */
   def replaceObjectTypeIsInFilter(filters: Set[Filter]): Set[Filter] =
     filters.map {
@@ -107,15 +122,23 @@ case class PredicatePartitioner(schema: Schema,
     filter match {
       case _: AlwaysFalse => clusterState.copy(groupPredicates = Map.empty)
       // only intersect PredicateNameIsIn limits the predicates for Has and Get
-      case f: IntersectPredicateNameIsIn => clusterState.copy(
-        groupPredicates = clusterState.groupPredicates.map { case (group, predicates) => group -> predicates.filter(f.names) }
-      )
+      case f: IntersectPredicateNameIsIn =>
+        clusterState.copy(
+          groupPredicates = clusterState.groupPredicates.map { case (group, predicates) =>
+            group -> predicates.filter(f.names)
+          }
+        )
       // only intersect PredicateValueIsIn limits the predicates for Has and Get
-      case f: IntersectPredicateValueIsIn => clusterState.copy(
-        groupPredicates = clusterState.groupPredicates.map { case (group, predicates) => group -> predicates.filter(f.names) }
-      )
+      case f: IntersectPredicateValueIsIn =>
+        clusterState.copy(
+          groupPredicates = clusterState.groupPredicates.map { case (group, predicates) =>
+            group -> predicates.filter(f.names)
+          }
+        )
       case _: ObjectTypeIsIn =>
-        throw new IllegalArgumentException("any ObjectTypeIsIn filter should have been replaced in replaceObjectTypeIsInFilter")
+        throw new IllegalArgumentException(
+          "any ObjectTypeIsIn filter should have been replaced in replaceObjectTypeIsInFilter"
+        )
       case _ => clusterState
     }
 
@@ -127,20 +150,24 @@ object PredicatePartitioner extends ClusterStateHelper {
 
   /**
    * Compute MD5 hash of predicate name. Hash is a BigInt.
-   * @param predicate predicate
-   * @return BigInt hash
+   * @param predicate
+   *   predicate
+   * @return
+   *   BigInt hash
    */
   def hash(predicate: Predicate): BigInt = {
     val digest = md5.digest(predicate.predicateName.getBytes)
-    new BigInteger(1,digest)
+    new BigInteger(1, digest)
   }
 
   /**
-   * Shards a set of predicates based on the MD5 hash. Shards are probably even-sized,
-   * but this is not guaranteed.
-   * @param predicates set of predicates
-   * @param shards number of shards
-   * @return predicates shard
+   * Shards a set of predicates based on the MD5 hash. Shards are probably even-sized, but this is not guaranteed.
+   * @param predicates
+   *   set of predicates
+   * @param shards
+   *   number of shards
+   * @return
+   *   predicates shard
    */
   def shard(predicates: Set[Predicate], shards: Int): Seq[Set[Predicate]] = {
     if (shards < 1) throw new IllegalArgumentException(s"shards must be larger than zero: $shards")
@@ -148,11 +175,14 @@ object PredicatePartitioner extends ClusterStateHelper {
   }
 
   /**
-   * Partitions a set of predicates in equi-sized partitions. Predicates get sorted by MD5 hash and
-   * then round-robin assigned to partitions.
-   * @param predicates set of predicates
-   * @param partitions number of partitions
-   * @return partitions
+   * Partitions a set of predicates in equi-sized partitions. Predicates get sorted by MD5 hash and then round-robin
+   * assigned to partitions.
+   * @param predicates
+   *   set of predicates
+   * @param partitions
+   *   number of partitions
+   * @return
+   *   partitions
    */
   def partition(predicates: Set[Predicate], partitions: Int): Seq[Set[Predicate]] = {
     if (partitions < 1)
@@ -160,39 +190,52 @@ object PredicatePartitioner extends ClusterStateHelper {
 
     predicates
       // turn into seq and sort by hash (consistently randomize)
-      .toSeq.sortBy(hash)
+      .toSeq
+      .sortBy(hash)
       // add index to predicates
       .zipWithIndex
       // group by predicate index % partitions
       .groupBy(_._2 % partitions)
       // sort by partition id
-      .toSeq.sortBy(_._1)
+      .toSeq
+      .sortBy(_._1)
       // drop keys and remove index from (predicate, index) tuple, restore set
       .map(_._2.map(_._1).toSet)
   }
 
   /**
    * Provides operators that implement the given filters (if supported) for the given predicates.
-   * @param filters filters
-   * @param predicates predicates to filter
-   * @param properties names of properties
-   * @param edges names of edges
-   * @return operators
+   * @param filters
+   *   filters
+   * @param predicates
+   *   predicates to filter
+   * @param properties
+   *   names of properties
+   * @param edges
+   *   names of edges
+   * @return
+   *   operators
    */
-  def getFilterOperators(filters: Set[Filter], predicates: Set[Predicate], properties: Set[String], edges: Set[String]): Set[Operator] = {
+  def getFilterOperators(
+      filters: Set[Filter],
+      predicates: Set[Predicate],
+      properties: Set[String],
+      edges: Set[String]
+  ): Set[Operator] = {
     val predicateNames = predicates.map(_.predicateName)
     val ops =
-      filters.flatMap {
-        case SubjectIsIn(uids) =>
-          Seq(Uids(uids))
-        case f: PredicateNameIsIn =>
-          val predNames = f.names.intersect(predicateNames)
-          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)))
-        case f: PredicateValueIsIn =>
-          val predNames = f.names.intersect(predicateNames)
-          Seq(Has(predNames.intersect(properties), predNames.intersect(edges)), IsIn(f.names, f.values))
-        case _ => Seq.empty
-      }
+      filters
+        .flatMap {
+          case SubjectIsIn(uids) =>
+            Seq(Uids(uids))
+          case f: PredicateNameIsIn =>
+            val predNames = f.names.intersect(predicateNames)
+            Seq(Has(predNames.intersect(properties), predNames.intersect(edges)))
+          case f: PredicateValueIsIn =>
+            val predNames = f.names.intersect(predicateNames)
+            Seq(Has(predNames.intersect(properties), predNames.intersect(edges)), IsIn(f.names, f.values))
+          case _ => Seq.empty
+        }
         .map(_.asInstanceOf[Operator])
 
     if (!ops.exists(_.isInstanceOf[Has])) {
@@ -207,21 +250,26 @@ object PredicatePartitioner extends ClusterStateHelper {
     partitions.map(_.map(_.predicateName).intersect(langPredicates))
   }
 
-  def getPartitions(schema: Schema,
-                    clusterState: ClusterState,
-                    partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
-                    filters: Set[Filter],
-                    projection: Option[Seq[Predicate]]): Seq[Partition] =
-    clusterState.groupPredicates.keys.flatMap(
-      getPartition(schema, clusterState, partitionsForGroupAndPredicates, filters, projection)
-    ).toSeq
+  def getPartitions(
+      schema: Schema,
+      clusterState: ClusterState,
+      partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
+      filters: Set[Filter],
+      projection: Option[Seq[Predicate]]
+  ): Seq[Partition] =
+    clusterState.groupPredicates.keys
+      .flatMap(
+        getPartition(schema, clusterState, partitionsForGroupAndPredicates, filters, projection)
+      )
+      .toSeq
 
-  def getPartition(schema: Schema,
-                   clusterState: ClusterState,
-                   partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
-                   filters: Set[Filter],
-                   projection: Option[Seq[Predicate]])
-                  (group: String): Seq[Partition] = {
+  def getPartition(
+      schema: Schema,
+      clusterState: ClusterState,
+      partitionsForGroupAndPredicates: (String, Set[Predicate]) => Int,
+      filters: Set[Filter],
+      projection: Option[Seq[Predicate]]
+  )(group: String): Seq[Partition] = {
     val targets = getGroupTargets(clusterState, group).toSeq.sortBy(_.target)
     val groupPredicates = getGroupPredicates(clusterState, group, schema)
     val partitions = partitionsForGroupAndPredicates(group, groupPredicates)

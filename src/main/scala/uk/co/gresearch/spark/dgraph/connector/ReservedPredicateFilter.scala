@@ -32,9 +32,9 @@ case class ReservedPredicateFilter(options: CaseInsensitiveStringMap) extends Co
     .getOrElse(Set())
 
   def apply(predicateName: String): Boolean =
-    ! predicateName.startsWith("dgraph.") ||
+    !predicateName.startsWith("dgraph.") ||
       includes.exists(_.matcher(predicateName).matches()) &&
-        excludes.forall(!_.matcher(predicateName).matches())
+      excludes.forall(!_.matcher(predicateName).matches())
 
 }
 
@@ -44,14 +44,18 @@ object ReservedPredicateFilter {
     val replacements = Seq(
       (".", "\\."),
       ("?", "\\?"),
-      ("[", "\\["), ("]", "\\]"),
-      ("{", "\\{"), ("}", "\\}"),
+      ("[", "\\["),
+      ("]", "\\]"),
+      ("{", "\\{"),
+      ("}", "\\}"),
       ("*", ".*"),
     )
 
     val filterStrings = filters.split(",")
     if (filterStrings.exists(!_.startsWith("dgraph."))) {
-      throw new IllegalArgumentException(s"Reserved predicate filters must start with 'dgraph.': ${filterStrings.mkString(", ")}")
+      throw new IllegalArgumentException(
+        s"Reserved predicate filters must start with 'dgraph.': ${filterStrings.mkString(", ")}"
+      )
     }
 
     filterStrings

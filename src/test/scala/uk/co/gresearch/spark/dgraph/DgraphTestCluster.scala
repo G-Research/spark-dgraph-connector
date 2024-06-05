@@ -49,7 +49,8 @@ trait DgraphTestCluster extends BeforeAndAfterAll {
 /**
  * A Dgraph cluster that uses a running external cluster, if available, or launches its own cluster otherwise.
  *
- * @param alwaysStartUp ignores running cluster and starts a new if true
+ * @param alwaysStartUp
+ *   ignores running cluster and starts a new if true
  */
 class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = false) extends Logging {
 
@@ -59,11 +60,13 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
   val DgraphDefaultVersion = "21.12.0"
   val clusterVersion: String = sys.env.getOrElse(DgraphVersionEnvVar, DgraphDefaultVersion)
 
-  private val instance: DgraphDockerContainer = DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
+  private val instance: DgraphDockerContainer =
+    DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
   def target: String = instance.grpc
   def targetLocalIp: String = instance.grpcLocalIp
 
-  val testClusterRunning: Boolean = isDgraphClusterRunning && (!DgraphTestCluster.isDockerInstalled || runningDockerDgraphCluster.isEmpty)
+  val testClusterRunning: Boolean =
+    isDgraphClusterRunning && (!DgraphTestCluster.isDockerInstalled || runningDockerDgraphCluster.isEmpty)
   if (alwaysStartUp || !testClusterRunning)
     if (!DgraphTestCluster.isDockerInstalled)
       throw new IllegalStateException("docker must be installed")
@@ -83,28 +86,35 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
 
   def runningDockerDgraphCluster: List[String] =
     Some(Process(Seq("docker", "container", "ls", "-f", "name=dgraph-unit-test-cluster-*", "-q")).lineStream.toList)
-      .filter(_.nonEmpty).getOrElse(List.empty)
+      .filter(_.nonEmpty)
+      .getOrElse(List.empty)
 
   def start(): Unit = {
     if (testClusterRunning && !alwaysStartUp) {
       // this file is created when dgraph-instance.insert.sh is run, see README.md, section Examples
       val path = Paths.get(pathToInsertedJson, "dgraph-instance.inserted.json").toString
       val source = scala.io.Source.fromFile(path)
-      val json = try source.mkString finally source.close()
+      val json =
+        try source.mkString
+        finally source.close()
       instance.uids = instance.getUids(json)
     } else {
-      if(runningDockerDgraphCluster.nonEmpty) {
-        log.warn(s"killing unit test docker dgraph cluster running from an earlier test run: ${runningDockerDgraphCluster.mkString(", ")}")
-        val result = DgraphTestCluster.run(Seq("docker", "container", "kill") ++ runningDockerDgraphCluster : _*)
+      if (runningDockerDgraphCluster.nonEmpty) {
+        log.warn(
+          s"killing unit test docker dgraph cluster running from an earlier test run: ${runningDockerDgraphCluster.mkString(", ")}"
+        )
+        val result = DgraphTestCluster.run(Seq("docker", "container", "kill") ++ runningDockerDgraphCluster: _*)
         if (result != 0)
-          throw new RuntimeException(s"could not kill running docker container ${runningDockerDgraphCluster.mkString(", ")}")
+          throw new RuntimeException(
+            s"could not kill running docker container ${runningDockerDgraphCluster.mkString(", ")}"
+          )
       }
 
       instance.start()
     }
     instance.uids = instance.uids ++ lookupGraphQlSchema()
 
-    log.debug(s"cluster uids: ${instance.uids.map { case (key, value) => s"$key=$value"}.mkString(", ")}")
+    log.debug(s"cluster uids: ${instance.uids.map { case (key, value) => s"$key=$value" }.mkString(", ")}")
   }
 
   def stop(): Unit = {
@@ -152,22 +162,23 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
     /**
      * Encodes the given Dgraph json result into InternalRows.
      *
-     * @param result Json result
-     * @return internal rows
+     * @param result
+     *   Json result
+     * @return
+     *   internal rows
      */
     override def fromJson(result: JsonArray): Iterator[InternalRow] = ???
 
     /**
-     * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
-     * empty schema can be returned here.
-     * From: org.apache.spark.sql.connector.catalog.Table.schema
+     * Returns the schema of this table. If the table is not readable and doesn't have a schema, an empty schema can be
+     * returned here. From: org.apache.spark.sql.connector.catalog.Table.schema
      */
     override def schema(): StructType = ???
 
     /**
-     * Returns the actual schema of this data source scan, which may be different from the physical
-     * schema of the underlying storage, as column pruning or other optimizations may happen.
-     * From: org.apache.spark.sql.connector.read.Scan.readSchema
+     * Returns the actual schema of this data source scan, which may be different from the physical schema of the
+     * underlying storage, as column pruning or other optimizations may happen. From:
+     * org.apache.spark.sql.connector.read.Scan.readSchema
      */
     override def readSchema(): StructType = ???
 
@@ -177,8 +188,10 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
 
 /**
  * A Dgraph cluster instance running in a docker container.
- * @param name docker container name
- * @param version dgraph version (numerical, without prefix 'v')
+ * @param name
+ *   docker container name
+ * @param version
+ *   dgraph version (numerical, without prefix 'v')
  */
 case class DgraphDockerContainer(name: String, version: String) extends Logging {
 
@@ -189,28 +202,33 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
   var portOffset: Option[Int] = None
 
   def grpc: String =
-    portOffset.orElse(Some(0))
+    portOffset
+      .orElse(Some(0))
       .map(offset => s"localhost:${9080 + offset}")
       .get
 
   def grpcLocalIp: String =
-    portOffset.orElse(Some(0))
+    portOffset
+      .orElse(Some(0))
       .map(offset => s"127.0.0.1:${9080 + offset}")
       .get
 
   def http: String =
-    portOffset.orElse(Some(0))
+    portOffset
+      .orElse(Some(0))
       .map(offset => s"localhost:${8080 + offset}")
       .get
 
   def start(): Unit = {
-    (1 to 5).iterator.flatMap { offset =>
-      log.info(s"starting dgraph cluster (version=$version port-offset=$offset)")
-      portOffset = Some(offset)
-      process = launchCluster(portOffset.get)
-      process
-    }.next()
-    if(process.isEmpty) throw new RuntimeException("could not start dgraph docker container")
+    (1 to 5).iterator
+      .flatMap { offset =>
+        log.info(s"starting dgraph cluster (version=$version port-offset=$offset)")
+        portOffset = Some(offset)
+        process = launchCluster(portOffset.get)
+        process
+      }
+      .next()
+    if (process.isEmpty) throw new RuntimeException("could not start dgraph docker container")
 
     // https://discuss.dgraph.io/t/shuri-20-07-0-does-not-auto-populate-dgraph-graphql-instance/9369
     // for 20.07.0 and later we need to DROP_ALL to get an empty dgraph.graphql node with dgraph.graphql.schema = ""
@@ -222,18 +240,19 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
   }
 
   def stop(): Unit = {
-    if(process.isEmpty)
+    if (process.isEmpty)
       throw new IllegalStateException("dgraph docker container has not been started")
     log.info("stopping dgraph cluster")
     assert(DgraphTestCluster.run("docker", "container", "kill", name) == 0)
     process.foreach(_.exitValue())
   }
 
-  val dgraphLogLines = Seq("^docker:", "^[WE].*", "^Dgraph version.*", ".*Listening on port.*", ".*CID set for cluster:*")
+  val dgraphLogLines =
+    Seq("^docker:", "^[WE].*", "^Dgraph version.*", ".*Listening on port.*", ".*CID set for cluster:*")
 
   def launchCluster(portOffset: Int): Option[Process] = {
     val logger = ProcessLogger(line => {
-      //if (dgraphLogLines.exists(line.matches))
+      // if (dgraphLogLines.exists(line.matches))
       log.info(s"Docker: $line")
       if (line.contains("CID set for cluster:")) {
         log.info("dgraph test cluster is up")
@@ -252,18 +271,26 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
 
     val whitelist = if (version < "21.03.0") "--whitelist 0.0.0.0/0" else "--security whitelist=0.0.0.0/0"
     val process =
-      Process(Seq(
-        "docker", "run",
-        "--rm",
-        "--name", name,
-        "-p", portMap(6080),
-        "-p", portMap(8080),
-        "-p", portMap(9080),
-        s"dgraph/dgraph:v${version}",
-        "/bin/bash", "-c",
-        s"dgraph zero --port_offset $portOffset &" +
-          s"dgraph alpha --port_offset $portOffset ${whitelist} --zero localhost:${5080 + portOffset}"
-      )).run(logger)
+      Process(
+        Seq(
+          "docker",
+          "run",
+          "--rm",
+          "--name",
+          name,
+          "-p",
+          portMap(6080),
+          "-p",
+          portMap(8080),
+          "-p",
+          portMap(9080),
+          s"dgraph/dgraph:v${version}",
+          "/bin/bash",
+          "-c",
+          s"dgraph zero --port_offset $portOffset &" +
+            s"dgraph alpha --port_offset $portOffset ${whitelist} --zero localhost:${5080 + portOffset}"
+        )
+      ).run(logger)
 
     sync.synchronized {
       // wait for the cluster to come up (logger above observes 'CID set for cluster:')
@@ -389,14 +416,23 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
   }
 
   @tailrec
-  final def attempt(url: String, data: String, headers: Seq[(String,String)]=Seq.empty, no: Int=1, limit: Int=10, sleep: Int=500, maxSleep: Int=10000): String = {
-    val response = try {
-      Some(requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data), readTimeout = 60000))
-    } catch {
-      case t: Throwable =>
-        log.error(s"sending request to dgraph cluster failed: $url", t)
-        None
-    }
+  final def attempt(
+      url: String,
+      data: String,
+      headers: Seq[(String, String)] = Seq.empty,
+      no: Int = 1,
+      limit: Int = 10,
+      sleep: Int = 500,
+      maxSleep: Int = 10000
+  ): String = {
+    val response =
+      try {
+        Some(requests.post(url, headers = headers, data = RequestBlob.ByteSourceRequestBlob(data), readTimeout = 60000))
+      } catch {
+        case t: Throwable =>
+          log.error(s"sending request to dgraph cluster failed: $url", t)
+          None
+      }
 
     if (hasErrors(response)) {
       if (no < limit) {
@@ -436,15 +472,26 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
       .fromJson(json, classOf[JsonObject])
       .getAsJsonObject("data")
       .getAsJsonObject("uids")
-      .entrySet().asScala
+      .entrySet()
+      .asScala
       .map(e => e.getKey -> Uid(e.getValue.getAsString).uid.longValue())
       .toMap
 
-    assert(map.keys.toSet == Set(
-      "st1", "sw1", "sw2", "sw3",
-      "lucas", "irvin", "richard",
-      "leia", "luke", "han"
-    ), "some expected nodes have not been inserted")
+    assert(
+      map.keys.toSet == Set(
+        "st1",
+        "sw1",
+        "sw2",
+        "sw3",
+        "lucas",
+        "irvin",
+        "richard",
+        "leia",
+        "luke",
+        "han"
+      ),
+      "some expected nodes have not been inserted"
+    )
 
     map
   }
@@ -454,7 +501,7 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
 object DgraphTestCluster extends Logging {
 
   lazy val isDgraphClusterRunning: Boolean =
-    new ClusterStateProvider { }.getClusterState(Target("localhost:9080")).isDefined
+    new ClusterStateProvider {}.getClusterState(Target("localhost:9080")).isDefined
 
   lazy val isDockerInstalled: Boolean = run("docker", "--version") == 0
 

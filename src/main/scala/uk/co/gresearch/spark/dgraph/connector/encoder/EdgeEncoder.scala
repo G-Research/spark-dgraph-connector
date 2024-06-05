@@ -24,23 +24,20 @@ import uk.co.gresearch.spark.dgraph.connector
 import uk.co.gresearch.spark.dgraph.connector.{Edge, Uid}
 
 /**
- * Encodes only triples that represent edges, i.e. object is a uid.
- * Non-edges will be silently ignored.
+ * Encodes only triples that represent edges, i.e. object is a uid. Non-edges will be silently ignored.
  */
-case class EdgeEncoder(predicates: Map[String, connector.Predicate])
-  extends TripleEncoder with ColumnInfoProvider {
+case class EdgeEncoder(predicates: Map[String, connector.Predicate]) extends TripleEncoder with ColumnInfoProvider {
 
   /**
-   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
-   * empty schema can be returned here.
-   * From: org.apache.spark.sql.connector.catalog.Table.schema
+   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an empty schema can be
+   * returned here. From: org.apache.spark.sql.connector.catalog.Table.schema
    */
   override def schema(): StructType = EdgeEncoder.schema
 
   /**
-   * Returns the actual schema of this data source scan, which may be different from the physical
-   * schema of the underlying storage, as column pruning or other optimizations may happen.
-   * From: org.apache.spark.sql.connector.read.Scan.readSchema
+   * Returns the actual schema of this data source scan, which may be different from the physical schema of the
+   * underlying storage, as column pruning or other optimizations may happen. From:
+   * org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
 
@@ -55,14 +52,18 @@ case class EdgeEncoder(predicates: Map[String, connector.Predicate])
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
    *
-   * @param s subject
-   * @param p predicate
-   * @param o object
-   * @return an internal row
+   * @param s
+   *   subject
+   * @param p
+   *   predicate
+   * @param o
+   *   object
+   * @return
+   *   an internal row
    */
   override def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] = o match {
     case uid: Uid => Some(InternalRow(s.uid.longValue(), UTF8String.fromString(p), uid.uid.longValue()))
-    case _ => None
+    case _        => None
   }
 
 }

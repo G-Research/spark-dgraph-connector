@@ -19,14 +19,15 @@ package uk.co.gresearch.spark.dgraph.connector
 import org.apache.spark.sql.connector.read.InputPartition
 
 /**
- * Partition of Dgraph data. Reads all triples with the given predicates in the given uid range.
- * Providing object values will return only those triples that match the predicate name and value.
+ * Partition of Dgraph data. Reads all triples with the given predicates in the given uid range. Providing object values
+ * will return only those triples that match the predicate name and value.
  *
- * @param targets Dgraph alpha nodes
- * @param operators set of operators
+ * @param targets
+ *   Dgraph alpha nodes
+ * @param operators
+ *   set of operators
  */
-case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
-  extends InputPartition {
+case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty) extends InputPartition {
 
   def has(predicates: Set[Predicate]): Partition =
     copy(operators = operators + Has(predicates))
@@ -44,7 +45,12 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
     copy(operators = operators.filter(!_.isInstanceOf[Get]) ++ Set(Get(Set.empty, Set.empty)))
 
   def getAll: Partition =
-    copy(operators = operators ++ operators.filter(_.isInstanceOf[Has]).map(_.asInstanceOf[Has]).map(has => Get(has.properties, has.edges)))
+    copy(operators =
+      operators ++ operators
+        .filter(_.isInstanceOf[Has])
+        .map(_.asInstanceOf[Has])
+        .map(has => Get(has.properties, has.edges))
+    )
 
   def uids(uids: Uid*): Partition =
     copy(operators = operators + Uids(uids.toSet))
@@ -73,17 +79,21 @@ case class Partition(targets: Seq[Target], operators: Set[Operator] = Set.empty)
       .filter(_.nonEmpty)
 
   val predicates: Set[String] =
-    operators.flatMap {
-      case op: Get => Some(op.properties ++ op.edges)
-      case _ => None
-    }.headOption.getOrElse(Set.empty)
+    operators
+      .flatMap {
+        case op: Get => Some(op.properties ++ op.edges)
+        case _       => None
+      }
+      .headOption
+      .getOrElse(Set.empty)
 
   // TODO: use host names of Dgraph alphas to co-locate partitions
   override def preferredLocations(): Array[String] = super.preferredLocations()
 
   /**
    * Provide the query representing this partitions sub-graph.
-   * @return partition query
+   * @return
+   *   partition query
    */
   def query: PartitionQuery = PartitionQuery.of(this)
 

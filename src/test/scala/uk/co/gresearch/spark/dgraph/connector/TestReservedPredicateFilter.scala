@@ -28,12 +28,24 @@ class TestReservedPredicateFilter extends AnyFunSpec {
     it("should provide predicate filters") {
       assert(getPredicateFilters("dgraph.*").map(_.pattern) === Set("dgraph\\..*"))
       assert(getPredicateFilters("dgraph.predicate").map(_.pattern) === Set("dgraph\\.predicate"))
-      assert(getPredicateFilters("dgraph.predicate1,dgraph.predicate2").map(_.pattern) === Set("dgraph\\.predicate1", "dgraph\\.predicate2"))
+      assert(
+        getPredicateFilters("dgraph.predicate1,dgraph.predicate2").map(_.pattern) === Set(
+          "dgraph\\.predicate1",
+          "dgraph\\.predicate2"
+        )
+      )
       assert(getPredicateFilters("dgraph.predicate.name").map(_.pattern) === Set("dgraph\\.predicate\\.name"))
       assert(getPredicateFilters("dgraph.predicate.*").map(_.pattern) === Set("dgraph\\.predicate\\..*"))
-      assert(getPredicateFilters("dgraph.predicate.*,dgraph.predicate.name").map(_.pattern) === Set("dgraph\\.predicate\\..*", "dgraph\\.predicate\\.name"))
+      assert(
+        getPredicateFilters("dgraph.predicate.*,dgraph.predicate.name").map(_.pattern) === Set(
+          "dgraph\\.predicate\\..*",
+          "dgraph\\.predicate\\.name"
+        )
+      )
       assert(getPredicateFilters("dgraph.predicate[abc]?").map(_.pattern) === Set("dgraph\\.predicate\\[abc\\]\\?"))
-      assert(getPredicateFilters("dgraph.predicate[abc]{2}").map(_.pattern) === Set("dgraph\\.predicate\\[abc\\]\\{2\\}"))
+      assert(
+        getPredicateFilters("dgraph.predicate[abc]{2}").map(_.pattern) === Set("dgraph\\.predicate\\[abc\\]\\{2\\}")
+      )
     }
 
     it("should deny non-reserved predicate filters") {

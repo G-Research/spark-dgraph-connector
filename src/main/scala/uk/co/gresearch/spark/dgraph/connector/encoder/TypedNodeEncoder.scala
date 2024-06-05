@@ -28,20 +28,18 @@ import uk.co.gresearch.spark.dgraph.connector.{Geo, Password, Predicate, TypedNo
 /**
  * Encodes only triples that represent nodes, i.e. object is not a uid.
  */
-case class TypedNodeEncoder(predicates: Map[String, Predicate])
-  extends TripleEncoder with ColumnInfoProvider {
+case class TypedNodeEncoder(predicates: Map[String, Predicate]) extends TripleEncoder with ColumnInfoProvider {
 
   /**
-   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
-   * empty schema can be returned here.
-   * From: org.apache.spark.sql.connector.catalog.Table.schema
+   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an empty schema can be
+   * returned here. From: org.apache.spark.sql.connector.catalog.Table.schema
    */
   override def schema(): StructType = TypedNodeEncoder.schema
 
   /**
-   * Returns the actual schema of this data source scan, which may be different from the physical
-   * schema of the underlying storage, as column pruning or other optimizations may happen.
-   * From: org.apache.spark.sql.connector.read.Scan.readSchema
+   * Returns the actual schema of this data source scan, which may be different from the physical schema of the
+   * underlying storage, as column pruning or other optimizations may happen. From:
+   * org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override def readSchema(): StructType = schema()
 
@@ -52,8 +50,8 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
     Some(schema().fields.drop(2).dropRight(1).map(_.name).toSet)
   override val objectTypes: Option[Map[String, String]] =
     Some(
-      schema()
-        .fields.map(_.name)
+      schema().fields
+        .map(_.name)
         .filter(f => f.startsWith("object") && !f.equals("objectType"))
         .map(f => f -> f.substring(6).toLowerCase())
         .toMap
@@ -64,10 +62,14 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
    *
-   * @param s subject
-   * @param p predicate
-   * @param o object
-   * @return an internal row
+   * @param s
+   *   subject
+   * @param p
+   *   predicate
+   * @param o
+   *   object
+   * @return
+   *   an internal row
    */
   def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow] = {
     val objectType = getType(o)
@@ -92,15 +94,15 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
       // order has to align with TypedNode case class
       val (objectValueIndex, objectValue) =
         objectType match {
-          case "string" => (2, UTF8String.fromString(o.asInstanceOf[String]))
-          case "long" => (3, o)
-          case "double" => (4, o)
+          case "string"    => (2, UTF8String.fromString(o.asInstanceOf[String]))
+          case "long"      => (3, o)
+          case "double"    => (4, o)
           case "timestamp" => (5, DateTimeUtils.fromJavaTimestamp(o.asInstanceOf[Timestamp]))
-          case "boolean" => (6, o)
-          case "geo" => (7, UTF8String.fromString(o.asInstanceOf[Geo].geo))
-          case "password" => (8, UTF8String.fromString(o.asInstanceOf[Password].password))
-          case "default" => (2, UTF8String.fromString(o.toString))
-          case _ => (2, UTF8String.fromString(o.toString))
+          case "boolean"   => (6, o)
+          case "geo"       => (7, UTF8String.fromString(o.asInstanceOf[Geo].geo))
+          case "password"  => (8, UTF8String.fromString(o.asInstanceOf[Password].password))
+          case "default"   => (2, UTF8String.fromString(o.toString))
+          case _           => (2, UTF8String.fromString(o.toString))
         }
       val values = valuesWithoutObject.updated(objectValueIndex, objectValue)
 
@@ -112,7 +114,7 @@ case class TypedNodeEncoder(predicates: Map[String, Predicate])
 
 object TypedNodeEncoder {
   private val fields = Encoders.product[TypedNode].schema.fields
-  private val nullableIdx = (2 to (fields.length-2)).toSet
+  private val nullableIdx = (2 to (fields.length - 2)).toSet
   val schema: StructType = StructType(fields.zipWithIndex.map { case (field, idx) =>
     if (nullableIdx.contains(idx)) field.copy(nullable = true) else field.copy(nullable = false)
   })

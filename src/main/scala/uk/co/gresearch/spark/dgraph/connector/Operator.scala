@@ -24,9 +24,10 @@ import com.google.common.primitives.UnsignedLong
 trait Operator
 
 /**
- * Adds @lang directive to the set of predicates. This operator provides schema
- * information to the PartitionQuery class but does not invoke any operation itself.
- * @param predicates predicates that have lang directive
+ * Adds @lang directive to the set of predicates. This operator provides schema information to the PartitionQuery class
+ * but does not invoke any operation itself.
+ * @param predicates
+ *   predicates that have lang directive
  */
 case class LangDirective(predicates: Set[String]) extends Operator
 
@@ -54,14 +55,17 @@ trait PredicateValuesOperator extends PredicateOperator {
 
 /**
  * Uids of the result match any of the given uids.
- * @param uids uids
+ * @param uids
+ *   uids
  */
 case class Uids(uids: Set[Uid]) extends Operator
 
 /**
  * Uids of the result in a range of uids.
- * @param first first uid of range (inclusive)
- * @param until last uid of range (exclusive)
+ * @param first
+ *   first uid of range (inclusive)
+ * @param until
+ *   last uid of range (exclusive)
  */
 case class UidRange(first: Uid, until: Uid) extends Operator {
   if (first >= until)
@@ -71,8 +75,10 @@ case class UidRange(first: Uid, until: Uid) extends Operator {
 
 /**
  * The uids in the result have any of the given properties or edges.
- * @param properties predicate names with non-uid values
- * @param edges predicate names with uid values
+ * @param properties
+ *   predicate names with non-uid values
+ * @param edges
+ *   predicate names with uid values
  */
 case class Has(properties: Set[String], edges: Set[String]) extends Operator
 object Has {
@@ -85,8 +91,10 @@ object Has {
 
 /**
  * The properties or edges to retrieve.
- * @param properties predicate names with non-uid values
- * @param edges predicate names with uid values
+ * @param properties
+ *   predicate names with non-uid values
+ * @param edges
+ *   predicate names with uid values
  */
 case class Get(properties: Set[String], edges: Set[String]) extends Operator
 object Get {
@@ -99,8 +107,10 @@ object Get {
 
 /**
  * The given predicate has any of the given values for uids in the result.
- * @param predicates predicate names
- * @param values values
+ * @param predicates
+ *   predicate names
+ * @param values
+ *   values
  */
 case class IsIn(predicates: Set[String], values: Set[Any]) extends PredicateValuesOperator {
   val filter = "eq"
@@ -111,8 +121,10 @@ object IsIn {
 
 /**
  * The given predicate has a value that is less than the given value for uids in the result.
- * @param predicates predicate names
- * @param value value
+ * @param predicates
+ *   predicate names
+ * @param value
+ *   value
  */
 case class LessThan(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "lt"
@@ -123,8 +135,10 @@ object LessThan {
 
 /**
  * The given predicate has a value that is less than or equal to the given value for uids in the result.
- * @param predicates predicate names
- * @param value value
+ * @param predicates
+ *   predicate names
+ * @param value
+ *   value
  */
 case class LessOrEqual(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "le"
@@ -135,8 +149,10 @@ object LessOrEqual {
 
 /**
  * The given predicate has a value that is greater than the given value for uids in the result.
- * @param predicates predicate names
- * @param value value
+ * @param predicates
+ *   predicate names
+ * @param value
+ *   value
  */
 case class GreaterThan(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "gt"
@@ -147,8 +163,10 @@ object GreaterThan {
 
 /**
  * The given predicate has a value that is greater than or equal to the given value for uids in the result.
- * @param predicates predicate names
- * @param value value
+ * @param predicates
+ *   predicate names
+ * @param value
+ *   value
  */
 case class GreaterOrEqual(predicates: Set[String], value: Any) extends PredicateValueOperator {
   val filter = "ge"

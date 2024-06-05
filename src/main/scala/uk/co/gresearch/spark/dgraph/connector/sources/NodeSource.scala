@@ -29,29 +29,38 @@ import uk.co.gresearch.spark.dgraph.connector.partitioner.PartitionerProvider
 import java.util
 import scala.jdk.CollectionConverters._
 
-class NodeSource() extends TableProviderBase
-  with TargetsConfigParser with SchemaProvider
-  with ClusterStateProvider with PartitionerProvider
-  with TransactionProvider with Logging {
+class NodeSource()
+    extends TableProviderBase
+    with TargetsConfigParser
+    with SchemaProvider
+    with ClusterStateProvider
+    with PartitionerProvider
+    with TransactionProvider
+    with Logging {
 
   /**
-   * Sets the number of predicates per partition to max int when predicate partitioner is used
-   * in conjunction with wide node mode. Otherwise wide nodes cannot be properly loaded.
+   * Sets the number of predicates per partition to max int when predicate partitioner is used in conjunction with wide
+   * node mode. Otherwise wide nodes cannot be properly loaded.
    *
-   * @param options original options
-   * @return modified options
+   * @param options
+   *   original options
+   * @return
+   *   modified options
    */
   def adjustOptions(options: CaseInsensitiveStringMap): CaseInsensitiveStringMap = {
-    if (getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
-      getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))) {
-      if (getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)) {
+    if (
+      getStringOption(NodesModeOption, options).contains(NodesModeWideOption) &&
+      getStringOption(PartitionerOption, options).forall(_.startsWith(PredicatePartitionerOption))
+    ) {
+      if (
+        getIntOption(PredicatePartitionerPredicatesOption, options).exists(_ != PredicatePartitionerPredicatesDefault)
+      ) {
         log.warn("predicate partitioner enforced to a single partition to support wide node source")
       }
 
       new CaseInsensitiveStringMap(
         (options.asScala.filterNot { case (key, _) => key.equalsIgnoreCase(PredicatePartitionerPredicatesOption) } ++
-          Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)
-          ).asJava
+          Map(PredicatePartitionerPredicatesOption -> Int.MaxValue.toString)).asJava
       )
     } else {
       options
@@ -66,18 +75,20 @@ class NodeSource() extends TableProviderBase
     val schema = getSchema(targets, options).filter(_.isProperty)
     getNodeMode(adjustedOptions) match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder.schema
-      case Some(NodesModeWideOption) => WideNodeEncoder.schema(schema.predicateMap)
-      case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
-      case None => TypedNodeEncoder.schema
+      case Some(NodesModeWideOption)  => WideNodeEncoder.schema(schema.predicateMap)
+      case Some(mode)                 => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
+      case None                       => TypedNodeEncoder.schema
     }
   }
 
   def getNodeMode(options: CaseInsensitiveStringMap): Option[String] =
     getStringOption(NodesModeOption, options)
 
-  override def getTable(schema: StructType,
-                        partitioning: Array[Transform],
-                        properties: util.Map[String, String]): Table = {
+  override def getTable(
+      schema: StructType,
+      partitioning: Array[Transform],
+      properties: util.Map[String, String]
+  ): Table = {
     val options = new CaseInsensitiveStringMap(properties)
     val adjustedOptions = adjustOptions(options)
 
@@ -90,9 +101,9 @@ class NodeSource() extends TableProviderBase
     val nodeMode = getNodeMode(adjustedOptions)
     val encoder = nodeMode match {
       case Some(NodesModeTypedOption) => TypedNodeEncoder(schema.predicateMap)
-      case Some(NodesModeWideOption) => WideNodeEncoder(schema.predicates)
-      case Some(mode) => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
-      case None => TypedNodeEncoder(schema.predicateMap)
+      case Some(NodesModeWideOption)  => WideNodeEncoder(schema.predicates)
+      case Some(mode)                 => throw new IllegalArgumentException(s"Unknown node mode: ${mode}")
+      case None                       => TypedNodeEncoder(schema.predicateMap)
     }
     val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)

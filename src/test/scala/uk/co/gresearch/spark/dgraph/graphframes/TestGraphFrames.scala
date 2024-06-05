@@ -27,13 +27,13 @@ import uk.co.gresearch.spark.dgraph.connector.ConnectorSparkTestSession
 import java.sql.Timestamp
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 
-class TestGraphFrames extends AnyFunSpec
-  with ConnectorSparkTestSession with DgraphTestCluster {
+class TestGraphFrames extends AnyFunSpec with ConnectorSparkTestSession with DgraphTestCluster {
 
   import spark.implicits._
 
   val isDgraphNode: Column = $"`dgraph.type`".startsWith("dgraph.")
-  def isDgraphEdge(dgraphVertexIds: Set[Long]): Column = $"`src`".isin(dgraphVertexIds.toSeq: _*) || $"dst".isin(dgraphVertexIds.toSeq: _*)
+  def isDgraphEdge(dgraphVertexIds: Set[Long]): Column =
+    $"`src`".isin(dgraphVertexIds.toSeq: _*) || $"dst".isin(dgraphVertexIds.toSeq: _*)
 
   def removeDgraphEdges(edges: DataFrame, dgraphVertexIds: Set[Long]): DataFrame =
     edges.where(!isDgraphEdge(dgraphVertexIds))
@@ -48,33 +48,39 @@ class TestGraphFrames extends AnyFunSpec
     GraphFrame(filteredVertexes, filteredEdges)
   }
 
-  val vertexSchema: StructType = StructType(Seq(
-    StructField("id", LongType, nullable = false),
-    StructField("dgraph_type", StringType, nullable = true),
-    StructField("name", StringType, nullable = true),
-    StructField("release__date", TimestampType, nullable = true),
-    StructField("revenue", DoubleType, nullable = true),
-    StructField("running__time", LongType, nullable = true),
-    StructField("title", StringType, nullable = true)
-  ))
+  val vertexSchema: StructType = StructType(
+    Seq(
+      StructField("id", LongType, nullable = false),
+      StructField("dgraph_type", StringType, nullable = true),
+      StructField("name", StringType, nullable = true),
+      StructField("release__date", TimestampType, nullable = true),
+      StructField("revenue", DoubleType, nullable = true),
+      StructField("running__time", LongType, nullable = true),
+      StructField("title", StringType, nullable = true)
+    )
+  )
   val pageRankVertexSchema: StructType = StructType(
     vertexSchema.fields :+ StructField("pagerank", FloatType, nullable = true)
   )
 
-  val edgeSchema: StructType = StructType(Seq(
-    StructField("src", LongType, nullable = false),
-    StructField("dst", LongType, nullable = false),
-    StructField("predicate", StringType, nullable = false)
-  ))
+  val edgeSchema: StructType = StructType(
+    Seq(
+      StructField("src", LongType, nullable = false),
+      StructField("dst", LongType, nullable = false),
+      StructField("predicate", StringType, nullable = false)
+    )
+  )
   val pageRankEdgeSchema: StructType = StructType(
     edgeSchema.fields :+ StructField("weight", DoubleType, nullable = true)
   )
 
-  val pageRankSchema: StructType = StructType(Seq(
-    StructField("src", pageRankVertexSchema, nullable = false),
-    StructField("edge", pageRankEdgeSchema, nullable = false),
-    StructField("dst", pageRankVertexSchema, nullable = false)
-  ))
+  val pageRankSchema: StructType = StructType(
+    Seq(
+      StructField("src", pageRankVertexSchema, nullable = false),
+      StructField("edge", pageRankEdgeSchema, nullable = false),
+      StructField("dst", pageRankVertexSchema, nullable = false)
+    )
+  )
 
   describe("GraphFrames") {
 
@@ -93,12 +99,16 @@ class TestGraphFrames extends AnyFunSpec
       val dstFloat = StructType(dstFields.dropRight(1) ++ dstFields.takeRight(1).map(f => f.copy(dataType = FloatType)))
 
       // cast pagerank columns to float
-      val triplets = doubleTriples.select(
-        col("src").cast(srcFloat),
-        col("edge").cast(edge.dataType),
-        col("dst").cast(dstFloat)
-      ).collect().sortBy(row => (row.getAs[Row](0).getLong(0), row.getAs[Row](2).getLong(0)))
+      val triplets = doubleTriples
+        .select(
+          col("src").cast(srcFloat),
+          col("edge").cast(edge.dataType),
+          col("dst").cast(dstFloat)
+        )
+        .collect()
+        .sortBy(row => (row.getAs[Row](0).getLong(0), row.getAs[Row](2).getLong(0)))
 
+      // format: off
       val expected = Seq(
         new GenericRowWithSchema(Array(
           new GenericRowWithSchema(Array(dgraph.sw1, "Film", null, Timestamp.valueOf("1977-05-25 00:00:00.0"), 7.75E8, 121, "Star Wars: Episode IV - A New Hope", 0.7968128f), pageRankVertexSchema),
@@ -161,12 +171,14 @@ class TestGraphFrames extends AnyFunSpec
           new GenericRowWithSchema(Array(dgraph.richard, "Person", "Richard Marquand", null, null, null, null, 0.96613544f), pageRankVertexSchema),
         ), pageRankSchema)
       ).sortBy(row => (row.getAs[Row](0).getLong(0), row.getAs[Row](2).getLong(0)))
+      // format: on
       assert(triplets === expected)
       assert(triplets.head.schema === expected.head.schema)
     }
 
     def doVerticesTest(load: () => DataFrame): Unit = {
       val vertices = removeDgraphVertices(load()).collect().sortBy(_.getLong(0))
+      // format: off
       val expected = Seq(
         new GenericRowWithSchema(Array(dgraph.st1, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132, null), vertexSchema),
         new GenericRowWithSchema(Array(dgraph.leia, "Person", "Princess Leia", null, null, null, null), vertexSchema),
@@ -179,6 +191,7 @@ class TestGraphFrames extends AnyFunSpec
         new GenericRowWithSchema(Array(dgraph.richard, "Person", "Richard Marquand", null, null, null, null), vertexSchema),
         new GenericRowWithSchema(Array(dgraph.sw3, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131, "Star Wars: Episode VI - Return of the Jedi"), vertexSchema)
       ).sortBy(_.getLong(0))
+      // format: on
       assert(vertices === expected)
       assert(vertices.head.schema === expected.head.schema)
     }
@@ -207,8 +220,7 @@ class TestGraphFrames extends AnyFunSpec
     Seq(
       ("target", () => Seq(dgraph.target)),
       ("targets", () => Seq(dgraph.target, dgraph.targetLocalIp))
-    ).foreach{case (test, targets) =>
-
+    ).foreach { case (test, targets) =>
       it(s"should load dgraph from $test via implicit session") {
         doGraphTest(() => loadGraph(reader, targets(): _*))
       }

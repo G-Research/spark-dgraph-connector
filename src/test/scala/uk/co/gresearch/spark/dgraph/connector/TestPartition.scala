@@ -31,7 +31,6 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
   describe("Partition") {
 
     Seq(10, 100, 1000, 10000).foreach { predicates =>
-
       // test that a partition works with N predicates
       // the query grows linearly with N, so does the processing time
       it(s"should read $predicates predicates") {
@@ -39,17 +38,21 @@ class TestPartition extends AnyFunSpec with SchemaProvider with DgraphTestCluste
         val targets = Seq(Target(dgraph.target))
         val existingPredicates = getSchema(targets, options).predicates.slice(0, predicates)
         val syntheticPredicates =
-          (1 to (predicates - existingPredicates.size)).map(pred =>
-            Predicate(s"predicate$pred", if (pred % 2 == 0) "string" else "uid")
-          ).toSet
+          (1 to (predicates - existingPredicates.size))
+            .map(pred => Predicate(s"predicate$pred", if (pred % 2 == 0) "string" else "uid"))
+            .toSet
         val schema = Schema(syntheticPredicates ++ existingPredicates)
         val encoder = TypedTripleEncoder(schema.predicateMap)
         val transaction = Some(Transaction(TxnContext.newBuilder().build()))
         val execution = DgraphExecutorProvider(transaction)
         val model = TripleTableModel(execution, encoder, ChunkSizeDefault)
-        val partition = Partition(targets).has(schema.predicates).langs(existingPredicates.filter(_.isLang).map(_.predicateName))
+        val partition =
+          Partition(targets).has(schema.predicates).langs(existingPredicates.filter(_.isLang).map(_.predicateName))
         val rows = model.modelPartition(partition).toList
-        val dgraphNodeUids = rows.filter(row => row.getString(1) == "dgraph.type" && row.getString(3).startsWith("dgraph.")).map(_.getLong(0)).toSet
+        val dgraphNodeUids = rows
+          .filter(row => row.getString(1) == "dgraph.type" && row.getString(3).startsWith("dgraph."))
+          .map(_.getLong(0))
+          .toSet
         val res = rows.filter(rows => !dgraphNodeUids.contains(rows.getLong(0)))
         assert(res.length === 61)
       }

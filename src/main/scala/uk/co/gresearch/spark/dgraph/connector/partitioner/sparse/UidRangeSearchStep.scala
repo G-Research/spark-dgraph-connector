@@ -3,12 +3,15 @@ package uk.co.gresearch.spark.dgraph.connector.partitioner.sparse
 import com.google.common.primitives.UnsignedLong
 import uk.co.gresearch.spark.dgraph.connector.{Logging, Partition, Uid}
 
-case class UidRangeSearchStep(uidDetector: UidDetector,
-                              sparseDetector: SparseDetector,
-                              detectLength: Int,
-                              override val left: UnsignedLong,
-                              override val right: UnsignedLong,
-                              override val payload: Payload) extends SearchStep[Payload, Result] with Logging {
+case class UidRangeSearchStep(
+    uidDetector: UidDetector,
+    sparseDetector: SparseDetector,
+    detectLength: Int,
+    override val left: UnsignedLong,
+    override val right: UnsignedLong,
+    override val payload: Payload
+) extends SearchStep[Payload, Result]
+    with Logging {
 
   override def move(middle: UnsignedLong): UidRangeSearchStep = {
     val range = uidDetector.getUids(payload.partition, Uid(middle), detectLength)

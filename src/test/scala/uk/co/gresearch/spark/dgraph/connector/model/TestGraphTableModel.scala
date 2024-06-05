@@ -133,6 +133,7 @@ class TestGraphTableModel extends AnyFunSpec {
         |}
         |""".stripMargin
 
+    // format: off
     val expecteds = Seq(
       InternalRow(Uid("0x123").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x123a").uid.longValue().toString), UTF8String.fromString("uid")),
       InternalRow(Uid("0x123").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str123"), UTF8String.fromString("string")),
@@ -144,6 +145,7 @@ class TestGraphTableModel extends AnyFunSpec {
       InternalRow(Uid("0x135").uid.longValue(), UTF8String.fromString("edge"), UTF8String.fromString(Uid("0x135a").uid.longValue().toString), UTF8String.fromString("uid")),
       InternalRow(Uid("0x135").uid.longValue(), UTF8String.fromString("prop"), UTF8String.fromString("str135"), UTF8String.fromString("string"))
     )
+    // format: on
 
     it("should read empty result") {
       val results = Map(chunkQuery(zeroUid) -> emptyChunkResult)
@@ -254,7 +256,19 @@ class TestGraphTableModel extends AnyFunSpec {
     }
 
     it("should read all chunks with some unused uids") {
-      val uids = Uids(Set(Uid("0x124"), Uid("0x125"), Uid("0x126"), Uid("0x127"), Uid("0x132"), Uid("0x135"), Uid("0x140"), Uid("0x141"), Uid("0x142")))
+      val uids = Uids(
+        Set(
+          Uid("0x124"),
+          Uid("0x125"),
+          Uid("0x126"),
+          Uid("0x127"),
+          Uid("0x132"),
+          Uid("0x135"),
+          Uid("0x140"),
+          Uid("0x141"),
+          Uid("0x142")
+        )
+      )
       val results = Map(
         chunkQueryUids(uids.uids, 2, Uid("0x0")) -> x124x125ChunkResult,
         chunkQueryUids(uids.uids, 2, Uid("0x125")) -> secondHalfChunkResult,
@@ -265,13 +279,21 @@ class TestGraphTableModel extends AnyFunSpec {
       doTest(results, expected, None, Some(uids), size = 2)
     }
 
-    def doTest(results: Map[String, String], expected: Seq[InternalRow], uidRange: Option[UidRange] = None, uids: Option[Uids] = None, size: Int = 3): Unit = {
+    def doTest(
+        results: Map[String, String],
+        expected: Seq[InternalRow],
+        uidRange: Option[UidRange] = None,
+        uids: Option[Uids] = None,
+        size: Int = 3
+    ): Unit = {
       val targets = Seq(Target("localhost:8090"))
       val predicates = Seq(Predicate("prop", "string"), Predicate("edge", "uid")).map(p => p.predicateName -> p).toMap
 
       val executor = new JsonGraphQlExecutor {
         override def query(query: GraphQl): Json =
-          results.get(query.string).map(Json)
+          results
+            .get(query.string)
+            .map(Json)
             .getOrElse(fail(s"unexpected query:\n${query.string}\n\nexpected queries:\n${results.keys.mkString("\n")}"))
       }
 
@@ -305,10 +327,11 @@ class TestGraphTableModel extends AnyFunSpec {
 
 }
 
-case class TestModel(execution: ExecutorProvider,
-                     encoder: JsonNodeInternalRowEncoder,
-                     chunkSize: Int,
-                     metrics: PartitionMetrics = NoPartitionMetrics())
-  extends GraphTableModel {
+case class TestModel(
+    execution: ExecutorProvider,
+    encoder: JsonNodeInternalRowEncoder,
+    chunkSize: Int,
+    metrics: PartitionMetrics = NoPartitionMetrics()
+) extends GraphTableModel {
   override def withMetrics(metrics: PartitionMetrics): TestModel = copy(metrics = metrics)
 }

@@ -26,13 +26,20 @@ import uk.co.gresearch.spark.dgraph.connector._
 package object graphx extends TargetsConfigParser {
 
   class VertexProperty(val property: String, val value: Any) extends Serializable
-  case class StringVertexProperty(override val property: String, override val value: String) extends VertexProperty(property, value)
-  case class LongVertexProperty(override val property: String, override val value: Long) extends VertexProperty(property, value)
-  case class DoubleVertexProperty(override val property: String, override val value: Double) extends VertexProperty(property, value)
-  case class TimestampVertexProperty(override val property: String, override val value: Timestamp) extends VertexProperty(property, value)
-  case class BooleanVertexProperty(override val property: String, override val value: Boolean) extends VertexProperty(property, value)
-  case class GeoVertexProperty(override val property: String, override val value: Geo) extends VertexProperty(property, value)
-  case class PasswordVertexProperty(override val property: String, override val value: Password) extends VertexProperty(property, value)
+  case class StringVertexProperty(override val property: String, override val value: String)
+      extends VertexProperty(property, value)
+  case class LongVertexProperty(override val property: String, override val value: Long)
+      extends VertexProperty(property, value)
+  case class DoubleVertexProperty(override val property: String, override val value: Double)
+      extends VertexProperty(property, value)
+  case class TimestampVertexProperty(override val property: String, override val value: Timestamp)
+      extends VertexProperty(property, value)
+  case class BooleanVertexProperty(override val property: String, override val value: Boolean)
+      extends VertexProperty(property, value)
+  case class GeoVertexProperty(override val property: String, override val value: Geo)
+      extends VertexProperty(property, value)
+  case class PasswordVertexProperty(override val property: String, override val value: Password)
+      extends VertexProperty(property, value)
 
   case class EdgeProperty(property: String)
 
@@ -72,16 +79,16 @@ package object graphx extends TargetsConfigParser {
 
   def toEdge(row: Edge): GraphxEdge[EdgeProperty] =
     GraphxEdge(row.subject, row.objectUid, EdgeProperty(row.predicate))
-  
+
   def toVertexProperty(row: TypedNode): VertexProperty = row.objectType match {
-    case "string" => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
-    case "long" => row.objectLong.map(LongVertexProperty(row.predicate, _)).orNull
-    case "double" => row.objectDouble.map(DoubleVertexProperty(row.predicate, _)).orNull
+    case "string"    => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
+    case "long"      => row.objectLong.map(LongVertexProperty(row.predicate, _)).orNull
+    case "double"    => row.objectDouble.map(DoubleVertexProperty(row.predicate, _)).orNull
     case "timestamp" => row.objectTimestamp.map(TimestampVertexProperty(row.predicate, _)).orNull
-    case "boolean" => row.objectBoolean.map(BooleanVertexProperty(row.predicate, _)).orNull
-    case "geo" => row.objectGeo.map(o => GeoVertexProperty(row.predicate, Geo(o))).orNull
-    case "password" => row.objectPassword.map(o => PasswordVertexProperty(row.predicate, Password(o))).orNull
-    case "default" => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
+    case "boolean"   => row.objectBoolean.map(BooleanVertexProperty(row.predicate, _)).orNull
+    case "geo"       => row.objectGeo.map(o => GeoVertexProperty(row.predicate, Geo(o))).orNull
+    case "password"  => row.objectPassword.map(o => PasswordVertexProperty(row.predicate, Password(o))).orNull
+    case "default"   => row.objectString.map(StringVertexProperty(row.predicate, _)).orNull
     case _ =>
       throw new IllegalArgumentException(s"Unsupported object type ${row.objectType} in node row: $row")
   }

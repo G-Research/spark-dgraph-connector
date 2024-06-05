@@ -25,8 +25,7 @@ import uk.co.gresearch.spark.dgraph.graphx.TestGraphX.dgraphVertex
 
 import java.sql.Timestamp
 
-class TestGraphX extends AnyFunSpec
-  with ConnectorSparkTestSession with DgraphTestCluster {
+class TestGraphX extends AnyFunSpec with ConnectorSparkTestSession with DgraphTestCluster {
 
   def removeDgraphEdges[E](edges: RDD[Edge[E]], dgraphVertexIds: Set[Long]): RDD[Edge[E]] =
     edges.filter(e => !dgraphVertexIds.contains(e.srcId) && !dgraphVertexIds.contains(e.dstId))
@@ -48,16 +47,16 @@ class TestGraphX extends AnyFunSpec
       val pageRank = graph.pageRank(0.0001)
       val vertices = pageRank.vertices.collect().map(t => (t._1, t._2.toFloat)).sortBy(_._1)
       val expected = Seq(
-        (dgraph.st1,0.7968128f),
-        (dgraph.leia,1.3047808f),
-        (dgraph.lucas,0.96613544f),
-        (dgraph.irvin,0.96613544f),
-        (dgraph.sw1,0.7968128f),
-        (dgraph.sw2,0.7968128f),
-        (dgraph.luke,1.3047808f),
-        (dgraph.han,1.3047808f),
-        (dgraph.richard,0.96613544f),
-        (dgraph.sw3,0.7968128f),
+        (dgraph.st1, 0.7968128f),
+        (dgraph.leia, 1.3047808f),
+        (dgraph.lucas, 0.96613544f),
+        (dgraph.irvin, 0.96613544f),
+        (dgraph.sw1, 0.7968128f),
+        (dgraph.sw2, 0.7968128f),
+        (dgraph.luke, 1.3047808f),
+        (dgraph.han, 1.3047808f),
+        (dgraph.richard, 0.96613544f),
+        (dgraph.sw3, 0.7968128f),
       ).sortBy(_._1)
       assert(vertices === expected)
     }
@@ -68,7 +67,7 @@ class TestGraphX extends AnyFunSpec
         (dgraph.st1, StringVertexProperty("dgraph.type", "Film")),
         (dgraph.st1, StringVertexProperty("title@en", "Star Trek: The Motion Picture")),
         (dgraph.st1, TimestampVertexProperty("release_date", Timestamp.valueOf("1979-12-07 00:00:00.0"))),
-        (dgraph.st1, DoubleVertexProperty("revenue", 1.39E8)),
+        (dgraph.st1, DoubleVertexProperty("revenue", 1.39e8)),
         (dgraph.st1, LongVertexProperty("running_time", 132)),
         (dgraph.leia, StringVertexProperty("dgraph.type", "Person")),
         (dgraph.leia, StringVertexProperty("name", "Princess Leia")),
@@ -85,7 +84,7 @@ class TestGraphX extends AnyFunSpec
         (dgraph.sw1, StringVertexProperty("title@br", "Star Wars Lodenn 4: Ur Spi Nevez")),
         (dgraph.sw1, StringVertexProperty("title@de", "Krieg der Sterne")),
         (dgraph.sw1, TimestampVertexProperty("release_date", Timestamp.valueOf("1977-05-25 00:00:00.0"))),
-        (dgraph.sw1, DoubleVertexProperty("revenue", 7.75E8)),
+        (dgraph.sw1, DoubleVertexProperty("revenue", 7.75e8)),
         (dgraph.sw1, LongVertexProperty("running_time", 121)),
         (dgraph.sw2, StringVertexProperty("dgraph.type", "Film")),
         (dgraph.sw2, StringVertexProperty("title", "Star Wars: Episode V - The Empire Strikes Back")),
@@ -95,7 +94,7 @@ class TestGraphX extends AnyFunSpec
         (dgraph.sw2, StringVertexProperty("title@iw", "מלחמת הכוכבים - פרק 5: האימפריה מכה שנית")),
         (dgraph.sw2, StringVertexProperty("title@de", "Das Imperium schlägt zurück")),
         (dgraph.sw2, TimestampVertexProperty("release_date", Timestamp.valueOf("1980-05-21 00:00:00.0"))),
-        (dgraph.sw2, DoubleVertexProperty("revenue", 5.34E8)),
+        (dgraph.sw2, DoubleVertexProperty("revenue", 5.34e8)),
         (dgraph.sw2, LongVertexProperty("running_time", 124)),
         (dgraph.luke, StringVertexProperty("dgraph.type", "Person")),
         (dgraph.luke, StringVertexProperty("name", "Luke Skywalker")),
@@ -112,14 +111,15 @@ class TestGraphX extends AnyFunSpec
         (dgraph.sw3, StringVertexProperty("title@ar", "حرب النجوم الجزء السادس: عودة الجيداي")),
         (dgraph.sw3, StringVertexProperty("title@de", "Die Rückkehr der Jedi-Ritter")),
         (dgraph.sw3, TimestampVertexProperty("release_date", Timestamp.valueOf("1983-05-25 00:00:00.0"))),
-        (dgraph.sw3, DoubleVertexProperty("revenue", 5.72E8)),
+        (dgraph.sw3, DoubleVertexProperty("revenue", 5.72e8)),
         (dgraph.sw3, LongVertexProperty("running_time", 131)),
       ).sortBy(v => (v._1, v._2.property))
       assert(vertices === expected)
     }
 
     def doEdgeTest(load: () => RDD[Edge[EdgeProperty]]): Unit = {
-      val dgraphVertexIds = reader.dgraph.vertices(dgraph.target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
+      val dgraphVertexIds =
+        reader.dgraph.vertices(dgraph.target).filter(v => dgraphVertex(v._2)).map(_._1).collect().toSet
       val edges = removeDgraphEdges(load(), dgraphVertexIds).collect().sortBy(e => (e.srcId, e.dstId))
       val expected = Seq(
         Edge(dgraph.sw1, dgraph.leia, EdgeProperty("starring")),
@@ -141,8 +141,7 @@ class TestGraphX extends AnyFunSpec
     Seq(
       ("target", () => Seq(dgraph.target)),
       ("targets", () => Seq(dgraph.target, dgraph.targetLocalIp))
-    ).foreach{case (test, targets) =>
-
+    ).foreach { case (test, targets) =>
       it(s"should load dgraph from $test via implicit session") {
         doGraphTest(() => loadGraph(reader, targets().map(Target): _*))
       }

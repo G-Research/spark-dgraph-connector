@@ -36,13 +36,11 @@ package object graphframes {
     val vertices =
       DgraphDataFrameReader(
         reader.option(NodesModeOption, NodesModeWideOption)
-      )
-        .dgraph.nodes(targets.head, targets.tail: _*)
+      ).dgraph
+        .nodes(targets.head, targets.tail: _*)
         .withColumnRenamed("subject", "id")
     val renamedColumns =
-      vertices.columns.map(f =>
-        col(s"`${f}`").as(f.replace("_", "__").replace(".", "_"))
-      )
+      vertices.columns.map(f => col(s"`${f}`").as(f.replace("_", "__").replace(".", "_")))
     vertices.select(renamedColumns: _*)
   }
 
@@ -50,8 +48,8 @@ package object graphframes {
     loadEdges(session.read, targets: _*)
 
   def loadEdges(reader: DataFrameReader, targets: String*): DataFrame =
-    DgraphDataFrameReader(reader)
-      .dgraph.edges(targets.head, targets.tail: _*)
+    DgraphDataFrameReader(reader).dgraph
+      .edges(targets.head, targets.tail: _*)
       .select(
         col("subject").as("src"),
         col("objectUid").as("dst"),

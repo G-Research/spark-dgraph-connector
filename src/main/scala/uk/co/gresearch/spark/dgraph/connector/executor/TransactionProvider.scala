@@ -18,7 +18,17 @@ package uk.co.gresearch.spark.dgraph.connector.executor
 
 import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import uk.co.gresearch.spark.dgraph.connector.{ConfigParser, Target, Transaction, TransactionModeDefault, TransactionModeNoneOption, TransactionModeOption, TransactionModeReadOption, getClientFromChannel, toChannel}
+import uk.co.gresearch.spark.dgraph.connector.{
+  ConfigParser,
+  Target,
+  Transaction,
+  TransactionModeDefault,
+  TransactionModeNoneOption,
+  TransactionModeOption,
+  TransactionModeReadOption,
+  getClientFromChannel,
+  toChannel
+}
 
 trait TransactionProvider extends ConfigParser {
 
@@ -26,7 +36,7 @@ trait TransactionProvider extends ConfigParser {
     getStringOption(TransactionModeOption, options, TransactionModeDefault) match {
       case TransactionModeNoneOption => None
       case TransactionModeReadOption => Some(getTransaction(targets))
-      case mode => throw new IllegalArgumentException(s"Unsupported transaction mode: $mode")
+      case mode                      => throw new IllegalArgumentException(s"Unsupported transaction mode: $mode")
     }
   }
 

@@ -27,8 +27,8 @@ trait ProjectedSchema { this: InternalRowEncoder =>
   val projectedSchema: Option[StructType]
 
   /**
-   * Returns the predicates actually read from Dgraph. These are the predicates that correspond to readSchema
-   * if projected schema is given to this encoder. Note: This preserves order of projected schema.
+   * Returns the predicates actually read from Dgraph. These are the predicates that correspond to readSchema if
+   * projected schema is given to this encoder. Note: This preserves order of projected schema.
    */
   val readPredicates: Option[Seq[Predicate]]
 
