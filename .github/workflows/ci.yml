@@ -55,7 +55,6 @@ jobs:
 
   build:
     name: "Build"
-    needs: lint
     uses: "./.github/workflows/build.yml"
 
   test-dgraph:
