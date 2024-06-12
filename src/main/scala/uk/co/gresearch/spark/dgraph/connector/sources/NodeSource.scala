@@ -16,8 +16,10 @@
 
 package uk.co.gresearch.spark.dgraph.connector.sources
 
+import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider}
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import uk.co.gresearch.spark.dgraph.connector._
@@ -97,6 +99,13 @@ class NodeSource() extends TableProviderBase
     val chunkSize = getIntOption(ChunkSizeOption, adjustedOptions, ChunkSizeDefault)
     val model = NodeTableModel(execution, encoder, chunkSize)
     TripleTable(partitioner, model, clusterState.cid)
+  }
+
+  def createRelation(context: SQLContext, mode: SaveMode, parameters: Map[String, String], data: DataFrame): BaseRelation = {
+    new BaseRelation {
+      override def sqlContext: SQLContext = context
+      override def schema: StructType = data.schema
+    }
   }
 
 }

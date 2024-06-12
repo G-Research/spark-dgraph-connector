@@ -22,7 +22,7 @@ import java.util
 import java.util.UUID
 import scala.jdk.CollectionConverters._
 
-trait TableBase extends Table with SupportsRead{
+trait TableBase extends Table with SupportsRead {
 
   val cid: UUID
 
