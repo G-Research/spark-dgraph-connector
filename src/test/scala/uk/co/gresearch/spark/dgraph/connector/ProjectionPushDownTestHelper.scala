@@ -32,34 +32,46 @@ trait ProjectionPushDownTestHelper extends Assertions {
   /**
    * Tests projection push down. An empty selection is interpreted as no selection.
    *
-   * @param ds dataset
-   * @param selection selection
-   * @param expectedProjection expected projection
-   * @param expectedDs expected dataset
-   * @tparam T type of dataset
+   * @param ds
+   *   dataset
+   * @param selection
+   *   selection
+   * @param expectedProjection
+   *   expected projection
+   * @param expectedDs
+   *   expected dataset
+   * @tparam T
+   *   type of dataset
    */
-  def doTestProjectionPushDownDf[T](ds: Dataset[T],
-                                    selection: Seq[Column],
-                                    expectedProjection: Option[Seq[Predicate]],
-                                    expectedDs: Set[T]): Unit = {
+  def doTestProjectionPushDownDf[T](
+      ds: Dataset[T],
+      selection: Seq[Column],
+      expectedProjection: Option[Seq[Predicate]],
+      expectedDs: Set[T]
+  ): Unit = {
     val expectedOutput =
-      expectedProjection.map(_.map(p => columnNameForPredicateName(p.predicateName)).toSet)
+      expectedProjection
+        .map(_.map(p => columnNameForPredicateName(p.predicateName)).toSet)
         .getOrElse(ds.columns.toSet)
     val projectedDs = if (selection.nonEmpty) ds.select(selection: _*) else ds
     val plan = projectedDs.queryExecution.optimizedPlan
     val unprojectedPlan = plan match {
       case Project(_, child) => child
-      case _ => plan
+      case _                 => plan
     }
     val unfilteredPlan = unprojectedPlan match {
       // some subjects might be excluded here as they refer to dgraph reserved nodes
-      case logical.Filter(Not(In(ref, _)), child) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => child
-      case logical.Filter(Not(EqualTo(ref, _)), child) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => child
+      case logical.Filter(Not(In(ref, _)), child)
+          if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" =>
+        child
+      case logical.Filter(Not(EqualTo(ref, _)), child)
+          if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" =>
+        child
       case _ => unprojectedPlan
     }
     val relationNode = unfilteredPlan match {
       case Project(_, child) => child
-      case _ => unfilteredPlan
+      case _                 => unfilteredPlan
     }
     assert(relationNode.isInstanceOf[DataSourceV2ScanRelation])
 
@@ -80,7 +92,9 @@ trait ProjectionPushDownTestHelper extends Assertions {
     val actualProjection = {
       val projection = partitioner.projection
       // we expect there to be a "subject" in the projection when we have filtered for it
-      if (unfilteredPlan != unprojectedPlan && !dsOutput.contains("subject")) projection.map(_.filterNot(p => p.predicateName == "uid" && p.dgraphType == "subject")) else projection
+      if (unfilteredPlan != unprojectedPlan && !dsOutput.contains("subject"))
+        projection.map(_.filterNot(p => p.predicateName == "uid" && p.dgraphType == "subject"))
+      else projection
     }
     assert(actualProjection === expectedProjection)
 

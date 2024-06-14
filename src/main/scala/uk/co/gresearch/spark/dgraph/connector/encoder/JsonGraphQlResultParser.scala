@@ -6,11 +6,15 @@ import uk.co.gresearch.spark.dgraph.connector.{Json, Logging}
 import scala.jdk.CollectionConverters._
 
 trait JsonGraphQlResultParser extends Logging {
+
   /**
    * Parses the given Json result and returns the result array.
-   * @param json Json result
-   * @param member member in the json that has the result
-   * @return Json array
+   * @param json
+   *   Json result
+   * @param member
+   *   member in the json that has the result
+   * @return
+   *   Json array
    */
   def getResult(json: Json, member: String): JsonArray = {
     try {
@@ -24,8 +28,10 @@ trait JsonGraphQlResultParser extends Logging {
 
   /**
    * Provides the result elements as JsonObjects
-   * @param result Json array
-   * @return result elements
+   * @param result
+   *   Json array
+   * @return
+   *   result elements
    */
   def getNodes(result: JsonArray): Iterator[JsonObject] =
     result

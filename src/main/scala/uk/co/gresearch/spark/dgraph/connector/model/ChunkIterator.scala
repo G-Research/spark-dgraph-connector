@@ -22,7 +22,7 @@ import uk.co.gresearch.spark.dgraph.connector.{Chunk, Uid}
 import uk.co.gresearch.spark.dgraph.connector.model.ChunkIterator.{getChunkSize, getLastUid}
 
 case class ChunkIterator(after: Uid, until: Option[Uid], chunkSize: Int, readChunk: Chunk => JsonArray)
-  extends Iterator[JsonArray] {
+    extends Iterator[JsonArray] {
 
   if (chunkSize <= 0)
     throw new IllegalArgumentException(s"Chunk size must be larger than zero: $chunkSize")
@@ -42,20 +42,22 @@ case class ChunkIterator(after: Uid, until: Option[Uid], chunkSize: Int, readChu
 
     if (nextChunk.isDefined) {
       nextValue = readChunk(nextChunk.get)
-      nextChunk =
-        if (nextValue.size() >= nextChunk.get.length) {
-          val next = nextChunk.get.withAfter(getLastUid(nextValue))
-          // limit chunk length by until
-          until.map(u =>
+      nextChunk = if (nextValue.size() >= nextChunk.get.length) {
+        val next = nextChunk.get.withAfter(getLastUid(nextValue))
+        // limit chunk length by until
+        until
+          .map(u =>
             // next chunk might be empty
             if (next.after == u.before) {
               None
             } else {
               Some(next.withLength(getChunkSize(next.after, until.get, chunkSize)))
-            }).getOrElse(Some(next))
-        } else {
-          None
-        }
+            }
+          )
+          .getOrElse(Some(next))
+      } else {
+        None
+      }
     } else {
       nextValue = new JsonArray()
       nextChunk = None

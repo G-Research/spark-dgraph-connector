@@ -36,14 +36,19 @@ trait SchemaProvider {
       val client: DgraphClient = getClientFromChannel(channels)
       val response: Response = client.newReadOnlyTransaction().query(query)
       val json: String = response.getJson.toStringUtf8
-      val schema = new Gson().fromJson(json, classOf[JsonObject])
-        .get("schema").getAsJsonArray.asScala
+      val schema = new Gson()
+        .fromJson(json, classOf[JsonObject])
+        .get("schema")
+        .getAsJsonArray
+        .asScala
         .map(_.getAsJsonObject)
-        .map(o => Predicate(
-          o.get("predicate").getAsString,
-          o.get("type").getAsString,
-          o.has("lang") && o.get("lang").getAsBoolean
-        ))
+        .map(o =>
+          Predicate(
+            o.get("predicate").getAsString,
+            o.get("type").getAsString,
+            o.has("lang") && o.get("lang").getAsBoolean
+          )
+        )
         .filter(p => reservedPredicateFilter.apply(p.predicateName))
         .toSet
       Schema(schema)

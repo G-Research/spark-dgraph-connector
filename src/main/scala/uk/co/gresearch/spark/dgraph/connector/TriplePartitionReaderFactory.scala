@@ -24,8 +24,9 @@ case class TriplePartitionReaderFactory(model: GraphTableModel) extends Partitio
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] =
     partition match {
       case p: Partition => TriplePartitionReader(p, model)
-      case _ => throw new IllegalArgumentException(
-        s"Expected ${Partition.getClass.getSimpleName}, not ${partition.getClass.getSimpleName}"
-      )
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Expected ${Partition.getClass.getSimpleName}, not ${partition.getClass.getSimpleName}"
+        )
     }
 }

@@ -22,8 +22,10 @@ trait ExecutorProvider {
 
   /**
    * Provide an executor for the given partition.
-   * @param partition a partitioon
-   * @return an executor
+   * @param partition
+   *   a partitioon
+   * @return
+   *   an executor
    */
   def getExecutor(partition: Partition): JsonGraphQlExecutor
 

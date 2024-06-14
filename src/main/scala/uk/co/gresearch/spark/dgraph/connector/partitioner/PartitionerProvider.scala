@@ -26,10 +26,12 @@ trait PartitionerProvider {
     new DefaultPartitionerOption()
   )
 
-  def getPartitioner(schema: Schema,
-                     clusterState: ClusterState,
-                     transaction: Option[Transaction],
-                     options: CaseInsensitiveStringMap): Partitioner =
+  def getPartitioner(
+      schema: Schema,
+      clusterState: ClusterState,
+      transaction: Option[Transaction],
+      options: CaseInsensitiveStringMap
+  ): Partitioner =
     partitionerOptions
       .flatMap(_.getPartitioner(schema, clusterState, transaction, options))
       .headOption

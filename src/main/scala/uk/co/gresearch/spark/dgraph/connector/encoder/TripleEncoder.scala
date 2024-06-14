@@ -33,8 +33,10 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
   /**
    * Encodes the given Dgraph json result into InternalRows.
    *
-   * @param result Json result
-   * @return internal rows
+   * @param result
+   *   Json result
+   * @return
+   *   internal rows
    */
   override def fromJson(result: JsonArray): Iterator[InternalRow] =
     getNodes(result).flatMap(toTriples)
@@ -52,8 +54,10 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
   /**
    * Encodes a node as InternalRows.
    *
-   * @param node a json node to turn into triples
-   * @return InternalRows
+   * @param node
+   *   a json node to turn into triples
+   * @return
+   *   InternalRows
    */
   def toTriples(node: JsonObject): Iterator[InternalRow] = {
     try {
@@ -61,7 +65,8 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
       val uid = Uid(uidString)
       node
         .entrySet()
-        .iterator().asScala
+        .iterator()
+        .asScala
         .flatMap(e =>
           getPredicate(e.getKey)
             .map(_.dgraphType)
@@ -73,7 +78,10 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
               // give more context to non-parsable values
               Try(asInternalRow(uid, p, getValue(v, t))) match {
                 case Failure(exception) =>
-                  throw new IllegalArgumentException(s"Cannot parse value '$v' of type $t for predicate $p and uid $uid", exception)
+                  throw new IllegalArgumentException(
+                    s"Cannot parse value '$v' of type $t for predicate $p and uid $uid",
+                    exception
+                  )
                 case Success(value) => value
               }
             )
@@ -88,10 +96,14 @@ trait TripleEncoder extends JsonNodeInternalRowEncoder with Logging {
   /**
    * Encodes a triple (s, p, o) as an internal row. Returns None if triple cannot be encoded.
    *
-   * @param s subject
-   * @param p predicate
-   * @param o object
-   * @return an internal row
+   * @param s
+   *   subject
+   * @param p
+   *   predicate
+   * @param o
+   *   object
+   * @return
+   *   an internal row
    */
   def asInternalRow(s: Uid, p: String, o: Any): Option[InternalRow]
 

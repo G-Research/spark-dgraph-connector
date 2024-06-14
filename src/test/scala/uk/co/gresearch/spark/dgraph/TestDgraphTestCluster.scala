@@ -18,7 +18,12 @@ package uk.co.gresearch.spark.dgraph
 
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.SparkTestSession
-import uk.co.gresearch.spark.dgraph.connector.{DgraphDataFrameReader, TriplesModeOption, TriplesModeTypedOption, TypedTriple}
+import uk.co.gresearch.spark.dgraph.connector.{
+  DgraphDataFrameReader,
+  TriplesModeOption,
+  TriplesModeTypedOption,
+  TypedTriple
+}
 
 class TestDgraphTestCluster extends AnyFunSpec with SparkTestSession with DgraphTestCluster {
 
@@ -28,10 +33,10 @@ class TestDgraphTestCluster extends AnyFunSpec with SparkTestSession with Dgraph
 
     it("should have sufficient reserved predicates for testing filtering reserved predicates") {
       val availablePredicates =
-        spark
-          .read
+        spark.read
           .option(TriplesModeOption, TriplesModeTypedOption)
-          .dgraph.triples(dgraph.target)
+          .dgraph
+          .triples(dgraph.target)
           .as[TypedTriple]
           .collect()
           .map(_.predicate)

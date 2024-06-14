@@ -26,7 +26,7 @@ import uk.co.gresearch.spark.dgraph.connector.partitioner.Partitioner
 import scala.collection.mutable
 
 case class TripleScanBuilder(partitioner: Partitioner, model: GraphTableModel)
-  extends ScanBuilder
+    extends ScanBuilder
     with SupportsPushDownFilters
     with SupportsPushDownRequiredColumns
     with Logging {

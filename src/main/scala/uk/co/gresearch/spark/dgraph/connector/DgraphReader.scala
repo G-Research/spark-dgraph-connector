@@ -19,13 +19,17 @@ package uk.co.gresearch.spark.dgraph.connector
 import org.apache.spark.sql.{DataFrame, DataFrameReader}
 
 case class DgraphReader(reader: DataFrameReader) {
+
   /**
-   * Loads all triples of a Dgraph database into a DataFrame. Requires at least one target.
-   * Use triples(targets.head, targets.tail: _*) if you want to provide a Seq[String].
+   * Loads all triples of a Dgraph database into a DataFrame. Requires at least one target. Use triples(targets.head,
+   * targets.tail: _*) if you want to provide a Seq[String].
    *
-   * @param target  a target
-   * @param targets more targets
-   * @return triples DataFrame
+   * @param target
+   *   a target
+   * @param targets
+   *   more targets
+   * @return
+   *   triples DataFrame
    */
   def triples(target: String, targets: String*): DataFrame =
     reader
@@ -33,12 +37,15 @@ case class DgraphReader(reader: DataFrameReader) {
       .load(Seq(target) ++ targets: _*)
 
   /**
-   * Loads all edges of a Dgraph database into a DataFrame. Requires at least one target.
-   * Use edges(targets.head, targets.tail: _*) if want to provide a Seq[String].
+   * Loads all edges of a Dgraph database into a DataFrame. Requires at least one target. Use edges(targets.head,
+   * targets.tail: _*) if want to provide a Seq[String].
    *
-   * @param target  a target
-   * @param targets more targets
-   * @return edges DataFrame
+   * @param target
+   *   a target
+   * @param targets
+   *   more targets
+   * @return
+   *   edges DataFrame
    */
   def edges(target: String, targets: String*): DataFrame =
     reader
@@ -46,12 +53,15 @@ case class DgraphReader(reader: DataFrameReader) {
       .load(Seq(target) ++ targets: _*)
 
   /**
-   * Loads all nodes of a Dgraph database into a DataFrame. Requires at least one target.
-   * Use nodes(targets.head, targets.tail: _*) if you want to provide a Seq[String].
+   * Loads all nodes of a Dgraph database into a DataFrame. Requires at least one target. Use nodes(targets.head,
+   * targets.tail: _*) if you want to provide a Seq[String].
    *
-   * @param target  a target
-   * @param targets more targets
-   * @return nodes DataFrame
+   * @param target
+   *   a target
+   * @param targets
+   *   more targets
+   * @return
+   *   nodes DataFrame
    */
   def nodes(target: String, targets: String*): DataFrame =
     reader

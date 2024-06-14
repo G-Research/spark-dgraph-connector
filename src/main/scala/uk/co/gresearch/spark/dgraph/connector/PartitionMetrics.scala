@@ -32,11 +32,13 @@ trait PartitionMetrics {
 
 }
 
-case class AccumulatorPartitionMetrics(readBytes: LongAccumulator,
-                                       readUids: LongAccumulator,
-                                       readChunks: LongAccumulator,
-                                       chunkTime: DoubleAccumulator)
-  extends PartitionMetrics with Serializable {
+case class AccumulatorPartitionMetrics(
+    readBytes: LongAccumulator,
+    readUids: LongAccumulator,
+    readChunks: LongAccumulator,
+    chunkTime: DoubleAccumulator
+) extends PartitionMetrics
+    with Serializable {
 
   override def incReadBytes(bytes: Long): Unit = readBytes.add(bytes)
 
@@ -63,11 +65,11 @@ object AccumulatorPartitionMetrics {
 }
 
 case class NoPartitionMetrics() extends PartitionMetrics with Serializable {
-  override def incReadBytes(bytes: Long): Unit = { }
+  override def incReadBytes(bytes: Long): Unit = {}
 
-  override def incReadUids(uids: Long): Unit = { }
+  override def incReadUids(uids: Long): Unit = {}
 
-  override def incReadChunks(chunks: Long): Unit = { }
+  override def incReadChunks(chunks: Long): Unit = {}
 
-  override def incChunkTime(time: Double): Unit = { }
+  override def incChunkTime(time: Double): Unit = {}
 }

@@ -37,11 +37,15 @@ class TestTypedTripleEncoder extends AnyFunSpec {
     (true, "true", "bool", "boolean properties"),
     (Geo("geo"), "geo", "geo", "geo properties"),
     (Password("secret"), "secret", "password", "password properties"),
-    (new Object() {
-      override def toString: String = "object"
-    }, "object", "default", "default"),
+    (
+      new Object() {
+        override def toString: String = "object"
+      },
+      "object",
+      "default",
+      "default"
+    ),
   ).foreach { case (value, encoded, encType, test) =>
-
     it(s"should encode $test") {
       val schema = Schema(Set(Predicate("predicate", encType)))
       val encoder = TypedTripleEncoder(schema.predicateMap)
@@ -53,6 +57,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
       assert(row.numFields === 11)
       assert(row.getLong(0) === 1)
       assert(row.getString(1) === "predicate")
+      // format: off
       if (encType == "uid") assert(row.getLong(2) === value.asInstanceOf[Uid].uid.longValue()) else assert(row.get(2, StringType) === null)
       if (encType == "string" || encType == "default") assert(row.getUTF8String(3).toString === value.toString) else assert(row.get(3, StringType) === null)
       if (encType == "int") assert(row.getLong(4) === value) else assert(row.get(4, StringType) === null)
@@ -61,6 +66,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
       if (encType == "bool") assert(row.getBoolean(7) === value) else assert(row.get(7, StringType) === null)
       if (encType == "geo") assert(row.getUTF8String(8).toString === value.asInstanceOf[Geo].geo) else assert(row.get(8, StringType) === null)
       if (encType == "password") assert(row.getUTF8String(9).toString === value.asInstanceOf[Password].password) else assert(row.get(9, StringType) === null)
+      // format: on
       assert(row.getString(10) === sparkDataType(encType))
     }
 
@@ -68,37 +74,41 @@ class TestTypedTripleEncoder extends AnyFunSpec {
 
   it("should provide the expected read schema") {
     val encoder = TypedTripleEncoder(Map.empty)
-    val expected = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType, nullable = false),
-      StructField("objectUid", LongType),
-      StructField("objectString", StringType),
-      StructField("objectLong", LongType),
-      StructField("objectDouble", DoubleType),
-      StructField("objectTimestamp", TimestampType),
-      StructField("objectBoolean", BooleanType),
-      StructField("objectGeo", StringType),
-      StructField("objectPassword", StringType),
-      StructField("objectType", StringType, nullable = false)
-    ))
+    val expected = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("predicate", StringType, nullable = false),
+        StructField("objectUid", LongType),
+        StructField("objectString", StringType),
+        StructField("objectLong", LongType),
+        StructField("objectDouble", DoubleType),
+        StructField("objectTimestamp", TimestampType),
+        StructField("objectBoolean", BooleanType),
+        StructField("objectGeo", StringType),
+        StructField("objectPassword", StringType),
+        StructField("objectType", StringType, nullable = false)
+      )
+    )
     assert(encoder.readSchema() === expected)
   }
 
   it("should provide the expected schema") {
     val encoder = TypedTripleEncoder(Map.empty)
-    val expected = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType, nullable = false),
-      StructField("objectUid", LongType),
-      StructField("objectString", StringType),
-      StructField("objectLong", LongType),
-      StructField("objectDouble", DoubleType),
-      StructField("objectTimestamp", TimestampType),
-      StructField("objectBoolean", BooleanType),
-      StructField("objectGeo", StringType),
-      StructField("objectPassword", StringType),
-      StructField("objectType", StringType, nullable = false)
-    ))
+    val expected = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("predicate", StringType, nullable = false),
+        StructField("objectUid", LongType),
+        StructField("objectString", StringType),
+        StructField("objectLong", LongType),
+        StructField("objectDouble", DoubleType),
+        StructField("objectTimestamp", TimestampType),
+        StructField("objectBoolean", BooleanType),
+        StructField("objectGeo", StringType),
+        StructField("objectPassword", StringType),
+        StructField("objectType", StringType, nullable = false)
+      )
+    )
     assert(encoder.schema() === expected)
   }
 
@@ -107,6 +117,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
 
     val encoder = TypedTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(json), "result")
+    // format: off
     assert(rows.toSeq === Seq(
       InternalRow(1L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), null, null, null, null, null, null, UTF8String.fromString("string")),
       InternalRow(1L, UTF8String.fromString("release_date"), null, null, null, null, ts("1977-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
@@ -143,6 +154,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
       InternalRow(10L, UTF8String.fromString("revenue"), null, null, null, 139000000.0, null, null, null, null, UTF8String.fromString("double")),
       InternalRow(10L, UTF8String.fromString("running_time"), null, null, 132L, null, null, null, null, null, UTF8String.fromString("long")),
     ))
+    // format: on
   }
 
   it("should parse JSON response with larg euids") {
@@ -150,6 +162,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
 
     val encoder = TypedTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(jsonWithLargeUids), "result")
+    // format: off
     assert(rows.toSeq === Seq(
       InternalRow(-6346846686373277921L, UTF8String.fromString("name"), null, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), null, null, null, null, null, null, UTF8String.fromString("string")),
       InternalRow(-6346846686373277921L, UTF8String.fromString("release_date"), null, null, null, null, ts("1977-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
@@ -160,6 +173,7 @@ class TestTypedTripleEncoder extends AnyFunSpec {
       InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), -1877623327044447073L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
       InternalRow(-6346846686373277921L, UTF8String.fromString("director"), 8214320560726473464L, null, null, null, null, null, null, null, UTF8String.fromString("uid")),
     ))
+    // format: on
   }
 
 }

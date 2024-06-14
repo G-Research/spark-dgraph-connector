@@ -1,14 +1,16 @@
 package uk.co.gresearch.spark.dgraph.connector
 
 package object encoder {
-  val schema: Schema = Schema(Set(
-    Predicate("name", "string"),
-    Predicate("release_date", "datetime"),
-    Predicate("revenue", "float"),
-    Predicate("running_time", "int"),
-    Predicate("director", "uid"),
-    Predicate("starring", "uid")
-  ))
+  val schema: Schema = Schema(
+    Set(
+      Predicate("name", "string"),
+      Predicate("release_date", "datetime"),
+      Predicate("revenue", "float"),
+      Predicate("running_time", "int"),
+      Predicate("director", "uid"),
+      Predicate("starring", "uid")
+    )
+  )
 
   val json: String =
     """{

@@ -54,8 +54,10 @@ case class PredicateNameIs(name: String) extends PredicateNameIsIn(Set(name))
 
 // PredicateValueIsIn comes with two semantics: one that has to be intersected and one that cannot
 abstract class PredicateValueIsIn(val names: Set[String], val values: Set[Any]) extends Filter
-case class IntersectPredicateValueIsIn(override val names: Set[String], override val values: Set[Any]) extends PredicateValueIsIn(names, values)
-case class SinglePredicateValueIsIn(name: String, override val values: Set[Any]) extends PredicateValueIsIn(Set(name), values)
+case class IntersectPredicateValueIsIn(override val names: Set[String], override val values: Set[Any])
+    extends PredicateValueIsIn(names, values)
+case class SinglePredicateValueIsIn(name: String, override val values: Set[Any])
+    extends PredicateValueIsIn(Set(name), values)
 
 case class ObjectTypeIsIn(types: Set[String]) extends Filter
 case class ObjectValueIsIn(values: Set[Any]) extends Filter

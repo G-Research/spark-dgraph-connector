@@ -22,8 +22,10 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 class TestUidCardinalityEstimator extends AnyFunSpec {
 
-  def doTestUidCardinalityEstimatorBase(estimator: UidCardinalityEstimatorBase,
-                                        expectedEstimationWithoutRange: Option[Long]): Unit = {
+  def doTestUidCardinalityEstimatorBase(
+      estimator: UidCardinalityEstimatorBase,
+      expectedEstimationWithoutRange: Option[Long]
+  ): Unit = {
 
     it("should estimate partition's uid range") {
       val range = UidRange(Uid(1), Uid(1000))

@@ -27,10 +27,12 @@ import uk.co.gresearch.spark.dgraph.{DgraphCluster, DgraphTestCluster}
 
 import scala.reflect.runtime.universe._
 
-class TestEdgeSource extends AnyFunSpec
-  with ConnectorSparkTestSession with DgraphTestCluster
-  with FilterPushdownTestHelper
-  with ProjectionPushDownTestHelper {
+class TestEdgeSource
+    extends AnyFunSpec
+    with ConnectorSparkTestSession
+    with DgraphTestCluster
+    with FilterPushdownTestHelper
+    with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
@@ -79,28 +81,25 @@ class TestEdgeSource extends AnyFunSpec
     }
 
     it("should load edges via implicit dgraph target") {
-      doTestLoadEdges(() =>
-        reader
-          .dgraph.edges(dgraph.target)
-      )
+      doTestLoadEdges(() => reader.dgraph.edges(dgraph.target))
     }
 
     it("should load edges via implicit dgraph targets") {
-      doTestLoadEdges(() =>
-        reader
-          .dgraph.edges(dgraph.target)
-      )
+      doTestLoadEdges(() => reader.dgraph.edges(dgraph.target))
     }
 
     it("should load edges in chunks") {
       doTestLoadEdges(() =>
         reader
-          .options(Map(
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "2",
-            ChunkSizeOption -> "3"
-          ))
-          .dgraph.edges(dgraph.target)
+          .options(
+            Map(
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2",
+              ChunkSizeOption -> "3"
+            )
+          )
+          .dgraph
+          .edges(dgraph.target)
       )
     }
 
@@ -128,13 +127,17 @@ class TestEdgeSource extends AnyFunSpec
       val partitions =
         reader
           .option(PartitionerOption, SingletonPartitionerOption)
-          .dgraph.edges(target)
+          .dgraph
+          .edges(target)
           .rdd
-          .partitions.flatMap {
+          .partitions
+          .flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _                         => Seq.empty
           }
-      assert(partitions === Seq(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid")))))
+      assert(
+        partitions === Seq(Partition(targets).has(Set(Predicate("director", "uid"), Predicate("starring", "uid"))))
+      )
     }
 
     it("should load as a predicate partitions") {
@@ -143,11 +146,13 @@ class TestEdgeSource extends AnyFunSpec
         reader
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
-          .dgraph.edges(target)
+          .dgraph
+          .edges(target)
           .rdd
-          .partitions.flatMap {
+          .partitions
+          .flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _                         => Seq.empty
           }
 
       val expected = Seq(
@@ -161,13 +166,16 @@ class TestEdgeSource extends AnyFunSpec
       val target = dgraph.target
       val partitions =
         reader
-          .options(Map(
-            PartitionerOption -> UidRangePartitionerOption,
-            UidRangePartitionerUidsPerPartOption -> "2",
-            UidRangePartitionerEstimatorOption -> MaxUidEstimatorOption,
-            MaxUidEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.edges(target)
+          .options(
+            Map(
+              PartitionerOption -> UidRangePartitionerOption,
+              UidRangePartitionerUidsPerPartOption -> "2",
+              UidRangePartitionerEstimatorOption -> MaxUidEstimatorOption,
+              MaxUidEstimatorIdOption -> dgraph.highestUid.toString
+            )
+          )
+          .dgraph
+          .edges(target)
           .mapPartitions(part => Iterator(part.map(_.getLong(0)).toSet))
           .collect()
 
@@ -179,19 +187,24 @@ class TestEdgeSource extends AnyFunSpec
 
     lazy val edges =
       reader
-        .options(Map(
-          PartitionerOption -> PredicatePartitionerOption,
-          PredicatePartitionerPredicatesOption -> "2"
-        ))
-        .dgraph.edges(dgraph.target)
+        .options(
+          Map(
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "2"
+          )
+        )
+        .dgraph
+        .edges(dgraph.target)
     lazy val edgesSinglePredicatePerPartition =
-      spark
-        .read
-        .options(Map(
-          PartitionerOption -> PredicatePartitionerOption,
-          PredicatePartitionerPredicatesOption -> "1"
-        ))
-        .dgraph.edges(dgraph.target)
+      spark.read
+        .options(
+          Map(
+            PartitionerOption -> PredicatePartitionerOption,
+            PredicatePartitionerPredicatesOption -> "1"
+          )
+        )
+        .dgraph
+        .edges(dgraph.target)
 
     it("should push subject filters") {
       doTestFilterPushDown(
@@ -269,7 +282,12 @@ class TestEdgeSource extends AnyFunSpec
         $"objectUid".isin(dgraph.leia, dgraph.lucas),
         Set(ObjectValueIsIn(dgraph.leia, dgraph.lucas), ObjectTypeIsIn("uid")),
         // With multiple predicates per partition, we cannot filter for object values
-        Seq(In(AttributeReference("objectUid", LongType, nullable = true)(), Seq(Literal(dgraph.leia), Literal(dgraph.lucas)))),
+        Seq(
+          In(
+            AttributeReference("objectUid", LongType, nullable = true)(),
+            Seq(Literal(dgraph.leia), Literal(dgraph.lucas))
+          )
+        ),
         expectedDs = expectedEdges.filter(r => Set(dgraph.leia, dgraph.lucas).contains(r.getLong(2)))
       )
       doTestFilterPushDownDf(
@@ -280,7 +298,12 @@ class TestEdgeSource extends AnyFunSpec
       )
     }
 
-    def doTestFilterPushDown(condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDf: Set[Row]): Unit = {
+    def doTestFilterPushDown(
+        condition: Column,
+        expectedFilters: Set[Filter],
+        expectedUnpushed: Seq[Expression] = Seq.empty,
+        expectedDf: Set[Row]
+    ): Unit = {
       doTestFilterPushDownDf(edges, condition, expectedFilters, expectedUnpushed, expectedDf)
     }
 
@@ -313,7 +336,7 @@ class TestEdgeSource extends AnyFunSpec
 
 case class EdgesSourceExpecteds(cluster: DgraphCluster) {
 
-  def getDataFrame[T <: Product : TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
+  def getDataFrame[T <: Product: TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
     spark.createDataset(rows.toSeq)(Encoders.product[T]).toDF()
 
   def getExpectedEdgeDf(spark: SparkSession): DataFrame =

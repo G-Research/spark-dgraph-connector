@@ -21,9 +21,11 @@ import uk.co.gresearch.spark.dgraph.connector.{ClusterState, Schema, Transaction
 
 trait PartitionerProviderOption {
 
-  def getPartitioner(schema: Schema,
-                     clusterState: ClusterState,
-                     transaction: Option[Transaction],
-                     options: CaseInsensitiveStringMap): Option[Partitioner]
+  def getPartitioner(
+      schema: Schema,
+      clusterState: ClusterState,
+      transaction: Option[Transaction],
+      options: CaseInsensitiveStringMap
+  ): Option[Partitioner]
 
 }

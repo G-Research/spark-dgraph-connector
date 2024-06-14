@@ -29,16 +29,22 @@ trait FilterPushdownTestHelper extends Assertions {
   // we remove those filters here
   def removedSubjectNotInFilter(expressions: Seq[Expression]): Seq[Expression] =
     expressions.filter {
-      case Not(In(ref, _)) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => false
-      case Not(EqualTo(ref, _)) if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" => false
+      case Not(In(ref, _))
+          if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" =>
+        false
+      case Not(EqualTo(ref, _))
+          if ref.isInstanceOf[AttributeReference] && ref.asInstanceOf[AttributeReference].name == "subject" =>
+        false
       case _ => true
     }
 
-  def doTestFilterPushDownDf[T](ds: Dataset[T],
-                                condition: Column,
-                                expectedFilters: Set[Filter],
-                                expectedUnpushed: Seq[Expression] = Seq.empty,
-                                expectedDs: Set[T] = Set.empty): Unit = {
+  def doTestFilterPushDownDf[T](
+      ds: Dataset[T],
+      condition: Column,
+      expectedFilters: Set[Filter],
+      expectedUnpushed: Seq[Expression] = Seq.empty,
+      expectedDs: Set[T] = Set.empty
+  ): Unit = {
     val conditionedDs = ds.where(condition)
     val plan = conditionedDs.queryExecution.optimizedPlan
     val relationNode = plan match {
@@ -68,7 +74,7 @@ trait FilterPushdownTestHelper extends Assertions {
 
   def getFilterNodes(node: Expression): Seq[Expression] = node match {
     case And(left, right) => getFilterNodes(left) ++ getFilterNodes(right)
-    case _ => Seq(node)
+    case _                => Seq(node)
   }
 
 }

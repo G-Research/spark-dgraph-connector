@@ -28,29 +28,33 @@ trait Partitioner {
 
   /**
    * Indicates whether this partitioner supports all given filters.
-   * @param filters filters
-   * @return true if supported, false otherwise
+   * @param filters
+   *   filters
+   * @return
+   *   true if supported, false otherwise
    */
   def supportsFilters(filters: Set[connector.Filter]): Boolean = false
 
   /**
    * Sets the filters to be used by the partitioner. Returns a copy of this partitioner with the filters set.
-   * Partitioner has to use the required filters and can use the optional filters.
-   * Actual given filters have to comply with result of supportsFilters.
-   * Default implementation ignores given filters.
+   * Partitioner has to use the required filters and can use the optional filters. Actual given filters have to comply
+   * with result of supportsFilters. Default implementation ignores given filters.
    *
-   * @param filters filters
-   * @return partitioner with the given filters
+   * @param filters
+   *   filters
+   * @return
+   *   partitioner with the given filters
    */
   def withFilters(filters: Filters): Partitioner = this
 
   /**
    * Sets the projection to be used by the partitioner. Returns a copy of this partitioner with the projection.
-   * Partitioner can use the projection if supported.
-   * Default implementation ignores projection.
+   * Partitioner can use the projection if supported. Default implementation ignores projection.
    *
-   * @param projection projection
-   * @return partitioner with the given projection
+   * @param projection
+   *   projection
+   * @return
+   *   partitioner with the given projection
    */
   def withProjection(projection: Seq[Predicate]): Partitioner = this
 

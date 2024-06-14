@@ -36,11 +36,15 @@ class TestStringTripleEncoder extends AnyFunSpec {
     (true, "true", "bool", "boolean properties"),
     (Geo("geo"), "geo", "geo", "geo properties"),
     (Password("secret"), "secret", "password", "password properties"),
-    (new Object() {
-      override def toString: String = "object"
-    }, "object", "default", "default"),
+    (
+      new Object() {
+        override def toString: String = "object"
+      },
+      "object",
+      "default",
+      "default"
+    ),
   ).foreach { case (value, encoded, encType, test) =>
-
     it(s"should encode $test") {
       val schema = Schema(Set(Predicate("predicate", encType)))
       val encoder = StringTripleEncoder(schema.predicateMap)
@@ -58,29 +62,34 @@ class TestStringTripleEncoder extends AnyFunSpec {
 
   it("should provide the expected read schema") {
     val encoder = StringTripleEncoder(Map.empty)
-    val expected = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType, nullable = false),
-      StructField("objectString", StringType, nullable = false),
-      StructField("objectType", StringType, nullable = false)
-    ))
+    val expected = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("predicate", StringType, nullable = false),
+        StructField("objectString", StringType, nullable = false),
+        StructField("objectType", StringType, nullable = false)
+      )
+    )
     assert(encoder.readSchema() === expected)
   }
 
   it("should provide the expected schema") {
     val encoder = StringTripleEncoder(Map.empty)
-    val expected = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("predicate", StringType, nullable = false),
-      StructField("objectString", StringType, nullable = false),
-      StructField("objectType", StringType, nullable = false)
-    ))
+    val expected = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("predicate", StringType, nullable = false),
+        StructField("objectString", StringType, nullable = false),
+        StructField("objectType", StringType, nullable = false)
+      )
+    )
     assert(encoder.schema() === expected)
   }
 
   it("should parse JSON response") {
     val encoder = StringTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(json), "result")
+    // format: off
     assert(rows.toSeq === Seq(
       InternalRow(1L, UTF8String.fromString("name"), UTF8String.fromString("Star Wars: Episode IV - A New Hope"), UTF8String.fromString("string")),
       InternalRow(1L, UTF8String.fromString("release_date"), UTF8String.fromString("1977-05-25 00:00:00.0"), UTF8String.fromString("timestamp")),
@@ -117,11 +126,13 @@ class TestStringTripleEncoder extends AnyFunSpec {
       InternalRow(10L, UTF8String.fromString("revenue"), UTF8String.fromString("1.39E8"), UTF8String.fromString("double")),
       InternalRow(10L, UTF8String.fromString("running_time"), UTF8String.fromString("132"), UTF8String.fromString("long")),
     ))
+    // format: on
   }
 
   it("should parse JSON response with large uids") {
     val encoder = StringTripleEncoder(schema.predicateMap)
     val rows = encoder.fromJson(Json(jsonWithLargeUids), "result")
+    // format: off
     assert(rows.toSeq === Seq(
       InternalRow(-6346846686373277921L, UTF8String.fromString("name"), UTF8String.fromString("Star Wars: Episode IV - A New Hope"), UTF8String.fromString("string")),
       InternalRow(-6346846686373277921L, UTF8String.fromString("release_date"), UTF8String.fromString("1977-05-25 00:00:00.0"), UTF8String.fromString("timestamp")),
@@ -132,6 +143,7 @@ class TestStringTripleEncoder extends AnyFunSpec {
       InternalRow(-6346846686373277921L, UTF8String.fromString("starring"), UTF8String.fromString("-1877623327044447073"), UTF8String.fromString("uid")),
       InternalRow(-6346846686373277921L, UTF8String.fromString("director"), UTF8String.fromString("8214320560726473464"), UTF8String.fromString("uid")),
     ))
+    // format: on
   }
 
 }

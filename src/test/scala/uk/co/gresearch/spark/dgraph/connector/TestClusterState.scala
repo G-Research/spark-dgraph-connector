@@ -29,9 +29,21 @@ class TestClusterState extends AnyFunSpec {
 
     it("should handle numeric unsigned longs") {
       assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("1234")) === Success(UnsignedLong.valueOf(1234)))
-      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(UnsignedLong.valueOf(Long.MaxValue)))
-      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(UnsignedLong.valueOf("9223372036854775808")))
-      assert(ClusterState.getUnsignedLongFromJson(new JsonPrimitive("18446055125930680484")) === Success(UnsignedLong.valueOf("18446055125930680484")))
+      assert(
+        ClusterState.getUnsignedLongFromJson(new JsonPrimitive(Long.MaxValue.toString)) === Success(
+          UnsignedLong.valueOf(Long.MaxValue)
+        )
+      )
+      assert(
+        ClusterState.getUnsignedLongFromJson(new JsonPrimitive((BigInt(Long.MaxValue) + 1).toString())) === Success(
+          UnsignedLong.valueOf("9223372036854775808")
+        )
+      )
+      assert(
+        ClusterState.getUnsignedLongFromJson(new JsonPrimitive("18446055125930680484")) === Success(
+          UnsignedLong.valueOf("18446055125930680484")
+        )
+      )
     }
 
     it("should handle non-numeric unsigned longs") {
@@ -46,9 +58,21 @@ class TestClusterState extends AnyFunSpec {
     }
 
     it("should handle binary prefixed predicates") {
-      assert(ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000predicate") === Some("predicate"))
-      assert(ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001predicate") === Some("\u0001predicate"))
-      assert(ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002predicate") === Some("\u0002predicate"))
+      assert(
+        ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000predicate") === Some(
+          "predicate"
+        )
+      )
+      assert(
+        ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0001predicate") === Some(
+          "\u0001predicate"
+        )
+      )
+      assert(
+        ClusterState.getPredicateFromJsonString("\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0002predicate") === Some(
+          "\u0002predicate"
+        )
+      )
     }
 
     it("should handle ascii prefixed predicates") {
@@ -152,14 +176,18 @@ class TestClusterState extends AnyFunSpec {
 
       val state = ClusterState.fromJson(Json(json))
 
-      assert(state.groupMembers === Map(
-        "1" -> Set(Target("localhost:9080"), Target("localhost:9081")),
-        "2" -> Set(Target("127.0.0.1:9080"), Target("127.0.0.1:9081"))
-      ))
-      assert(state.groupPredicates === Map(
-        "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
-        "2" -> Set("name", "release_date", "revenue")
-      ))
+      assert(
+        state.groupMembers === Map(
+          "1" -> Set(Target("localhost:9080"), Target("localhost:9081")),
+          "2" -> Set(Target("127.0.0.1:9080"), Target("127.0.0.1:9081"))
+        )
+      )
+      assert(
+        state.groupPredicates === Map(
+          "1" -> Set("dgraph.graphql.schema", "dgraph.graphql.xid", "dgraph.type", "director"),
+          "2" -> Set("name", "release_date", "revenue")
+        )
+      )
       assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("5aacce50-a95f-440b-a32e-fbe6b4003980"))
     }
@@ -392,14 +420,18 @@ class TestClusterState extends AnyFunSpec {
 
       val state = ClusterState.fromJson(Json(json))
 
-      assert(state.groupMembers === Map(
-        "1" -> Set(Target("localhost:9081"), Target("localhost:9082")),
-        "2" -> Set(Target("127.0.0.1:9081"), Target("127.0.0.1:9082"))
-      ))
-      assert(state.groupPredicates === Map(
-        "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
-        "2" -> Set("director", "name")
-      ))
+      assert(
+        state.groupMembers === Map(
+          "1" -> Set(Target("localhost:9081"), Target("localhost:9082")),
+          "2" -> Set(Target("127.0.0.1:9081"), Target("127.0.0.1:9082"))
+        )
+      )
+      assert(
+        state.groupPredicates === Map(
+          "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
+          "2" -> Set("director", "name")
+        )
+      )
       assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }
@@ -541,14 +573,18 @@ class TestClusterState extends AnyFunSpec {
 
       val state = ClusterState.fromJson(Json(json))
 
-      assert(state.groupMembers === Map(
-        "1" -> Set(Target("localhost:9081"), Target("localhost:9082")),
-        "2" -> Set(Target("127.0.0.1:9081"), Target("127.0.0.1:9082"))
-      ))
-      assert(state.groupPredicates === Map(
-        "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
-        "2" -> Set("director")  // predicate name is ignored as it is not in the default namespace
-      ))
+      assert(
+        state.groupMembers === Map(
+          "1" -> Set(Target("localhost:9081"), Target("localhost:9082")),
+          "2" -> Set(Target("127.0.0.1:9081"), Target("127.0.0.1:9082"))
+        )
+      )
+      assert(
+        state.groupPredicates === Map(
+          "1" -> Set("dgraph.graphql.schema", "dgraph.type"),
+          "2" -> Set("director") // predicate name is ignored as it is not in the default namespace
+        )
+      )
       assert(state.maxUid.map(_.intValue()) === Some(10000))
       assert(state.cid === UUID.fromString("350fd4f5-771d-4021-8ef9-cd1b79aa6ea0"))
     }

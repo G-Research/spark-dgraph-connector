@@ -37,11 +37,15 @@ class TestTypedNodeEncoder extends AnyFunSpec {
       (true, "true", "boolean", "boolean properties"),
       (Geo("geo"), "geo", "geo", "geo properties"),
       (Password("secret"), "secret", "password", "password properties"),
-      (new Object() {
-        override def toString: String = "object"
-      }, "object", "default", "default"),
+      (
+        new Object() {
+          override def toString: String = "object"
+        },
+        "object",
+        "default",
+        "default"
+      ),
     ).foreach { case (value, encoded, encType, test) =>
-
       it(s"should encode $test") {
         val encoder = TypedNodeEncoder(Map.empty)
         val rowOpt = encoder.asInternalRow(Uid(1), "predicate", value)
@@ -52,6 +56,7 @@ class TestTypedNodeEncoder extends AnyFunSpec {
         assert(row.numFields === 10)
         assert(row.getLong(0) === 1)
         assert(row.getString(1) === "predicate")
+        // format: off
         if (encType == "string" || encType == "default") assert(row.getUTF8String(2).toString === value.toString) else assert(row.get(2, StringType) === null)
         if (encType == "long") assert(row.getLong(3) === value) else assert(row.get(3, StringType) === null)
         if (encType == "double") assert(row.getDouble(4) === value) else assert(row.get(4, StringType) === null)
@@ -59,6 +64,7 @@ class TestTypedNodeEncoder extends AnyFunSpec {
         if (encType == "boolean") assert(row.getBoolean(6) === value) else assert(row.get(6, StringType) === null)
         if (encType == "geo") assert(row.getUTF8String(7).toString === value.asInstanceOf[Geo].geo) else assert(row.get(7, StringType) === null)
         if (encType == "password") assert(row.getUTF8String(8).toString === value.asInstanceOf[Password].password) else assert(row.get(8, StringType) === null)
+        // format: on
         assert(row.getString(9) === encType)
       }
 
@@ -75,6 +81,7 @@ class TestTypedNodeEncoder extends AnyFunSpec {
 
       val encoder = TypedNodeEncoder(schema.predicateMap)
       val rows = encoder.fromJson(Json(json), "result")
+      // format: off
       assert(rows.toSeq === Seq(
         InternalRow(1L, UTF8String.fromString("name"), UTF8String.fromString("Star Wars: Episode IV - A New Hope"), null, null, null, null, null, null, UTF8String.fromString("string")),
         InternalRow(1L, UTF8String.fromString("release_date"), null, null, null, ts("1977-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
@@ -99,6 +106,7 @@ class TestTypedNodeEncoder extends AnyFunSpec {
         InternalRow(10L, UTF8String.fromString("revenue"), null, null, 139000000.0, null, null, null, null, UTF8String.fromString("double")),
         InternalRow(10L, UTF8String.fromString("running_time"), null, 132L, null, null, null, null, null, UTF8String.fromString("long")),
       ))
+      // format: on
     }
 
     it("should parse JSON response with large uids") {
@@ -106,12 +114,14 @@ class TestTypedNodeEncoder extends AnyFunSpec {
 
       val encoder = TypedNodeEncoder(schema.predicateMap)
       val rows = encoder.fromJson(Json(jsonWithLargeUids), "result")
+      // format: off
       assert(rows.toSeq === Seq(
         InternalRow(-6346846686373277921L, UTF8String.fromString("name"), UTF8String.fromString("Star Wars: Episode IV - A New Hope"), null, null, null, null, null, null, UTF8String.fromString("string")),
         InternalRow(-6346846686373277921L, UTF8String.fromString("release_date"), null, null, null, ts("1977-05-25 00:00:00"), null, null, null, UTF8String.fromString("timestamp")),
         InternalRow(-6346846686373277921L, UTF8String.fromString("revenue"), null, null, 775000000.0, null, null, null, null, UTF8String.fromString("double")),
         InternalRow(-6346846686373277921L, UTF8String.fromString("running_time"), null, 121L, null, null, null, null, null, UTF8String.fromString("long")),
       ))
+      // format: on
     }
   }
 

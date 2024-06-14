@@ -30,10 +30,12 @@ import java.sql.Timestamp
 import scala.jdk.CollectionConverters._
 import scala.reflect.runtime.universe.{TypeTag, typeTag}
 
-class TestNodeSource extends AnyFunSpec
-  with ConnectorSparkTestSession with DgraphTestCluster
-  with FilterPushdownTestHelper
-  with ProjectionPushDownTestHelper {
+class TestNodeSource
+    extends AnyFunSpec
+    with ConnectorSparkTestSession
+    with DgraphTestCluster
+    with FilterPushdownTestHelper
+    with ProjectionPushDownTestHelper {
 
   import spark.implicits._
 
@@ -41,7 +43,10 @@ class TestNodeSource extends AnyFunSpec
     val dgraphNodeUids =
       nodes
         .where($"predicate" === "dgraph.type" && $"objectString".startsWith("dgraph."))
-        .select($"subject").distinct().as[Long].collect()
+        .select($"subject")
+        .distinct()
+        .as[Long]
+        .collect()
     nodes.where(!$"subject".isin(dgraphNodeUids: _*))
   }
 
@@ -49,7 +54,10 @@ class TestNodeSource extends AnyFunSpec
     val dgraphNodeUids =
       nodes
         .where($"`dgraph.type`".startsWith("dgraph."))
-        .select($"subject").distinct().as[Long].collect()
+        .select($"subject")
+        .distinct()
+        .as[Long]
+        .collect()
     nodes.where(!$"subject".isin(dgraphNodeUids: _*))
   }
 
@@ -60,15 +68,26 @@ class TestNodeSource extends AnyFunSpec
     lazy val expectedWideNodes = expecteds.getExpectedWideNodes
     lazy val expectedWideSchema: StructType = expecteds.getExpectedWideNodeSchema
 
-    def doTestLoadTypedNodes(load: () => DataFrame, expected: Set[TypedNode] = expectedTypedNodes, removeDgraphNodes: Boolean = true): Unit = {
-      val nodes = (if (removeDgraphNodes) removeDgraphTypedNodes(load().as[TypedNode]) else load().as[TypedNode]).collect().toSet
-      assert(nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expected.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n"))
+    def doTestLoadTypedNodes(
+        load: () => DataFrame,
+        expected: Set[TypedNode] = expectedTypedNodes,
+        removeDgraphNodes: Boolean = true
+    ): Unit = {
+      val nodes =
+        (if (removeDgraphNodes) removeDgraphTypedNodes(load().as[TypedNode]) else load().as[TypedNode]).collect().toSet
+      assert(
+        nodes.toSeq.sortBy(n => (n.subject, n.predicate)).mkString("\n") === expected.toSeq
+          .sortBy(n => (n.subject, n.predicate))
+          .mkString("\n")
+      )
     }
 
-    def doTestLoadWideNodes(load: () => DataFrame,
-                            expectedNodes: Set[Row] = expectedWideNodes,
-                            expectedSchema: StructType = expectedWideSchema,
-                            removeDgraphNodes: Boolean = true): Unit = {
+    def doTestLoadWideNodes(
+        load: () => DataFrame,
+        expectedNodes: Set[Row] = expectedWideNodes,
+        expectedSchema: StructType = expectedWideSchema,
+        removeDgraphNodes: Boolean = true
+    ): Unit = {
       val df = if (removeDgraphNodes) removeDgraphWideNodes(load()) else load()
       val nodes = df.collect().toSet
       assert(df.schema === expectedSchema)
@@ -110,24 +129,19 @@ class TestNodeSource extends AnyFunSpec
     }
 
     it("should load nodes via implicit dgraph target") {
-      doTestLoadTypedNodes(() =>
-        reader
-          .dgraph.nodes(dgraph.target)
-      )
+      doTestLoadTypedNodes(() => reader.dgraph.nodes(dgraph.target))
     }
 
     it("should load nodes via implicit dgraph targets") {
-      doTestLoadTypedNodes(() =>
-        reader
-          .dgraph.nodes(dgraph.target)
-      )
+      doTestLoadTypedNodes(() => reader.dgraph.nodes(dgraph.target))
     }
 
     it("should load typed nodes") {
       doTestLoadTypedNodes(() =>
         reader
           .option(NodesModeOption, NodesModeTypedOption)
-          .dgraph.nodes(dgraph.target)
+          .dgraph
+          .nodes(dgraph.target)
       )
     }
 
@@ -135,15 +149,16 @@ class TestNodeSource extends AnyFunSpec
       doTestLoadWideNodes(() =>
         reader
           .option(NodesModeOption, NodesModeWideOption)
-          .dgraph.nodes(dgraph.target)
+          .dgraph
+          .nodes(dgraph.target)
       )
     }
 
     lazy val availableTypedNodes =
-      spark
-        .read
+      spark.read
         .option(NodesModeOption, NodesModeTypedOption)
-        .dgraph.nodes(dgraph.target)
+        .dgraph
+        .nodes(dgraph.target)
         .as[TypedNode]
         .collect()
         .toSet
@@ -151,119 +166,152 @@ class TestNodeSource extends AnyFunSpec
     // These reserved predicate tests assume some reserved predicates exist in the test Dgraph data
     // See TestDgraphTestCluster for those assumptions
     it("should load typed-object nodes and include reserved predicates") {
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type"),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid"),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith(
+            "dgraph."
+          ) || triple.predicate == "dgraph.type" || triple.predicate == "dgraph.graphql.xid"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.")),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.")
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith("dgraph.graphql.")),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.") || triple.predicate == "dgraph.type" || triple.predicate.startsWith(
+            "dgraph.graphql."
+          )
+        ),
         removeDgraphNodes = false
       )
     }
 
     it("should load typed-object nodes and exclude reserved predicates") {
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
         availableTypedNodes.filter(triple => triple.predicate != "dgraph.graphql.xid"),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate)),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(triple.predicate)
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
         availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.")),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type"),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.type"
+        ),
         removeDgraphNodes = false
       )
     }
 
     it("should load typed-object nodes and include/exclude reserved predicates") {
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && triple.predicate != "dgraph.graphql.xid"),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith(
+            "dgraph.graphql."
+          ) && triple.predicate != "dgraph.graphql.xid"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadTypedNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeTypedOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
-          .dgraph.nodes(dgraph.target),
-        availableTypedNodes.filter(triple => !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate.startsWith("dgraph.graphql.x")),
+      doTestLoadTypedNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeTypedOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+            .dgraph
+            .nodes(dgraph.target),
+        availableTypedNodes.filter(triple =>
+          !triple.predicate.startsWith("dgraph.") || triple.predicate.startsWith("dgraph.graphql.") && !triple.predicate
+            .startsWith("dgraph.graphql.x")
+        ),
         removeDgraphNodes = false
       )
     }
 
     lazy val (availableWideNodes, availableWideSchema) = {
       val wideNodes =
-        spark
-          .read
+        spark.read
           .option(NodesModeOption, NodesModeWideOption)
-          .dgraph.nodes(dgraph.target)
+          .dgraph
+          .nodes(dgraph.target)
       println("available wide nodes:")
       wideNodes.show()
       (wideNodes.collect().toSet, wideNodes.schema)
@@ -271,7 +319,8 @@ class TestNodeSource extends AnyFunSpec
 
     def expectedWideNodesFiltered(filter: StructField => Boolean): Set[Row] = {
       val filteredIndices = availableWideSchema.zipWithIndex.filter(x => filter(x._1)).map(_._2)
-      availableWideNodes.map(select(filteredIndices: _*))
+      availableWideNodes
+        .map(select(filteredIndices: _*))
         // drop all-null (except the first column) rows
         .filter(_.toSeq.tail.map(Option(_)).exists(_.isDefined))
     }
@@ -280,119 +329,175 @@ class TestNodeSource extends AnyFunSpec
       availableWideSchema.copy(fields = availableWideSchema.fields.filter(filter))
 
     it("should load wide nodes and include reserved predicates") {
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith(
+            "dgraph."
+          ) || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith(
+            "dgraph."
+          ) || predicate.name == "dgraph.type" || predicate.name == "dgraph.graphql.xid"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.")
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql.")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith("dgraph.graphql.")),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.type,dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith(
+            "dgraph.graphql."
+          )
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name == "dgraph.type" || predicate.name.startsWith(
+            "dgraph.graphql."
+          )
+        ),
         removeDgraphNodes = false
       )
     }
 
     it("should load wide nodes and exclude reserved names") {
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => predicate.name != "dgraph.graphql.xid"),
         expectedWideSchemaFiltered(predicate => predicate.name != "dgraph.graphql.xid"),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)),
-        expectedWideSchemaFiltered(predicate => !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.schema,dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !Set("dgraph.graphql.schema", "dgraph.graphql.xid").contains(predicate.name)
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
-          .dgraph.nodes(dgraph.target),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*")
+            .dgraph
+            .nodes(dgraph.target),
         expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.")),
         expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.")),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.*,dgraph.type")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.type"
+        ),
         removeDgraphNodes = false
       )
     }
 
     it("should load wide nodes and include/exclude reserved names") {
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid"),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && predicate.name != "dgraph.graphql.xid"),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.xid")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith(
+            "dgraph.graphql."
+          ) && predicate.name != "dgraph.graphql.xid"
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith(
+            "dgraph.graphql."
+          ) && predicate.name != "dgraph.graphql.xid"
+        ),
         removeDgraphNodes = false
       )
 
-      doTestLoadWideNodes(() =>
-        spark
-          .read
-          .option(NodesModeOption, NodesModeWideOption)
-          .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
-          .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
-          .dgraph.nodes(dgraph.target),
-        expectedWideNodesFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x")),
-        expectedWideSchemaFiltered(predicate => !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name.startsWith("dgraph.graphql.x")),
+      doTestLoadWideNodes(
+        () =>
+          spark.read
+            .option(NodesModeOption, NodesModeWideOption)
+            .option(IncludeReservedPredicatesOption, "dgraph.graphql.*")
+            .option(ExcludeReservedPredicatesOption, "dgraph.graphql.x*")
+            .dgraph
+            .nodes(dgraph.target),
+        expectedWideNodesFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name
+            .startsWith("dgraph.graphql.x")
+        ),
+        expectedWideSchemaFiltered(predicate =>
+          !predicate.name.startsWith("dgraph.") || predicate.name.startsWith("dgraph.graphql.") && !predicate.name
+            .startsWith("dgraph.graphql.x")
+        ),
         removeDgraphNodes = false
       )
     }
@@ -400,26 +505,32 @@ class TestNodeSource extends AnyFunSpec
     it("should load wide nodes with predicate partitioner") {
       doTestLoadWideNodes(() =>
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "1"
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeWideOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "1"
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
       )
     }
 
     it("should load wide nodes with predicate partitioner and uid ranges") {
       doTestLoadWideNodes(() =>
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
-            PredicatePartitionerPredicatesOption -> "1",
-            UidRangePartitionerUidsPerPartOption -> "1",
-            MaxUidEstimatorIdOption -> dgraph.highestUid.toString
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeWideOption,
+              PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+              PredicatePartitionerPredicatesOption -> "1",
+              UidRangePartitionerUidsPerPartOption -> "1",
+              MaxUidEstimatorIdOption -> dgraph.highestUid.toString
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
       )
     }
 
@@ -427,23 +538,26 @@ class TestNodeSource extends AnyFunSpec
       // it is hard to test data are really read in chunks, but we can test the data are correct
       doTestLoadTypedNodes(() =>
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeTypedOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "2",
-            ChunkSizeOption -> "3"
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2",
+              ChunkSizeOption -> "3"
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
       )
     }
 
     it("should encode TypedNode") {
       val rows =
         removeDgraphTypedNodes(
-        reader
-          .format(NodesSource)
-          .load(dgraph.target)
-          .as[TypedNode]
+          reader
+            .format(NodesSource)
+            .load(dgraph.target)
+            .as[TypedNode]
         ).collectAsList()
       assert(rows.size() === 49)
     }
@@ -471,11 +585,13 @@ class TestNodeSource extends AnyFunSpec
       val partitions =
         reader
           .option(PartitionerOption, SingletonPartitionerOption)
-          .dgraph.nodes(target)
+          .dgraph
+          .nodes(target)
           .rdd
-          .partitions.flatMap {
+          .partitions
+          .flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _                         => Seq.empty
           }
 
       val predicates = Set(
@@ -495,11 +611,13 @@ class TestNodeSource extends AnyFunSpec
         reader
           .option(PartitionerOption, PredicatePartitionerOption)
           .option(PredicatePartitionerPredicatesOption, "2")
-          .dgraph.nodes(target)
+          .dgraph
+          .nodes(target)
           .rdd
-          .partitions.flatMap {
+          .partitions
+          .flatMap {
             case p: DataSourceRDDPartition => p.inputPartitions
-            case _ => Seq.empty
+            case _                         => Seq.empty
           }
 
       val expected = Seq(
@@ -516,12 +634,15 @@ class TestNodeSource extends AnyFunSpec
       val partitions = {
         removeDgraphTypedNodes(
           reader
-            .options(Map(
-              PartitionerOption -> UidRangePartitionerOption,
-              UidRangePartitionerUidsPerPartOption -> "7",
-              MaxUidEstimatorIdOption -> dgraph.highestUid.toString
-            ))
-            .dgraph.nodes(target)
+            .options(
+              Map(
+                PartitionerOption -> UidRangePartitionerOption,
+                UidRangePartitionerUidsPerPartOption -> "7",
+                MaxUidEstimatorIdOption -> dgraph.highestUid.toString
+              )
+            )
+            .dgraph
+            .nodes(target)
             .as[TypedNode]
         )
           .toDF()
@@ -538,47 +659,76 @@ class TestNodeSource extends AnyFunSpec
     lazy val typedNodes =
       removeDgraphTypedNodes(
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeTypedOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "2"
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "2"
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
           .as[TypedNode]
       )
     lazy val typedNodesSinglePredicatePerPartition =
       removeDgraphTypedNodes(
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeTypedOption,
-            PartitionerOption -> PredicatePartitionerOption,
-            PredicatePartitionerPredicatesOption -> "1"
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeTypedOption,
+              PartitionerOption -> PredicatePartitionerOption,
+              PredicatePartitionerPredicatesOption -> "1"
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
           .as[TypedNode]
       )
 
     lazy val wideNodes =
       removeDgraphWideNodes(
         reader
-          .options(Map(
-            NodesModeOption -> NodesModeWideOption,
-            PartitionerOption -> PredicatePartitionerOption
-          ))
-          .dgraph.nodes(dgraph.target)
+          .options(
+            Map(
+              NodesModeOption -> NodesModeWideOption,
+              PartitionerOption -> PredicatePartitionerOption
+            )
+          )
+          .dgraph
+          .nodes(dgraph.target)
       )
 
-    def doTestFilterPushDown[T](df: Dataset[T], condition: Column, expectedFilters: Set[Filter], expectedUnpushed: Seq[Expression] = Seq.empty, expectedDs: Set[T]): Unit = {
+    def doTestFilterPushDown[T](
+        df: Dataset[T],
+        condition: Column,
+        expectedFilters: Set[Filter],
+        expectedUnpushed: Seq[Expression] = Seq.empty,
+        expectedDs: Set[T]
+    ): Unit = {
       doTestFilterPushDownDf(df, condition, expectedFilters, expectedUnpushed, expectedDs)
     }
 
-    def doTestsFilterPushDown(condition: Column,
-                              expectedFilters: Set[Filter],
-                              expectedUnpushed: Seq[Expression] = Seq.empty,
-                              expectedTypedDsFilter: TypedNode => Boolean,
-                              expectedWideDsFilter: Row => Boolean): Unit = {
-      doTestFilterPushDownDf(typedNodes, condition, expectedFilters, expectedUnpushed, expectedTypedNodes.filter(expectedTypedDsFilter))
-      doTestFilterPushDownDf(wideNodes, condition, expectedFilters, expectedUnpushed, expectedWideNodes.filter(expectedWideDsFilter))
+    def doTestsFilterPushDown(
+        condition: Column,
+        expectedFilters: Set[Filter],
+        expectedUnpushed: Seq[Expression] = Seq.empty,
+        expectedTypedDsFilter: TypedNode => Boolean,
+        expectedWideDsFilter: Row => Boolean
+    ): Unit = {
+      doTestFilterPushDownDf(
+        typedNodes,
+        condition,
+        expectedFilters,
+        expectedUnpushed,
+        expectedTypedNodes.filter(expectedTypedDsFilter)
+      )
+      doTestFilterPushDownDf(
+        wideNodes,
+        condition,
+        expectedFilters,
+        expectedUnpushed,
+        expectedWideNodes.filter(expectedWideDsFilter)
+      )
     }
 
     it("should push subject filters") {
@@ -610,19 +760,22 @@ class TestNodeSource extends AnyFunSpec
     describe("typed nodes") {
 
       it("should push predicate filters") {
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"predicate" === "name",
           Set(IntersectPredicateNameIsIn("name")),
           expectedDs = expectedTypedNodes.filter(_.predicate == "name")
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"predicate".isin("name"),
           Set(IntersectPredicateNameIsIn("name")),
           expectedDs = expectedTypedNodes.filter(_.predicate == "name")
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"predicate".isin("name", "starring"),
           Set(IntersectPredicateNameIsIn("name", "starring")),
           expectedDs = expectedTypedNodes.filter(t => Set("name", "starring").contains(t.predicate))
@@ -630,19 +783,22 @@ class TestNodeSource extends AnyFunSpec
       }
 
       it("should push object type filters") {
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectType" === "string",
           Set(ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectType == "string")
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectType".isin("string"),
           Set(ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectType == "string")
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectType".isin("string", "long"),
           Set(ObjectTypeIsIn("string", "long")),
           expectedDs = expectedTypedNodes.filter(t => Set("string", "long").contains(t.objectType))
@@ -650,57 +806,71 @@ class TestNodeSource extends AnyFunSpec
       }
 
       it("should push object value filters") {
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString".isNotNull,
           Set(ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.isDefined)
         )
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString".isNotNull && $"objectLong".isNotNull,
           Set(AlwaysFalse),
           expectedDs = Set.empty
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString" === "Person",
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
         )
-        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+        doTestFilterPushDown(
+          typedNodesSinglePredicatePerPartition,
           $"objectString" === "Person",
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString".isin("Person"),
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(EqualTo(AttributeReference("objectString", StringType, nullable = true)(), Literal("Person"))),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
         )
-        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+        doTestFilterPushDown(
+          typedNodesSinglePredicatePerPartition,
           $"objectString".isin("Person"),
           Set(ObjectValueIsIn("Person"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(_.equals("Person")))
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString".isin("Person", "Film"),
           Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
           // With multiple predicates per partition, we cannot filter for object values
-          Seq(In(AttributeReference("objectString", StringType, nullable = true)(), Seq(Literal("Person"), Literal("Film")))),
+          Seq(
+            In(
+              AttributeReference("objectString", StringType, nullable = true)(),
+              Seq(Literal("Person"), Literal("Film"))
+            )
+          ),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
         )
-        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+        doTestFilterPushDown(
+          typedNodesSinglePredicatePerPartition,
           $"objectString".isin("Person", "Film"),
           Set(ObjectValueIsIn("Person", "Film"), ObjectTypeIsIn("string")),
           expectedDs = expectedTypedNodes.filter(_.objectString.exists(s => Set("Person", "Film").contains(s)))
         )
 
-        doTestFilterPushDown(typedNodes,
+        doTestFilterPushDown(
+          typedNodes,
           $"objectString" === "Person" && $"objectLong" === 1,
           Set(AlwaysFalse),
           // With multiple predicates per partition, we cannot filter for object values
@@ -710,7 +880,8 @@ class TestNodeSource extends AnyFunSpec
           ),
           expectedDs = Set.empty
         )
-        doTestFilterPushDown(typedNodesSinglePredicatePerPartition,
+        doTestFilterPushDown(
+          typedNodesSinglePredicatePerPartition,
           $"objectString" === "Person" && $"objectLong" === 1,
           Set(AlwaysFalse),
           expectedDs = Set.empty
@@ -734,69 +905,120 @@ class TestNodeSource extends AnyFunSpec
       it("should push predicate value filters") {
         val columns = wideNodes.columns
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"name".isNotNull,
           Set(PredicateNameIs("name")),
           expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined)
         )
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"name".isNotNull && $"running_time".isNotNull,
           Set(PredicateNameIs("name"), PredicateNameIs("running_time")),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).isDefined && !r.isNullAt(columns.indexOf("running_time")))
+          expectedDs = expectedWideNodes.filter(r =>
+            Option(r.getString(columns.indexOf("name"))).isDefined && !r.isNullAt(columns.indexOf("running_time"))
+          )
         )
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"title" === "Star Wars: Episode IV - A New Hope",
           Set(PredicateNameIs("title"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope"))),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(
-            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+            EqualTo(
+              AttributeReference("title", StringType, nullable = true)(),
+              Literal("Star Wars: Episode IV - A New Hope")
+            ),
           ),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
+          expectedDs = expectedWideNodes.filter(r =>
+            Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope"))
+          )
         )
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"title".isin("Star Wars: Episode IV - A New Hope"),
           Set(PredicateNameIs("title"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope"))),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(
-            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+            EqualTo(
+              AttributeReference("title", StringType, nullable = true)(),
+              Literal("Star Wars: Episode IV - A New Hope")
+            ),
           ),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")))
+          expectedDs = expectedWideNodes.filter(r =>
+            Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope"))
+          )
         )
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"title".isin("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back"),
-          Set(SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back"))),
+          Set(
+            SinglePredicateValueIsIn(
+              "title",
+              Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back")
+            )
+          ),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(
-            In(AttributeReference("title", StringType, nullable = true)(), Seq(
-              Literal("Star Wars: Episode IV - A New Hope"),
-              Literal("Star Wars: Episode V - The Empire Strikes Back")
-            )),
+            In(
+              AttributeReference("title", StringType, nullable = true)(),
+              Seq(
+                Literal("Star Wars: Episode IV - A New Hope"),
+                Literal("Star Wars: Episode V - The Empire Strikes Back")
+              )
+            ),
           ),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(
-            Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back").contains
-          ))
+          expectedDs = expectedWideNodes.filter(r =>
+            Option(r.getString(columns.indexOf("title"))).exists(
+              Set("Star Wars: Episode IV - A New Hope", "Star Wars: Episode V - The Empire Strikes Back").contains
+            )
+          )
         )
 
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"title" === "Star Wars: Episode IV - A New Hope" && $"running_time" === 121,
-          Set(PredicateNameIs("title"), PredicateNameIs("running_time"), SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope")), SinglePredicateValueIsIn("running_time", Set(121))),
+          Set(
+            PredicateNameIs("title"),
+            PredicateNameIs("running_time"),
+            SinglePredicateValueIsIn("title", Set("Star Wars: Episode IV - A New Hope")),
+            SinglePredicateValueIsIn("running_time", Set(121))
+          ),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(
-            EqualTo(AttributeReference("title", StringType, nullable = true)(), Literal("Star Wars: Episode IV - A New Hope")),
+            EqualTo(
+              AttributeReference("title", StringType, nullable = true)(),
+              Literal("Star Wars: Episode IV - A New Hope")
+            ),
             EqualTo(AttributeReference("running_time", LongType, nullable = true)(), Literal(121L)),
           ),
-          expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("title"))).exists(_.equals("Star Wars: Episode IV - A New Hope")) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L)))
+          expectedDs = expectedWideNodes.filter(r =>
+            Option(r.getString(columns.indexOf("title"))).exists(
+              _.equals("Star Wars: Episode IV - A New Hope")
+            ) && Option(r.getLong(columns.indexOf("running_time"))).exists(_.equals(121L))
+          )
         )
 
-        val expected = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("name"))).exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None else Some(r.getLong(columns.indexOf("running_time")))).exists(_.equals(121L)))
+        val expected = expectedWideNodes.filter(r =>
+          Option(r.getString(columns.indexOf("name")))
+            .exists(_.equals("Luke Skywalker")) && (if (r.isNullAt(columns.indexOf("running_time"))) None
+                                                    else Some(r.getLong(columns.indexOf("running_time"))))
+            .exists(_.equals(121L))
+        )
         assert(expected.isEmpty, "expect empty result for this query, check query")
-        doTestFilterPushDown(wideNodes,
+        doTestFilterPushDown(
+          wideNodes,
           $"name" === "Luke Skywalker" && $"running_time" === 121,
-          Set(PredicateNameIs("name"), PredicateNameIs("running_time"), SinglePredicateValueIsIn("name", Set("Luke Skywalker")), SinglePredicateValueIsIn("running_time", Set(121))),
+          Set(
+            PredicateNameIs("name"),
+            PredicateNameIs("running_time"),
+            SinglePredicateValueIsIn("name", Set("Luke Skywalker")),
+            SinglePredicateValueIsIn("running_time", Set(121))
+          ),
           // With multiple predicates per partition, we cannot filter for object values
           Seq(
             EqualTo(AttributeReference("name", StringType, nullable = true)(), Literal("Luke Skywalker")),
@@ -895,26 +1117,31 @@ class TestNodeSource extends AnyFunSpec
     it("should push filters for backticked columns") {
       val columns = wideNodes.columns
 
-      doTestFilterPushDown(wideNodes,
+      doTestFilterPushDown(
+        wideNodes,
         $"`dgraph.type`".isNotNull,
         Set(PredicateNameIs("dgraph.type")),
         expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).isDefined)
       )
 
-      doTestFilterPushDown(wideNodes,
+      doTestFilterPushDown(
+        wideNodes,
         $"`dgraph.type`" === "Film",
         Set(PredicateNameIs("dgraph.type"), SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("dgraph.type", StringType, nullable = true)(), Literal("Film"))),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
+        expectedDs =
+          expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
-      doTestFilterPushDown(wideNodes,
+      doTestFilterPushDown(
+        wideNodes,
         $"`dgraph.type`".isin("Film"),
         Set(PredicateNameIs("dgraph.type"), SinglePredicateValueIsIn("dgraph.type", Set("Film"))),
         // With multiple predicates per partition, we cannot filter for object values
         Seq(EqualTo(AttributeReference("dgraph.type", StringType, nullable = true)(), Literal("Film"))),
-        expectedDs = expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
+        expectedDs =
+          expectedWideNodes.filter(r => Option(r.getString(columns.indexOf("dgraph.type"))).exists(_.equals("Film")))
       )
 
     }
@@ -929,13 +1156,14 @@ class TestNodeSource extends AnyFunSpec
 
 case class NodesSourceExpecteds(cluster: DgraphCluster) {
 
-  def getDataFrame[T <: Product : TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
+  def getDataFrame[T <: Product: TypeTag](rows: Set[T], spark: SparkSession): DataFrame =
     spark.createDataset(rows.toSeq)(Encoders.product[T]).toDF()
 
   def getExpectedTypedNodeDf(spark: SparkSession): DataFrame =
     getDataFrame(getExpectedTypedNodes, spark)(typeTag[TypedNode])
 
   def getExpectedTypedNodes: Set[TypedNode] =
+    // format: off
     Set(
       TypedNode(cluster.st1, "dgraph.type", Some("Film"), None, None, None, None, None, None, "string"),
       TypedNode(cluster.st1, "title@en", Some("Star Trek: The Motion Picture"), None, None, None, None, None, None, "string"),
@@ -987,21 +1215,25 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
       TypedNode(cluster.sw3, "revenue", None, None, Some(5.72E8), None, None, None, None, "double"),
       TypedNode(cluster.sw3, "running_time", None, Some(131L), None, None, None, None, None, "long"),
     )
+    // format: on
 
-  def getExpectedWideNodeSchema: StructType = StructType(Seq(
-    StructField("subject", LongType, nullable = false),
-    StructField("dgraph.type", StringType, nullable = true),
-    StructField("name", StringType, nullable = true),
-    StructField("release_date", TimestampType, nullable = true),
-    StructField("revenue", DoubleType, nullable = true),
-    StructField("running_time", LongType, nullable = true),
-    StructField("title", StringType, nullable = true)
-  ))
+  def getExpectedWideNodeSchema: StructType = StructType(
+    Seq(
+      StructField("subject", LongType, nullable = false),
+      StructField("dgraph.type", StringType, nullable = true),
+      StructField("name", StringType, nullable = true),
+      StructField("release_date", TimestampType, nullable = true),
+      StructField("revenue", DoubleType, nullable = true),
+      StructField("running_time", LongType, nullable = true),
+      StructField("title", StringType, nullable = true)
+    )
+  )
 
   def getExpectedWideNodeDf(spark: SparkSession): DataFrame =
     spark.createDataFrame(getExpectedWideNodes.toList.asJava, getExpectedWideNodeSchema)
 
   def getExpectedWideNodes: Set[Row] =
+    // format: off
     Set(
       Row(cluster.st1, "Film", null, Timestamp.valueOf("1979-12-07 00:00:00.0"), 1.39E8, 132L, null),
       Row(cluster.leia, "Person", "Princess Leia", null, null, null, null),
@@ -1014,5 +1246,6 @@ case class NodesSourceExpecteds(cluster: DgraphCluster) {
       Row(cluster.richard, "Person", "Richard Marquand", null, null, null, null),
       Row(cluster.sw3, "Film", null, Timestamp.valueOf("1983-05-25 00:00:00.0"), 5.72E8, 131L, "Star Wars: Episode VI - Return of the Jedi")
     )
+    // format: on
 
 }

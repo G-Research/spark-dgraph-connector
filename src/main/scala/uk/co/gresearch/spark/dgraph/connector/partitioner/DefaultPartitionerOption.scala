@@ -21,10 +21,12 @@ import uk.co.gresearch.spark.dgraph.connector._
 
 class DefaultPartitionerOption extends ConfigPartitionerOption {
 
-  override def getPartitioner(schema: Schema,
-                              clusterState: ClusterState,
-                              transaction: Option[Transaction],
-                              options: CaseInsensitiveStringMap): Option[Partitioner] =
+  override def getPartitioner(
+      schema: Schema,
+      clusterState: ClusterState,
+      transaction: Option[Transaction],
+      options: CaseInsensitiveStringMap
+  ): Option[Partitioner] =
     Some(getPartitioner(PartitionerDefault, schema, clusterState, transaction, options))
 
 }

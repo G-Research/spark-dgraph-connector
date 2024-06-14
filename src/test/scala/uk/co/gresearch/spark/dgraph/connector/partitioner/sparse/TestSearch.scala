@@ -42,12 +42,18 @@ class TestSearch extends AnyFunSpec {
 
       left.to(right).foreach { target =>
         val result = search.search(Step(left, right, target))
-        assert((target - result.result.longValue()).abs <= threshold, s"target=$target result=${result.result.longValue()}")
+        assert(
+          (target - result.result.longValue()).abs <= threshold,
+          s"target=$target result=${result.result.longValue()}"
+        )
       }
 
-      (left+1).to(right).foreach { target =>
-        val result = search.search(Step(left+1, right, target))
-        assert((target - result.result.longValue()).abs <= threshold, s"target=$target result=${result.result.longValue()}")
+      (left + 1).to(right).foreach { target =>
+        val result = search.search(Step(left + 1, right, target))
+        assert(
+          (target - result.result.longValue()).abs <= threshold,
+          s"target=$target result=${result.result.longValue()}"
+        )
       }
     }
   }
@@ -74,11 +80,12 @@ class TestSearch extends AnyFunSpec {
     }
   }
 
-
-  case class Step(override val left: UnsignedLong,
-                  override val right: UnsignedLong,
-                  target: UnsignedLong,
-                  override val payload: Trajectory = Trajectory()) extends SearchStep[Trajectory, Result] {
+  case class Step(
+      override val left: UnsignedLong,
+      override val right: UnsignedLong,
+      target: UnsignedLong,
+      override val payload: Trajectory = Trajectory()
+  ) extends SearchStep[Trajectory, Result] {
     override def move(middle: UnsignedLong): SearchStep[Trajectory, Result] = {
       val cmp = target.compareTo(middle)
       if (cmp < 0) {

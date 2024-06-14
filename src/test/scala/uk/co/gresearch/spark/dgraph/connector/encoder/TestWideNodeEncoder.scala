@@ -21,7 +21,15 @@ import java.sql.Timestamp
 import com.google.gson.JsonObject
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
-import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StringType, StructField, StructType, TimestampType}
+import org.apache.spark.sql.types.{
+  DoubleType,
+  IntegerType,
+  LongType,
+  StringType,
+  StructField,
+  StructType,
+  TimestampType
+}
 import org.apache.spark.unsafe.types.UTF8String
 import org.scalatest.funspec.AnyFunSpec
 import uk.co.gresearch.spark.dgraph.connector.{Geo, Json, Password, Predicate, Schema, Uid}
@@ -46,19 +54,23 @@ class TestWideNodeEncoder extends AnyFunSpec {
       Predicate("uid", "subject")
     ) ++ projectedPredicates.toSeq
 
-    val expectedSchema = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("name", StringType, nullable = true),
-      StructField("release_date", TimestampType, nullable = true),
-      StructField("revenue", DoubleType, nullable = true),
-      StructField("running_time", LongType, nullable = true)
-    ))
+    val expectedSchema = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("name", StringType, nullable = true),
+        StructField("release_date", TimestampType, nullable = true),
+        StructField("revenue", DoubleType, nullable = true),
+        StructField("running_time", LongType, nullable = true)
+      )
+    )
 
-    val expectedProjectedSchema = StructType(Seq(
-      StructField("subject", LongType, nullable = false),
-      StructField("name", StringType, nullable = true),
-      StructField("release_date", TimestampType, nullable = true)
-    ))
+    val expectedProjectedSchema = StructType(
+      Seq(
+        StructField("subject", LongType, nullable = false),
+        StructField("name", StringType, nullable = true),
+        StructField("release_date", TimestampType, nullable = true)
+      )
+    )
 
     val encoder = WideNodeEncoder(predicates)
 
@@ -189,28 +201,64 @@ class TestWideNodeEncoder extends AnyFunSpec {
     def ts(string: String): Long = DateTimeUtils.fromJavaTimestamp(Timestamp.valueOf(string))
 
     val expectedRowsFullSchema = Seq(
-      InternalRow(1, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), ts("1977-05-25 00:00:00"), 7.75E8, 121),
+      InternalRow(
+        1,
+        UTF8String.fromString("Star Wars: Episode IV - A New Hope"),
+        ts("1977-05-25 00:00:00"),
+        7.75e8,
+        121
+      ),
       InternalRow(2, UTF8String.fromString("Luke Skywalker"), null, null, null),
       InternalRow(3, UTF8String.fromString("Han Solo"), null, null, null),
       InternalRow(4, UTF8String.fromString("George Lucas"), null, null, null),
       InternalRow(5, UTF8String.fromString("Irvin Kernshner"), null, null, null),
       InternalRow(6, UTF8String.fromString("Richard Marquand"), null, null, null),
       InternalRow(7, UTF8String.fromString("Princess Leia"), null, null, null),
-      InternalRow(8, UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"), ts("1980-05-21 00:00:00"), 5.34E8, 124),
-      InternalRow(9, UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"), ts("1983-05-25 00:00:00"), 5.72E8, 131),
-      InternalRow(10, UTF8String.fromString("Star Trek: The Motion Picture"), ts("1979-12-07 00:00:00"), 1.39E8, 132),
+      InternalRow(
+        8,
+        UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"),
+        ts("1980-05-21 00:00:00"),
+        5.34e8,
+        124
+      ),
+      InternalRow(
+        9,
+        UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"),
+        ts("1983-05-25 00:00:00"),
+        5.72e8,
+        131
+      ),
+      InternalRow(10, UTF8String.fromString("Star Trek: The Motion Picture"), ts("1979-12-07 00:00:00"), 1.39e8, 132),
     )
 
     val expectedRowsFullSchemaProjectedJson = Seq(
-      InternalRow(1, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), ts("1977-05-25 00:00:00"), null, null),
+      InternalRow(
+        1,
+        UTF8String.fromString("Star Wars: Episode IV - A New Hope"),
+        ts("1977-05-25 00:00:00"),
+        null,
+        null
+      ),
       InternalRow(2, UTF8String.fromString("Luke Skywalker"), null, null, null),
       InternalRow(3, UTF8String.fromString("Han Solo"), null, null, null),
       InternalRow(4, UTF8String.fromString("George Lucas"), null, null, null),
       InternalRow(5, UTF8String.fromString("Irvin Kernshner"), null, null, null),
       InternalRow(6, UTF8String.fromString("Richard Marquand"), null, null, null),
       InternalRow(7, UTF8String.fromString("Princess Leia"), null, null, null),
-      InternalRow(8, UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"), ts("1980-05-21 00:00:00"), null, null),
-      InternalRow(9, UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"), ts("1983-05-25 00:00:00"), null, null),
+      InternalRow(
+        8,
+        UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"),
+        ts("1980-05-21 00:00:00"),
+        null,
+        null
+      ),
+      InternalRow(
+        9,
+        UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"),
+        ts("1983-05-25 00:00:00"),
+        null,
+        null
+      ),
       InternalRow(10, UTF8String.fromString("Star Trek: The Motion Picture"), ts("1979-12-07 00:00:00"), null, null),
     )
 
@@ -222,16 +270,22 @@ class TestWideNodeEncoder extends AnyFunSpec {
       InternalRow(5, UTF8String.fromString("Irvin Kernshner"), null),
       InternalRow(6, UTF8String.fromString("Richard Marquand"), null),
       InternalRow(7, UTF8String.fromString("Princess Leia"), null),
-      InternalRow(8, UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"), ts("1980-05-21 00:00:00")),
+      InternalRow(
+        8,
+        UTF8String.fromString("Star Wars: Episode V - The Empire Strikes Back"),
+        ts("1980-05-21 00:00:00")
+      ),
       InternalRow(9, UTF8String.fromString("Star Wars: Episode VI - Return of the Jedi"), ts("1983-05-25 00:00:00")),
       InternalRow(10, UTF8String.fromString("Star Trek: The Motion Picture"), ts("1979-12-07 00:00:00")),
     )
 
     it("should ignore edges") {
-      val edgeEncoder = WideNodeEncoder(predicates ++ Set(
-        Predicate("director", "uid"),
-        Predicate("starring", "uid")
-      ))
+      val edgeEncoder = WideNodeEncoder(
+        predicates ++ Set(
+          Predicate("director", "uid"),
+          Predicate("starring", "uid")
+        )
+      )
 
       assert(edgeEncoder.schema === encoder.schema)
       assert(edgeEncoder.readSchema === encoder.readSchema)
@@ -254,7 +308,13 @@ class TestWideNodeEncoder extends AnyFunSpec {
     it("should parse JSON response with large uids") {
       val rows = encoder.fromJson(Json(jsonWithLargeUids), "result").toSeq
       val expected = Seq(
-        InternalRow(-6346846686373277921L, UTF8String.fromString("Star Wars: Episode IV - A New Hope"), ts("1977-05-25 00:00:00"), 7.75E8, 121),
+        InternalRow(
+          -6346846686373277921L,
+          UTF8String.fromString("Star Wars: Episode IV - A New Hope"),
+          ts("1977-05-25 00:00:00"),
+          7.75e8,
+          121
+        ),
       )
       assert(rows === expected)
       assert(encoder.schema === expectedSchema)

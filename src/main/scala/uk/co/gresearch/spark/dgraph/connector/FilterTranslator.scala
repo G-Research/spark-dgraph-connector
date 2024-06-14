@@ -21,8 +21,8 @@ import org.apache.spark.sql.sources.{IsNotNull, EqualTo, In}
 import uk.co.gresearch.spark.dgraph.connector.encoder.ColumnInfo
 
 /**
- * A column name is enclosed with backticks when it contains dots (.). This unapply is used to
- * remove those backticks during pattern matching if they exist.
+ * A column name is enclosed with backticks when it contains dots (.). This unapply is used to remove those backticks
+ * during pattern matching if they exist.
  */
 object ColumnName {
   def unapply(columnName: String): Option[String] =
@@ -36,13 +36,16 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
 
   /**
    * Translates the spark filter to some dgraph connector filters, or None if no translation available.
-   * @param filter spark filter
-   * @return Some dgraph filters
+   * @param filter
+   *   spark filter
+   * @return
+   *   Some dgraph filters
    */
   def translate(filter: sql.sources.Filter): Option[Set[Filter]] = filter match {
     case IsNotNull(ColumnName(column)) if columnInfo.isPredicateValueColumn(column) =>
       Some(Set(PredicateNameIs(column)))
-    case IsNotNull(ColumnName(column)) if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
+    case IsNotNull(ColumnName(column))
+        if columnInfo.isObjectValueColumn(column) && columnInfo.getObjectType(column).isDefined =>
       Some(Set(ObjectTypeIsIn(columnInfo.getObjectType(column).get)))
 
     case EqualTo(ColumnName(column), value) if columnInfo.isSubjectColumn(column) && Option(value).isDefined =>
@@ -52,37 +55,47 @@ case class FilterTranslator(columnInfo: ColumnInfo) {
     case EqualTo(ColumnName(column), value) if columnInfo.isPredicateValueColumn(column) && Option(value).isDefined =>
       Some(Set(SinglePredicateValueIsIn(column, Set(value))))
     case EqualTo(ColumnName(column), value) if columnInfo.isObjectValueColumn(column) && Option(value).isDefined =>
-      Some(Set(ObjectValueIsIn(value)) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty[Filter]))
+      Some(
+        Set(ObjectValueIsIn(value)) ++ columnInfo
+          .getObjectType(column)
+          .map(t => Set(ObjectTypeIsIn(t)))
+          .getOrElse(Set.empty[Filter])
+      )
     case EqualTo(ColumnName(column), value) if columnInfo.isObjectTypeColumn(column) && Option(value).isDefined =>
       Some(Set(ObjectTypeIsIn(value.toString)))
 
     case In(ColumnName(column), values)
-      if columnInfo.isSubjectColumn(column) &&
-        // check for non-null null-less non-empty values array
-        Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
+        if columnInfo.isSubjectColumn(column) &&
+          // check for non-null null-less non-empty values array
+          Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(SubjectIsIn(values.map(value => Uid(value.toLong)): _*)))
     case In(ColumnName(column), values)
-      if columnInfo.isPredicateColumn(column) &&
-        // check for non-null null-less non-empty values array
-        Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
+        if columnInfo.isPredicateColumn(column) &&
+          // check for non-null null-less non-empty values array
+          Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(IntersectPredicateNameIsIn(values.map(_.toString): _*)))
     case In(ColumnName(column), values)
-      if columnInfo.isPredicateValueColumn(column) &&
-        // check for non-null null-less non-empty values array
-        Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
+        if columnInfo.isPredicateValueColumn(column) &&
+          // check for non-null null-less non-empty values array
+          Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(SinglePredicateValueIsIn(column, values.toSet)))
     case In(ColumnName(column), values)
-      if columnInfo.isObjectValueColumn(column) &&
-        // check for non-null null-less non-empty values array
-        Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
-      Some(Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo.getObjectType(column).map(t => Set(ObjectTypeIsIn(t))).getOrElse(Set.empty[Filter]))
+        if columnInfo.isObjectValueColumn(column) &&
+          // check for non-null null-less non-empty values array
+          Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
+      Some(
+        Set(ObjectValueIsIn(values.toSet[Any])) ++ columnInfo
+          .getObjectType(column)
+          .map(t => Set(ObjectTypeIsIn(t)))
+          .getOrElse(Set.empty[Filter])
+      )
     case In(ColumnName(column), values)
-      if columnInfo.isObjectTypeColumn(column) &&
-        // check for non-null null-less non-empty values array
-        Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
+        if columnInfo.isObjectTypeColumn(column) &&
+          // check for non-null null-less non-empty values array
+          Option(values).map(_.filter(Option(_).isDefined)).exists(_.length > 0) =>
       Some(Set(ObjectTypeIsIn(values.map(_.toString): _*)))
 
-    case sql.sources.AlwaysTrue => Some(Set(AlwaysTrue))
+    case sql.sources.AlwaysTrue  => Some(Set(AlwaysTrue))
     case sql.sources.AlwaysFalse => Some(Set(AlwaysFalse))
 
     case _ => None
@@ -99,38 +112,49 @@ object FilterTranslator {
         .groupBy(_.getClass)
         .flatMap { case (cls, filters) =>
           cls match {
-            case cls if cls == classOf[SubjectIsIn] => Set(filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
-            case cls if cls == classOf[IntersectPredicateNameIsIn] => Set(filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
-            case cls if cls == classOf[IntersectPredicateValueIsIn] => Set(filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
+            case cls if cls == classOf[SubjectIsIn] =>
+              Set(filters.map(_.asInstanceOf[SubjectIsIn]).reduce(intersectSubjectIsIn))
+            case cls if cls == classOf[IntersectPredicateNameIsIn] =>
+              Set(filters.map(_.asInstanceOf[IntersectPredicateNameIsIn]).reduce(intersectPredicateNameIsIn))
+            case cls if cls == classOf[IntersectPredicateValueIsIn] =>
+              Set(filters.map(_.asInstanceOf[IntersectPredicateValueIsIn]).reduce(intersectPredicateValueIsIn))
             case cls if cls == classOf[SinglePredicateValueIsIn] =>
               filters
                 .map(_.asInstanceOf[SinglePredicateValueIsIn])
                 .groupBy(_.name)
                 .flatMap { case (_, fs) => Set(fs.reduce(intersectSinglePredicateValueIsIn)) }
-            case cls if cls == classOf[ObjectTypeIsIn] => Set(filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
-            case cls if cls == classOf[ObjectValueIsIn] => Set(filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
+            case cls if cls == classOf[ObjectTypeIsIn] =>
+              Set(filters.map(_.asInstanceOf[ObjectTypeIsIn]).reduce(intersectObjectTypeIsIn))
+            case cls if cls == classOf[ObjectValueIsIn] =>
+              Set(filters.map(_.asInstanceOf[ObjectValueIsIn]).reduce(intersectObjectValueIsIn))
             case _ => filters
           }
-        }.map(_.asInstanceOf[Filter])
+        }
+        .map(_.asInstanceOf[Filter])
         .toSet
 
     // we can simplify some trivial expressions
     val trivialized =
       intersected
         .flatMap {
-          case AlwaysTrue => None
-          case SubjectIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-          case IntersectPredicateNameIsIn(s) if s.isEmpty => Some(AlwaysFalse)
+          case AlwaysTrue                                                  => None
+          case SubjectIsIn(s) if s.isEmpty                                 => Some(AlwaysFalse)
+          case IntersectPredicateNameIsIn(s) if s.isEmpty                  => Some(AlwaysFalse)
           case IntersectPredicateValueIsIn(p, v) if p.isEmpty || v.isEmpty => Some(AlwaysFalse)
-          case ObjectTypeIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-          case ObjectValueIsIn(s) if s.isEmpty => Some(AlwaysFalse)
-          case f => Some(f)
+          case ObjectTypeIsIn(s) if s.isEmpty                              => Some(AlwaysFalse)
+          case ObjectValueIsIn(s) if s.isEmpty                             => Some(AlwaysFalse)
+          case f                                                           => Some(f)
         }
 
     // we simplify a single PredicateNameIsIn and ObjectValueIsIn into a PredicateValueIsIn
-    val singlePredicateName = Some(trivialized.filter(_.isInstanceOf[PredicateNameIsIn])).filter(_.size == 1).map(_.head.asInstanceOf[PredicateNameIsIn])
-    val singleObjectValue = Some(trivialized.filter(_.isInstanceOf[ObjectValueIsIn])).filter(_.size == 1).map(_.head.asInstanceOf[ObjectValueIsIn])
-    val predicateValues = trivialized.filter(_.isInstanceOf[PredicateValueIsIn]).map(_.asInstanceOf[PredicateValueIsIn].names).toSet
+    val singlePredicateName = Some(trivialized.filter(_.isInstanceOf[PredicateNameIsIn]))
+      .filter(_.size == 1)
+      .map(_.head.asInstanceOf[PredicateNameIsIn])
+    val singleObjectValue = Some(trivialized.filter(_.isInstanceOf[ObjectValueIsIn]))
+      .filter(_.size == 1)
+      .map(_.head.asInstanceOf[ObjectValueIsIn])
+    val predicateValues =
+      trivialized.filter(_.isInstanceOf[PredicateValueIsIn]).map(_.asInstanceOf[PredicateValueIsIn].names).toSet
 
     val simplified =
       trivialized
@@ -158,11 +182,14 @@ object FilterTranslator {
   }
 
   /**
-   * Simplifies given promised and optional filters. This method
-   * guarantees that all returned filters are supported and cover all given prmised filters.
-   * @param filters filters
-   * @param supported function to indicate support of filters
-   * @return simplified filters
+   * Simplifies given promised and optional filters. This method guarantees that all returned filters are supported and
+   * cover all given prmised filters.
+   * @param filters
+   *   filters
+   * @param supported
+   *   function to indicate support of filters
+   * @return
+   *   simplified filters
    */
   def simplify(filters: Filters, supported: Set[Filter] => Boolean): Filters = {
     val allSimplified = simplify(filters.toSet)
@@ -182,15 +209,31 @@ object FilterTranslator {
     }
   }
 
-  def intersectSubjectIsIn(left: SubjectIsIn, right: SubjectIsIn): SubjectIsIn = SubjectIsIn(left.uids.intersect(right.uids))
+  def intersectSubjectIsIn(left: SubjectIsIn, right: SubjectIsIn): SubjectIsIn = SubjectIsIn(
+    left.uids.intersect(right.uids)
+  )
 
-  def intersectPredicateNameIsIn(left: IntersectPredicateNameIsIn, right: IntersectPredicateNameIsIn): IntersectPredicateNameIsIn = IntersectPredicateNameIsIn(left.names.intersect(right.names))
+  def intersectPredicateNameIsIn(
+      left: IntersectPredicateNameIsIn,
+      right: IntersectPredicateNameIsIn
+  ): IntersectPredicateNameIsIn = IntersectPredicateNameIsIn(left.names.intersect(right.names))
 
-  def intersectPredicateValueIsIn(left: IntersectPredicateValueIsIn, right: IntersectPredicateValueIsIn): IntersectPredicateValueIsIn = IntersectPredicateValueIsIn(left.names.intersect(right.names), left.values.intersect(right.values))
+  def intersectPredicateValueIsIn(
+      left: IntersectPredicateValueIsIn,
+      right: IntersectPredicateValueIsIn
+  ): IntersectPredicateValueIsIn =
+    IntersectPredicateValueIsIn(left.names.intersect(right.names), left.values.intersect(right.values))
 
-  def intersectSinglePredicateValueIsIn(left: SinglePredicateValueIsIn, right: SinglePredicateValueIsIn): SinglePredicateValueIsIn = SinglePredicateValueIsIn(left.name, left.values.intersect(right.values))
+  def intersectSinglePredicateValueIsIn(
+      left: SinglePredicateValueIsIn,
+      right: SinglePredicateValueIsIn
+  ): SinglePredicateValueIsIn = SinglePredicateValueIsIn(left.name, left.values.intersect(right.values))
 
-  def intersectObjectTypeIsIn(left: ObjectTypeIsIn, right: ObjectTypeIsIn): ObjectTypeIsIn = ObjectTypeIsIn(left.types.intersect(right.types))
+  def intersectObjectTypeIsIn(left: ObjectTypeIsIn, right: ObjectTypeIsIn): ObjectTypeIsIn = ObjectTypeIsIn(
+    left.types.intersect(right.types)
+  )
 
-  def intersectObjectValueIsIn(left: ObjectValueIsIn, right: ObjectValueIsIn): ObjectValueIsIn = ObjectValueIsIn(left.values.intersect(right.values))
+  def intersectObjectValueIsIn(left: ObjectValueIsIn, right: ObjectValueIsIn): ObjectValueIsIn = ObjectValueIsIn(
+    left.values.intersect(right.values)
+  )
 }

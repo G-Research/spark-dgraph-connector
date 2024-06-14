@@ -25,23 +25,25 @@ class TestDbpedia extends AnyFunSpec with SparkTestSession {
   import spark.implicits._
 
   override def cores: Int = 1
-/**
+
   describe("Dbpedia") {
-    it("should read everything") {
+    ignore("should read everything") {
       val df =
-        spark
-          .read
-          .options(Map(
-            ChunkSizeOption -> "100000",
-            PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
-            PredicatePartitionerPredicatesOption -> "10",
-            UidRangePartitionerUidsPerPartOption -> "10000000",
-            NodesModeOption -> NodesModeWideOption
-          ))
+        spark.read
+          .options(
+            Map(
+              ChunkSizeOption -> "100000",
+              PartitionerOption -> s"$PredicatePartitionerOption+$UidRangePartitionerOption",
+              PredicatePartitionerPredicatesOption -> "10",
+              UidRangePartitionerUidsPerPartOption -> "10000000",
+              NodesModeOption -> NodesModeWideOption
+            )
+          )
 //          .dgraph.triples("localhost:9080")
 //          .where($"predicate" === "http://de.dbpedia.org/property/kurzbeschreibung")
 //          .where($"predicate" === "http://www.w3.org/2000/01/rdf-schema#label")
-            .dgraph.nodes("localhost:9080")
+          .dgraph
+          .nodes("localhost:9080")
 
       df
         .select("`http://www.w3.org/2000/01/rdf-schema#label`")
@@ -53,5 +55,4 @@ class TestDbpedia extends AnyFunSpec with SparkTestSession {
 //      Console.readLine()
     }
   }
-*/
 }

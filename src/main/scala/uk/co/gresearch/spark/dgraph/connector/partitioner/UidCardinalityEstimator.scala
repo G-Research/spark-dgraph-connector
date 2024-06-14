@@ -22,11 +22,12 @@ import uk.co.gresearch.spark.dgraph.connector.Partition
 trait UidCardinalityEstimator {
 
   /**
-   * Estimates the cardinality of uids in the given partition,
-   * or None if an estimation is not available.
+   * Estimates the cardinality of uids in the given partition, or None if an estimation is not available.
    *
-   * @param partition a partition
-   * @return estimated number of uids or None
+   * @param partition
+   *   a partition
+   * @return
+   *   estimated number of uids or None
    */
   def uidCardinality(partition: Partition): Option[UnsignedLong]
 
@@ -38,11 +39,12 @@ trait UidCardinalityEstimator {
 abstract class UidCardinalityEstimatorBase extends UidCardinalityEstimator {
 
   /**
-   * Estimates the cardinality of uids in the given partition,
-   * or None if an estimation is not available.
+   * Estimates the cardinality of uids in the given partition, or None if an estimation is not available.
    *
-   * @param partition a partition
-   * @return estimated number of uids or None
+   * @param partition
+   *   a partition
+   * @return
+   *   estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[UnsignedLong] =
     partition.uidRange.map(_.length).orElse(partition.uids.map(_.size.toLong).map(UnsignedLong.valueOf))
@@ -55,11 +57,12 @@ case class MaxUidUidCardinalityEstimator(maxUid: Option[UnsignedLong]) extends U
     throw new IllegalArgumentException(s"uidCardinality maxUid must be larger than zero: $maxUid")
 
   /**
-   * Estimates the cardinality of uids in the given partition,
-   * or None if an estimation is not available.
+   * Estimates the cardinality of uids in the given partition, or None if an estimation is not available.
    *
-   * @param partition a partition
-   * @return estimated number of uids or None
+   * @param partition
+   *   a partition
+   * @return
+   *   estimated number of uids or None
    */
   override def uidCardinality(partition: Partition): Option[UnsignedLong] =
     super.uidCardinality(partition).orElse(maxUid)

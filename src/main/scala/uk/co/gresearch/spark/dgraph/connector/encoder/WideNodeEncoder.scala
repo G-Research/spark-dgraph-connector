@@ -28,29 +28,31 @@ import java.sql.Timestamp
 import scala.jdk.CollectionConverters._
 
 /**
- * Encodes nodes as wide InternalRows from Dgraph json results.
- * With a projected schema the readSchema differs from the actual stored schema.
+ * Encodes nodes as wide InternalRows from Dgraph json results. With a projected schema the readSchema differs from the
+ * actual stored schema.
  */
 case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[StructType] = None)
-  extends JsonNodeInternalRowEncoder
-    with ProjectedSchema with ColumnInfoProvider with Logging {
+    extends JsonNodeInternalRowEncoder
+    with ProjectedSchema
+    with ColumnInfoProvider
+    with Logging {
 
   // puts subject first
-  val allPredicates: Seq[Predicate] = Seq(Predicate("uid", "subject", isLang = false)) ++ predicates.toSeq.sortBy(_.predicateName)
+  val allPredicates: Seq[Predicate] =
+    Seq(Predicate("uid", "subject", isLang = false)) ++ predicates.toSeq.sortBy(_.predicateName)
   val allPredicatesMap: Map[String, Predicate] = allPredicates.map(p => p.predicateName -> p).toMap
 
   override def withSchema(schema: StructType): WideNodeEncoder = copy(projectedSchema = Some(schema))
 
   /**
-   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an
-   * empty schema can be returned here.
-   * From: org.apache.spark.sql.connector.catalog.Table.schema
+   * Returns the schema of this table. If the table is not readable and doesn't have a schema, an empty schema can be
+   * returned here. From: org.apache.spark.sql.connector.catalog.Table.schema
    */
   override val schema: StructType = WideNodeEncoder.schema(allPredicates)
 
   /**
-   * Returns the predicates actually read from Dgraph. These are the predicates that correspond to readSchema
-   * if projected schema is given to this encoder. Note: This preserves order of projected schema.
+   * Returns the predicates actually read from Dgraph. These are the predicates that correspond to readSchema if
+   * projected schema is given to this encoder. Note: This preserves order of projected schema.
    */
   override val readPredicates: Option[Seq[Predicate]] =
     projectedSchema
@@ -60,9 +62,9 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
       .map(schema => schema.fields.flatMap(col => allPredicatesMap.get(predicateNameForColumnName(col.name))))
 
   /**
-   * Returns the actual schema of this data source scan, which may be different from the physical
-   * schema of the underlying storage, as column pruning or other optimizations may happen.
-   * From: org.apache.spark.sql.connector.read.Scan.readSchema
+   * Returns the actual schema of this data source scan, which may be different from the physical schema of the
+   * underlying storage, as column pruning or other optimizations may happen. From:
+   * org.apache.spark.sql.connector.read.Scan.readSchema
    */
   override val readSchema: StructType = readPredicates.fold(schema)(preds => WideNodeEncoder.schema(preds))
 
@@ -85,16 +87,20 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
   /**
    * Encodes the given Dgraph json result into InternalRows.
    *
-   * @param result Json result
-   * @return internal rows
+   * @param result
+   *   Json result
+   * @return
+   *   internal rows
    */
   override def fromJson(result: JsonArray): Iterator[InternalRow] = getNodes(result).map(toNode)
 
   /**
    * Encodes a node as a wide InternalRow.
    *
-   * @param node a json node to turn into a wide InternalRow
-   * @return InternalRows
+   * @param node
+   *   a json node to turn into a wide InternalRow
+   * @return
+   *   InternalRows
    */
   def toNode(node: JsonObject): InternalRow = {
     val values = Array.fill[Any](columns.size)(null)
@@ -103,7 +109,8 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
       // put all values into corresponding columns of 'values'
       node
         .entrySet()
-        .iterator().asScala
+        .iterator()
+        .asScala
         .map { e =>
           (
             columns.get(e.getKey),
@@ -116,22 +123,24 @@ case class WideNodeEncoder(predicates: Set[Predicate], projectedSchema: Option[S
           case (Some(p), Some(t), o) =>
             val obj = getValue(o, t)
             val objectValue = t match {
-              case "subject" => obj.asInstanceOf[Uid].uid.longValue()
-              case "string" => UTF8String.fromString(obj.asInstanceOf[String])
-              case "int" => obj
-              case "float" => obj
+              case "subject"  => obj.asInstanceOf[Uid].uid.longValue()
+              case "string"   => UTF8String.fromString(obj.asInstanceOf[String])
+              case "int"      => obj
+              case "float"    => obj
               case "datetime" => DateTimeUtils.fromJavaTimestamp(obj.asInstanceOf[Timestamp])
-              case "boolean" => obj
-              case "geo" => UTF8String.fromString(obj.asInstanceOf[Geo].geo)
+              case "boolean"  => obj
+              case "geo"      => UTF8String.fromString(obj.asInstanceOf[Geo].geo)
               case "password" => UTF8String.fromString(obj.asInstanceOf[Password].password)
-              case "default" => UTF8String.fromString(obj.toString)
-              case _ => UTF8String.fromString(obj.toString)
+              case "default"  => UTF8String.fromString(obj.toString)
+              case _          => UTF8String.fromString(obj.toString)
             }
             values(p) = objectValue
           case (_, _, _) =>
-            throw new IllegalStateException("should never happen, " +
-              "the filter before foreach guarantees that, " +
-              "this line is just to avoid compile warning")
+            throw new IllegalStateException(
+              "should never happen, " +
+                "the filter before foreach guarantees that, " +
+                "this line is just to avoid compile warning"
+            )
         }
 
       InternalRow.fromSeq(values)
@@ -158,22 +167,28 @@ object WideNodeEncoder {
   /**
    * Maps predicate's Dgraph types (e.g. "int" and "float") to Spark types (LongType and DoubleType, respectively)
    *
-   * @param predicate predicate
-   * @return spark type
+   * @param predicate
+   *   predicate
+   * @return
+   *   spark type
    */
   def toStructField(predicate: Predicate): StructField = {
     val dType = predicate.dgraphType match {
-      case "subject" => LongType
-      case "string" => StringType
-      case "int" => LongType
-      case "float" => DoubleType
+      case "subject"  => LongType
+      case "string"   => StringType
+      case "int"      => LongType
+      case "float"    => DoubleType
       case "datetime" => TimestampType
-      case "boolean" => BooleanType
-      case "geo" => StringType
+      case "boolean"  => BooleanType
+      case "geo"      => StringType
       case "password" => StringType
-      case _ => StringType
+      case _          => StringType
     }
-    StructField(columnNameForPredicateName(predicate.predicateName), dType, nullable = predicate.dgraphType != "subject")
+    StructField(
+      columnNameForPredicateName(predicate.predicateName),
+      dType,
+      nullable = predicate.dgraphType != "subject"
+    )
   }
 
 }
