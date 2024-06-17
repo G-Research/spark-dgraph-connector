@@ -40,9 +40,9 @@ runs:
 
     - name: Build
       run: |
-        mvn --batch-mode --update-snapshots -Dspotless.check.skip clean compile test-compile
-        mvn --batch-mode -DskipTests -Dmaven.test.skip=true -Dspotless.check.skip package
-        mvn --batch-mode -DskipTests -Dmaven.test.skip=true -Dgpg.skip -Dspotless.check.skip install
+        mvn --batch-mode -Dspotless.check.skip --update-snapshots clean compile test-compile
+        mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true package
+        mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true -Dgpg.skip install
       shell: bash
 
     - name: Upload Binaries
