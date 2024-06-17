@@ -68,12 +68,12 @@ runs:
     - name: Scala Test
       env:
         DGRAPH_TEST_CLUSTER_VERSION: ${{ inputs.dgraph-version }}
-      run: mvn --batch-mode test
+      run: mvn --batch-mode -Dspotless.check.skip test
       shell: bash
 
     - name: Generate Unit Test Report
       if: failure()
-      run: mvn --batch-mode surefire-report:report-only
+      run: mvn --batch-mode -Dspotless.check.skip surefire-report:report-only
       shell: bash
 
     - name: Upload Unit Test Results

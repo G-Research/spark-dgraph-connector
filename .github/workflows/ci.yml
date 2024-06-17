@@ -20,6 +20,40 @@ jobs:
           name: Event File
           path: ${{ github.event_path }}
 
+  lint:
+    name: "Linting"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-mvn-lint-${{ hashFiles('pom.xml') }}
+
+      - name: Setup JDK ${{ inputs.java-compat-version }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+
+      - name: Check
+        id: check
+        run: |
+          mvn --batch-mode spotless:check
+        shell: bash
+
+      - name: Changes
+        if: failure() && steps.check.outcome == 'failure'
+        run: |
+          mvn --batch-mode spotless:apply
+          git diff
+        shell: bash
+
   build:
     name: "Build"
     uses: "./.github/workflows/build.yml"
