@@ -40,7 +40,7 @@
     <scala.version>${scala.compat.version}.18</scala.version>
     <!-- spark.compat.version must be reflected in project version -->
     <spark.compat.version>3.5</spark.compat.version>
-    <spark.version>${spark.compat.version}.0</spark.version>
+    <spark.version>${spark.compat.version}.1</spark.version>
     <graphframes.version>0.8.3-spark3.5</graphframes.version>
   </properties>
 
