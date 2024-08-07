@@ -74,7 +74,7 @@ jobs:
           git commit -m "Releasing $version"
           git tag -a "v${version}" -m "Release v${version}"
 
-          # updating master and pushing a tag for the release
+          # updating main and pushing a tag for the release
           echo "Pushing release commit and tag to origin"
           git push origin main "v${version}" --tags
 
@@ -90,7 +90,6 @@ jobs:
     environment: release # secret GPG_PRIVATE_KEY is protected 
     permissions:
       contents: write # required to push to a branch
-      id-token: write # required for PiPy publish
     outputs:
       RELEASE_NAME: ${{ steps.release-notes.outputs.release_name }}
       RELEASE_NOTES_PATH: ${{ steps.release-notes.outputs.release_notes_path }}
