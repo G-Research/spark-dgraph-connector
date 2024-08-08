@@ -62,15 +62,16 @@ jobs:
           # update change
           echo "Releasing ${#changes[@]} changes as version $version:"
           for (( i=0; i<${#changes[@]}; i++ )); do echo "${changes[$i]}" ; done
+
           sed -i "s/## \[UNRELEASED\] - YYYY-MM-DD/## [$version] - $(date +%Y-%m-%d)/" CHANGELOG.md
-          sed -i -e "s/$latest-/$version-/g" -e "s/$latest\./$version./g" README.md PYSPARK-DEPS.md python/README.md
+          sed -i -e "s/$latest-/$version-/g" -e "s/$latest\./$version./g" README.md
           ./set-version.sh $version
 
           # commit changes to local repo
           git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
           git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
           echo "Committing release to local git"
-          git add pom.xml python/setup.py CHANGELOG.md README.md python/README.md
+          git add pom.xml examples/scala/pom.xml CHANGELOG.md README.md
           git commit -m "Releasing $version"
           git tag -a "v${version}" -m "Release v${version}"
 
@@ -142,6 +143,7 @@ jobs:
       - name: Publish maven artifacts
         id: publish-maven
         run: |
+          echo "Creating release packages"
           ./set-version.sh ${{ matrix.params.spark-version }} ${{ matrix.params.scala-version }}
           mvn clean deploy -Dsign
         env:
@@ -195,10 +197,10 @@ jobs:
           function next_version {
             local version=$1
             local branch=$2
-          
+
             patch=${version/*./}
             majmin=${version%.${patch}}
-          
+
             if [[ $branch == "main" ]]
             then
               # minor version bump
@@ -223,7 +225,7 @@ jobs:
           pkg_version="${version/-*/}"
           branch=$(git rev-parse --abbrev-ref HEAD)
           next_pkg_version="$(next_version "$pkg_version" "$branch")"
-          
+
           # bump the version
           echo "Bump version to $next_pkg_version"
           ./set-version.sh $next_pkg_version-SNAPSHOT
@@ -236,7 +238,7 @@ jobs:
           git commit -a -m "Post-release version bump to $next_pkg_version"
           
           # push version bump to origin
-          echo "Pushing release commit to origin"
-          git push origin "main"
+          echo "Pushing release commit and tag to origin"
+          git push origin main
           # NOTE: This push will not trigger a CI as we are using GITHUB_TOKEN to push
           # More info on: https://docs.github.com/en/actions/using-workflows/triggering-a-workflow#triggering-a-workflow-from-a-workflow
