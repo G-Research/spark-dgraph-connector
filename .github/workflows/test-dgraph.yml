@@ -40,5 +40,6 @@ jobs:
           scala-version: ${{ matrix.scala-version }}
           spark-compat-version: ${{ matrix.spark-compat-version }}
           scala-compat-version: ${{ matrix.scala-compat-version }}
+          java-version: 11
           dgraph-version: ${{ matrix.dgraph-version }}
 
