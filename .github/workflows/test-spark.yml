@@ -16,10 +16,12 @@ jobs:
       fail-fast: false
       matrix:
         spark-version: [
+            # we test latest patch version of EOL minor releases
             "3.0.3",
             "3.1.3",
-            "3.2.0", "3.2.1", "3.2.2", "3.2.3", "3.2.4",
-            "3.3.0", "3.3.1", "3.3.2", "3.3.3", "3.3.4",
+            "3.2.4",
+            "3.3.4",
+            # we test all patch version of current supported minor releases
             "3.4.0", "3.4.1", "3.4.2"
             # latest spark version tested in test-dgraph, not testes here again
         ]
@@ -35,43 +37,11 @@ jobs:
             scala-compat-version: "2.12"
             scala-version: "2.12.10"
 
-          - spark-version: "3.2.0"
-            spark-compat-version: "3.2"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.2.1"
-            spark-compat-version: "3.2"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.2.2"
-            spark-compat-version: "3.2"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.2.3"
-            spark-compat-version: "3.2"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
           - spark-version: "3.2.4"
             spark-compat-version: "3.2"
             scala-compat-version: "2.12"
             scala-version: "2.12.15"
 
-          - spark-version: "3.3.0"
-            spark-compat-version: "3.3"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.3.1"
-            spark-compat-version: "3.3"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.3.2"
-            spark-compat-version: "3.3"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-          - spark-version: "3.3.3"
-            spark-compat-version: "3.3"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
           - spark-version: "3.3.4"
             spark-compat-version: "3.3"
             scala-compat-version: "2.12"
