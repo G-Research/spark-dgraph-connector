@@ -113,6 +113,13 @@ jobs:
               "scala-compat-version": "2.13",
               "scala-version": "2.13.8",
               "dgraph-version": "24.0.2"
+            },
+            {
+              "spark-version": "4.0.0-preview2",
+              "spark-compat-version": "4.0",
+              "scala-compat-version": "2.13",
+              "scala-version": "2.13.14",
+              "dgraph-version": "24.0.2"
             }
           ]
         }

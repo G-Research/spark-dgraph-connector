@@ -11,9 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark-compat-version: ["3.4", "3.5"]
+        spark-compat-version: ["3.4", "3.5", "4.0"]
         dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0", "23.0", "23.1", "24.0"]
-        scala-compat-version: ["2.12"]
         include:
           - spark-compat-version: '3.0'
             spark-version: '3.0.3'
@@ -56,6 +55,11 @@ jobs:
             spark-version: '3.5.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.18'
+            hadoop-version: '3'
+          - spark-compat-version: '4.0'
+            spark-version: '4.0.0-preview2'
+            scala-compat-version: '2.13'
+            scala-version: '2.13.14'
             hadoop-version: '3'
 
           - dgraph-minor-version: "20.03"
