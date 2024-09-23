@@ -108,7 +108,7 @@ jobs:
               "dgraph-version": "24.0.2"
             },
             {
-              "spark-version": "3.5.1",
+              "spark-version": "3.5.3",
               "spark-compat-version": "3.5",
               "scala-compat-version": "2.13",
               "scala-version": "2.13.8",
