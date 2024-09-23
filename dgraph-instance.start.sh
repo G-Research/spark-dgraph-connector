@@ -1,6 +1,6 @@
 # keep env var name in-sync with uk.co.gresearch.spark.dgraph.DgraphTestCluster.DgraphVersionEnvVar
 # keep default value in-sync with uk.co.gresearch.spark.dgraph.DgraphTestCluster.DgraphDefaltVersion
-version=${DGRAPH_TEST_CLUSTER_VERSION:-v21.12.0}
+version=${DGRAPH_TEST_CLUSTER_VERSION:-v24.0.2}
 
 if [[ $version > "v" && $version < "v21.03.0" ]]
 then
