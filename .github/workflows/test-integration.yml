@@ -73,7 +73,7 @@ jobs:
           - dgraph-minor-version: "23.1"
             dgraph-version: "23.1.1"
           - dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.0"
+            dgraph-version: "24.0.2"
 
     steps:
       - name: Checkout
