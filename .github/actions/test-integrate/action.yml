@@ -15,6 +15,9 @@ inputs:
   scala-compat-version:
     description: Scala compatibility version, e.g. 2.12
     required: true
+  java-version:
+    description: Java version, e.g. 11
+    required: true
   dgraph-version:
     description: Dgraph server version, e.g. 22.0.0
     required: true
@@ -51,6 +54,12 @@ runs:
       with:
         path: ~/spark
         key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}
+
+    - name: Setup JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'zulu'
 
     - name: Setup Spark Binaries
       env:
