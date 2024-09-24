@@ -17,7 +17,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         include:
           - spark-compat-version: '3.5'
-            spark-version: '3.5.1'
+            spark-version: '3.5.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.18'
 
@@ -30,7 +30,7 @@ jobs:
           - dgraph-minor-version: "23.1"
             dgraph-version: "23.1.1"
           - dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.0"
+            dgraph-version: "24.0.2"
 
     steps:
       - name: Checkout

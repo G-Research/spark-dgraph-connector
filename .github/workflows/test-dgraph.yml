@@ -20,12 +20,12 @@ jobs:
             "22.0.0", "22.0.1", "22.0.2",
             "23.0.0", "23.0.1",
             "23.1.0", "23.1.1",
-            "24.0.0"
+            "24.0.0", "24.0.1", "24.0.2"
         ]
         scala-compat-version: ["2.12"]
         include:
           - spark-compat-version: '3.5'
-            spark-version: '3.5.1'
+            spark-version: '3.5.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.18'
 
@@ -40,5 +40,6 @@ jobs:
           scala-version: ${{ matrix.scala-version }}
           spark-compat-version: ${{ matrix.spark-compat-version }}
           scala-compat-version: ${{ matrix.scala-compat-version }}
+          java-version: 11
           dgraph-version: ${{ matrix.dgraph-version }}
 
