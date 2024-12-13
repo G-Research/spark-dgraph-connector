@@ -20,7 +20,7 @@ jobs:
             scala-version: '2.12.10'
             java-version: 11
             dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.2"
+            dgraph-version: "24.0.5"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.1'
@@ -29,7 +29,7 @@ jobs:
             scala-version: '2.12.10'
             java-version: 11
             dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.2"
+            dgraph-version: "24.0.5"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.2'
@@ -38,7 +38,7 @@ jobs:
             scala-version: '2.12.15'
             java-version: 11
             dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.2"
+            dgraph-version: "24.0.5"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.3'
@@ -47,7 +47,7 @@ jobs:
             scala-version: '2.12.15'
             java-version: 11
             dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.2"
+            dgraph-version: "24.0.5"
             hadoop-version: '3'
 
           - spark-compat-version: '3.4'
@@ -84,7 +84,7 @@ jobs:
           - dgraph-minor-version: "23.1"
             dgraph-version: "23.1.1"
           - dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.2"
+            dgraph-version: "24.0.5"
 
     steps:
       - name: Checkout
