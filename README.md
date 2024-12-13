@@ -650,17 +650,6 @@ Due to the low memory footprint of the connector, Spark could read your entire g
 (you would have to `repartition` the read DataFrame to make Spark shuffle the data properly).
 However, this would be slow, but it proves the connector can handle any size of graph with fixed executor memory requirement.
 
-## Shaded Dependencies
-
-This connector comes packaged with a Java Dgraph client and all its dependencies.
-This is necessary because the Dgraph client requires Guava ≥20.0, where ≥24.1.1-jre is recommended,
-as well as Protobuf Java ≥3.4.0.
-Running this in a Spark deployment would cause these dependencies to conflict with
-older versions deployed with Spark. Therefore, these newer versions are provided with
-the connector as [shaded dependencies](http://maven.apache.org/plugins/maven-shade-plugin/) (renamed package names).
-
-Please refer to the [NOTICE](NOTICE) file for licences of that third-party software.
-
 ## Logging
 
 The connector uses Spark's Log4j standard logging framework. Add the following line to your `log4j.properties` to set
