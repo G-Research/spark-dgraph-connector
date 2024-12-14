@@ -40,37 +40,23 @@ runs:
         name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: .
 
-    - name: Cache Maven packages
-      uses: actions/cache@v4
+    - name: Fetch Dependencies Artifact
+      uses: actions/download-artifact@v4
       with:
+        name: Dependencies-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-mvn-integrate-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
-          ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
-    - name: Cache Spark Binaries
-      uses: actions/cache@v4
+    - name: Fetch Spark Binaries Artifact
+      uses: actions/download-artifact@v4
       with:
+        name: Spark-Binaries-${{ inputs.spark-version }}-${{ inputs.hadoop-version }}
         path: ~/spark
-        key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}
 
     - name: Setup JDK
       uses: actions/setup-java@v4
       with:
         java-version: ${{ inputs.java-version }}
         distribution: 'zulu'
-
-    - name: Setup Spark Binaries
-      env:
-        SPARK_PACKAGE: spark-${{ inputs.spark-version }}/spark-${{ inputs.spark-version }}-bin-hadoop${{ inputs.hadoop-version }}.tgz
-      run: |
-        if [[ ! -e ~/spark ]]
-        then
-          wget --progress=dot:giga "https://www.apache.org/dyn/closer.lua/spark/${SPARK_PACKAGE}?action=download" -O - | tar -xzC "${{ runner.temp }}"
-          archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
-        fi
-      shell: bash
 
     - name: Parametrize
       id: params

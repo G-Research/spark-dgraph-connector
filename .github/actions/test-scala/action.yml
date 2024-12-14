@@ -37,14 +37,11 @@ runs:
         name: Binaries-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: .
 
-    - name: Cache Maven packages
-      uses: actions/cache@v4
+    - name: Fetch Dependencies Artifact
+      uses: actions/download-artifact@v4
       with:
+        name: Dependencies-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
         path: ~/.m2/repository
-        key: ${{ runner.os }}-mvn-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-${{ hashFiles('pom.xml') }}
-        restore-keys: |
-          ${{ runner.os }}-mvn-test-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
-          ${{ runner.os }}-mvn-build-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}-
 
     - name: Setup JDK
       uses: actions/setup-java@v4
