@@ -76,6 +76,19 @@ runs:
         mvn --batch-mode -Dspotless.check.skip -DskipTests install
         cd examples/scala
         mvn --batch-mode -Dspotless.check.skip package
+        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
+        for dep in "org.slf4j#slf4j-api;2.0.16" \
+                   "com.google.protobuf#protobuf-java;4.29.1" \
+                   "io.netty#netty-all;4.1.110.Final" \
+                   "com.google.guava#guava;33.3.1-jre" \
+                   "com.google.guava#failureaccess;1.0.2" \
+                   "com.google.guava#listenablefuture;9999.0-empty-to-avoid-conflict-with-guava" \
+                   "org.checkerframework#checker-qual;3.43.0" \
+                   "com.google.j2objc#j2objc-annotations;3.0.0"; do
+          IFS="#;" read group artifact version <<< "$dep"
+          echo "$group:$artifact:$version"
+          mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId="$group" -DartifactId="$artifact" -Dversion="$version"
+        done
       shell: bash
 
     - name: Start Dgraph cluster (Small)
@@ -101,7 +114,7 @@ runs:
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
-        ${SPARK_HOME}/bin/spark-submit --repositories https://repo1.maven.org/maven2,https://repository.apache.org/content/repositories/releases,https://repository.apache.org/snapshots,https://repos.spark-packages.org --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
     - name: Stop Dgraph cluster
