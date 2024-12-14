@@ -52,6 +52,10 @@ runs:
         name: Spark-Binaries-${{ inputs.spark-version }}-${{ inputs.hadoop-version }}
         path: ~/spark
 
+    - name: Change file permissions
+      run: chmod u+x ~/spark/bin/* ~/spark/sbin/*
+      shell: bash
+
     - name: Setup JDK
       uses: actions/setup-java@v4
       with:
