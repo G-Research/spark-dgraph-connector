@@ -54,51 +54,9 @@ jobs:
           git diff
         shell: bash
 
-  download:
+  download-spark:
     name: "Spark"
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # use spark versions from test-integration.yaml workflow
-        include:
-          - spark-version: '3.0.3'
-            hadoop-version: '2.7'
-          - spark-version: '3.1.3'
-            hadoop-version: '2.7'
-          - spark-version: '3.2.4'
-            hadoop-version: '2.7'
-          - spark-version: '3.3.4'
-            hadoop-version: '3'
-          - spark-version: '3.4.3'
-            hadoop-version: '3'
-          - spark-version: '3.5.3'
-            hadoop-version: '3'
-          - spark-version: '4.0.0-preview2'
-            hadoop-version: '3'
-    steps:
-      - name: Cache Spark Binaries
-        uses: actions/cache@v4
-        with:
-          path: ~/spark
-          key: ${{ runner.os }}-spark-binaries-${{ inputs.spark-version }}-${{ inputs.scala-compat-version }}
-
-      - name: Setup Spark Binaries
-        env:
-          SPARK_PACKAGE: spark-${{ inputs.spark-version }}/spark-${{ inputs.spark-version }}-bin-hadoop${{ inputs.hadoop-version }}.tgz
-        run: |
-          if [[ ! -e ~/spark ]]
-          then
-            wget --progress=dot:giga "https://www.apache.org/dyn/closer.lua/spark/${SPARK_PACKAGE}?action=download" -O - | tar -xzC "${{ runner.temp }}"
-            archive=$(basename "${SPARK_PACKAGE}") bash -c "mv -v "${{ runner.temp }}/\${archive/%.tgz/}" ~/spark"
-          fi
-        shell: bash
-
-      - name: Upload Spark Binaries
-        uses: actions/upload-artifact@v4
-        with:
-          name: Spark-Binaries-${{ inputs.spark-version }}-${{ inputs.hadoop-version }}
-          path: ~/spark
+    uses: "./.github/workflows/download-spark.yml"
 
   build:
     name: "Build"
@@ -175,7 +133,7 @@ jobs:
 
   test-integration:
     name: "Test Integration"
-    needs: [test-dgraph, test-spark]
+    needs: [download-spark, test-dgraph, test-spark]
     uses: "./.github/workflows/test-integration.yml"
 
   delete_binaries:
