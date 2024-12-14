@@ -86,12 +86,6 @@ runs:
         mvn --batch-mode -Dspotless.check.skip -DskipTests install
         cd examples/scala
         mvn --batch-mode -Dspotless.check.skip package
-        # spark-submit is not capable of downloading these dependencies, fetching them through mvn
-        mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId=com.google.errorprone -DartifactId=error_prone_annotations -Dversion=2.3.3
-        mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId=com.google.code.findbugs -DartifactId=jsr305 -Dversion=3.0.2
-        mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId=org.codehaus.mojo -DartifactId=animal-sniffer-annotations -Dversion=1.17
-        mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId=com.google.code.gson -DartifactId=gson -Dversion=2.8.9
-        mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId=org.slf4j -DartifactId=slf4j-api -Dversion=1.7.16
       shell: bash
 
     - name: Start Dgraph cluster (Small)
@@ -117,7 +111,7 @@ runs:
         ARTIFACT_ID: ${{ steps.params.outputs.artifact-id }}
         VERSION: ${{ steps.params.outputs.version }}
       run: |
-        ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
+        ${SPARK_HOME}/bin/spark-submit --repositories https://repo1.maven.org/maven2,https://repository.apache.org/content/repositories/releases,https://repository.apache.org/snapshots,https://repos.spark-packages.org --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},graphframes:graphframes:${{ steps.params.outputs.graphframes-version }}-s_${{ inputs.scala-compat-version }},org.scalactic:scalactic_${{ inputs.scala-compat-version }}:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.ExampleApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
     - name: Stop Dgraph cluster
