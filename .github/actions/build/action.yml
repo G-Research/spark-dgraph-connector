@@ -47,6 +47,9 @@ runs:
         mvn --batch-mode -Dspotless.check.skip --update-snapshots clean compile test-compile
         mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true package
         mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true -Dgpg.skip install
+        cd examples/scala
+        mvn --batch-mode -Dspotless.check.skip clean compile test-compile
+        mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true package
       shell: bash
 
     - name: Upload Binaries

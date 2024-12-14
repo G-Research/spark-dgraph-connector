@@ -136,12 +136,14 @@ jobs:
     needs: [download-spark, test-dgraph, test-spark]
     uses: "./.github/workflows/test-integration.yml"
 
-  delete_binaries:
-    name: "Delete Binaries"
+  delete_artifacts:
+    name: "Delete Artifacts"
     runs-on: ubuntu-latest
     needs: [test-dgraph, test-spark, test-scala, test-python, test-integration]
     steps:
-      - name: Delete Binaries Artifact
+      - name: Delete Artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
-          name: "Binaries-*"
+          name: |
+            Binaries-*
+            Dependencies-*
