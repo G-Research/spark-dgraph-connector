@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [UNRELEASED] - YYYY-MM-DD
+
+## Changed
+- Upgrade Dgraph client to 24.1.1 while moving to official Dgraph Java client (io.dgraph:dgraph4j:24.1.1)
+  with shaded dependencies ([pull #270](https://github.com/G-Research/spark-dgraph-connector/pull/270))
+
 ## [0.11.0] - 2024-01-09
 
 ### Added
