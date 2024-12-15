@@ -74,8 +74,7 @@ runs:
     - name: Prepare Integration Tests
       run: |
         mvn --batch-mode -Dspotless.check.skip -DskipTests install
-        cd examples/scala
-        mvn --batch-mode -Dspotless.check.skip package
+        (cd examples/scala && mvn --batch-mode -Dspotless.check.skip package)
         # spark-submit is not capable of downloading these dependencies, fetching them through mvn
         for dep in "org.slf4j#slf4j-api;2.0.16" \
                    "com.google.protobuf#protobuf-java;4.29.1" \
@@ -86,9 +85,16 @@ runs:
                    "org.checkerframework#checker-qual;3.43.0" \
                    "com.google.j2objc#j2objc-annotations;3.0.0"; do
           IFS="#;" read group artifact version <<< "$dep"
-          echo "$group:$artifact:$version"
           mvn --batch-mode -Dspotless.check.skip dependency:get -DgroupId="$group" -DartifactId="$artifact" -Dversion="$version"
         done
+        if [[ "${{ inputs.spark-compat-version }}" == "3.0" ]]
+        then
+          # spark-submit 3.0 cannot resolve the dgraph4j dependency that has classifier "shaded"
+          # copying it into .ivy2 cache without classifier
+          mkdir -p ~/.ivy2/jars/
+          dgraph4j_version="$(grep -A3 -B2 "<artifactId>dgraph4j</artifactId>" pom.xml | grep "<version>" | sed -e "s/[^>]*>//" -e "s/<.*//")"
+          cp -v ~/.m2/repository/io/dgraph/dgraph4j/${dgraph4j_version}/dgraph4j-${dgraph4j_version}-shaded.jar ~/.ivy2/jars/io.dgraph_dgraph4j-${dgraph4j_version}.jar
+        fi
       shell: bash
 
     - name: Start Dgraph cluster (Small)
