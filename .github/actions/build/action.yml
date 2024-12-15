@@ -43,9 +43,13 @@ runs:
 
     - name: Build
       run: |
+        mvn --batch-mode -Dspotless.check.skip --update-snapshots dependency:go-offline
         mvn --batch-mode -Dspotless.check.skip --update-snapshots clean compile test-compile
         mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true package
         mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true -Dgpg.skip install
+        cd examples/scala
+        mvn --batch-mode -Dspotless.check.skip clean compile test-compile
+        mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true package
       shell: bash
 
     - name: Upload Binaries
@@ -57,6 +61,12 @@ runs:
           !.*
           !target/*-javadoc.jar
           !target/site
+
+    - name: Upload Dependencies
+      uses: actions/upload-artifact@v4
+      with:
+        name: Dependencies-${{ inputs.spark-compat-version }}-${{ inputs.scala-compat-version }}
+        path: ~/.m2/repository
 
 branding:
   icon: 'check-circle'

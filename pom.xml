@@ -115,9 +115,10 @@
     </dependency>
 
     <dependency>
-      <groupId>uk.co.gresearch.dgraph</groupId>
-      <artifactId>dgraph4j-shaded</artifactId>
-      <version>21.12.0-0</version>
+      <groupId>io.dgraph</groupId>
+      <artifactId>dgraph4j</artifactId>
+      <version>24.1.1</version>
+      <classifier>shaded</classifier>
     </dependency>
 
     <dependency>
