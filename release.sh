@@ -19,6 +19,8 @@
 
 set -euo pipefail
 
+base="$(cd "$(dirname "$0")"; pwd)"
+
 # check for clean git status (except for CHANGELOG.md and release.sh)
 readarray -t git_status < <(git status -s --untracked-files=no 2>/dev/null | grep -v -e " CHANGELOG.md$" -e " release.sh$")
 if [ ${#git_status[@]} -gt 0 ]
@@ -55,16 +57,15 @@ then
 fi
 
 # start dgraph test instance
-cp dgraph-instance.*.sh /tmp/
-if [ -d "/tmp/dgraph-instance" ]
+if [ -d "dgraph-instance" ]
 then
-  docker=$(/tmp/dgraph-instance.background.sh || (docker container ls >&2 && false) )
+  docker=$("$base/dgraph-instance.background.sh" || (docker container ls >&2 && false) )
 else
-  docker=$(/tmp/dgraph-instance.background.sh || (docker container ls >&2 && false) )
+  docker=$("$base/dgraph-instance.background.sh" || (docker container ls >&2 && false) )
   sleep 10
-  /tmp/dgraph-instance.drop-all.sh
-  /tmp/dgraph-instance.schema.sh
-  /tmp/dgraph-instance.insert.sh
+  "$base/dgraph-instance.drop-all.sh"
+  "$base/dgraph-instance.schema.sh"
+  "$base/dgraph-instance.insert.sh"
 fi
 
 # testing all versions
