@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [UNRELEASED] - YYYY-MM-DD
+## [0.12.0] - 2024-12-16
 
 ## Changed
 - Upgrade Dgraph client to 24.1.1 while moving to official Dgraph Java client (io.dgraph:dgraph4j:24.1.1)
