@@ -41,7 +41,10 @@ trait DgraphTestCluster extends BeforeAndAfterAll {
 
   lazy val dgraph = new DgraphCluster(alwaysStartUp = clusterAlwaysStartUp)
 
-  override protected def beforeAll(): Unit = dgraph.start()
+  override protected def beforeAll(): Unit = {
+    dgraph.start()
+    assert(dgraph.highestUid < 1024)
+  }
 
   override protected def afterAll(): Unit = dgraph.stop()
 }
