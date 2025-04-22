@@ -117,7 +117,7 @@
     <dependency>
       <groupId>io.dgraph</groupId>
       <artifactId>dgraph4j</artifactId>
-      <version>24.1.1</version>
+      <version>24.2.0</version>
       <classifier>shaded</classifier>
     </dependency>
 
