@@ -22,9 +22,9 @@ jobs:
             "3.2.4",
             "3.3.4",
             # we test all patch version of current supported minor releases
-            "3.4.0", "3.4.1", "3.4.2",
+            "3.4.0", "3.4.1", "3.4.2", "3.4.3",
             # latest patch version tested in test-dgraph, not testes here again
-            "3.5.0", "3.5.1",
+            "3.5.0", "3.5.1", "3.5.2", "3.5.3", "3.5.4",
             "4.0.0-preview2"
         ]
         include:
@@ -67,6 +67,11 @@ jobs:
             scala-compat-version: "2.12"
             scala-version: "2.12.17"
             java-version: 11
+          - spark-version: "3.4.3"
+            spark-compat-version: "3.4"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.17"
+            java-version: 11
 
           - spark-version: "3.5.0"
             spark-compat-version: "3.5"
@@ -74,6 +79,21 @@ jobs:
             scala-version: "2.12.18"
             java-version: 11
           - spark-version: "3.5.1"
+            spark-compat-version: "3.5"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.18"
+            java-version: 11
+          - spark-version: "3.5.2"
+            spark-compat-version: "3.5"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.18"
+            java-version: 11
+          - spark-version: "3.5.3"
+            spark-compat-version: "3.5"
+            scala-compat-version: "2.12"
+            scala-version: "2.12.18"
+            java-version: 11
+          - spark-version: "3.5.4"
             spark-compat-version: "3.5"
             scala-compat-version: "2.12"
             scala-version: "2.12.18"

@@ -78,6 +78,7 @@ jobs:
           - dgraph-version: "22.0.2"
           - dgraph-version: "23.1.1"
           - dgraph-version: "24.0.5"
+          - dgraph-version: "24.1.2"
     uses: "./.github/workflows/test-spark.yml"
     with:
       dgraph-version: ${{ matrix.dgraph-version }}
@@ -97,7 +98,7 @@ jobs:
               "scala-compat-version": "2.13",
               "scala-version": "2.13.5",
               "java-version": "11",
-              "dgraph-version": "24.0.5"
+              "dgraph-version": "24.1.2"
             },
             {
               "spark-version": "3.3.4",
@@ -105,23 +106,23 @@ jobs:
               "scala-compat-version": "2.13",
               "scala-version": "2.13.8",
               "java-version": "11",
-              "dgraph-version": "24.0.5"
+              "dgraph-version": "24.1.2"
             },
             {
-              "spark-version": "3.4.3",
+              "spark-version": "3.4.4",
               "spark-compat-version": "3.4",
               "scala-compat-version": "2.13",
               "scala-version": "2.13.8",
               "java-version": "11",
-              "dgraph-version": "24.0.5"
+              "dgraph-version": "24.1.2"
             },
             {
-              "spark-version": "3.5.3",
+              "spark-version": "3.5.5",
               "spark-compat-version": "3.5",
               "scala-compat-version": "2.13",
               "scala-version": "2.13.8",
               "java-version": "11",
-              "dgraph-version": "24.0.5"
+              "dgraph-version": "24.1.2"
             }
           ]
         }
