@@ -12,15 +12,15 @@ jobs:
       fail-fast: false
       matrix:
         spark-compat-version: ["3.4", "3.5", "4.0"]
-        dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0", "23.0", "23.1", "24.0"]
+        dgraph-minor-version: ["20.03", "20.07", "20.11", "21.12", "22.0", "23.0", "23.1", "24.0", "24.1"]
         include:
           - spark-compat-version: '3.0'
             spark-version: '3.0.3'
             scala-compat-version: '2.12'
             scala-version: '2.12.10'
             java-version: 11
-            dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.5"
+            dgraph-minor-version: "24.1"
+            dgraph-version: "24.1.2"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.1'
@@ -28,8 +28,8 @@ jobs:
             scala-compat-version: '2.12'
             scala-version: '2.12.10'
             java-version: 11
-            dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.5"
+            dgraph-minor-version: "24.1"
+            dgraph-version: "24.1.2"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.2'
@@ -37,8 +37,8 @@ jobs:
             scala-compat-version: '2.12'
             scala-version: '2.12.15'
             java-version: 11
-            dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.5"
+            dgraph-minor-version: "24.1"
+            dgraph-version: "24.1.2"
             hadoop-version: '2.7'
 
           - spark-compat-version: '3.3'
@@ -46,18 +46,18 @@ jobs:
             scala-compat-version: '2.12'
             scala-version: '2.12.15'
             java-version: 11
-            dgraph-minor-version: "24.0"
-            dgraph-version: "24.0.5"
+            dgraph-minor-version: "24.1"
+            dgraph-version: "24.1.2"
             hadoop-version: '3'
 
           - spark-compat-version: '3.4'
-            spark-version: '3.4.3'
+            spark-version: '3.4.4'
             scala-compat-version: '2.12'
             scala-version: '2.12.17'
             java-version: 11
             hadoop-version: '3'
           - spark-compat-version: '3.5'
-            spark-version: '3.5.3'
+            spark-version: '3.5.5'
             scala-compat-version: '2.12'
             scala-version: '2.12.18'
             java-version: 11
@@ -85,6 +85,8 @@ jobs:
             dgraph-version: "23.1.1"
           - dgraph-minor-version: "24.0"
             dgraph-version: "24.0.5"
+          - dgraph-minor-version: "24.1"
+            dgraph-version: "24.1.2"
 
     steps:
       - name: Checkout
