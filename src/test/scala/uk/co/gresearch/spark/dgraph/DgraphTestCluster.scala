@@ -67,6 +67,7 @@ class DgraphCluster(pathToInsertedJson: String = ".", alwaysStartUp: Boolean = f
     DgraphDockerContainer(s"dgraph-unit-test-cluster-${UUID.randomUUID()}", clusterVersion)
   def target: String = instance.grpc
   def targetLocalIp: String = instance.grpcLocalIp
+  def connectionString: String = instance.connectionString
 
   val testClusterRunning: Boolean =
     isDgraphClusterRunning && (!DgraphTestCluster.isDockerInstalled || runningDockerDgraphCluster.isEmpty)
@@ -220,6 +221,12 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
     portOffset
       .orElse(Some(0))
       .map(offset => s"localhost:${8080 + offset}")
+      .get
+
+  def connectionString: String =
+    portOffset
+      .orElse(Some(0))
+      .map(offset => s"dgraph://localhost:${8080 + offset}")
       .get
 
   def start(): Unit = {
