@@ -23,9 +23,13 @@ jobs:
             hadoop-version: '3'
           - spark-version: '3.4.4'
             hadoop-version: '3'
-          - spark-version: '3.5.5'
+          - spark-version: '3.5.7'
             hadoop-version: '3'
-          - spark-version: '4.0.0-preview2'
+          - spark-version: '4.0.1'
+            hadoop-version: '3'
+          - spark-version: '4.1.1'
+            hadoop-version: '3'
+          - spark-version: '4.2.0-preview1'
             hadoop-version: '3'
 
     steps:
