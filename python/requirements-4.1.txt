@@ -1,0 +1,2 @@
+py4j
+pyspark==4.1.1

@@ -27,7 +27,7 @@ jobs:
         scala-compat-version: ["2.12"]
         include:
           - spark-compat-version: '3.5'
-            spark-version: '3.5.5'
+            spark-version: '3.5.7'
             scala-compat-version: '2.12'
             scala-version: '2.12.18'
 
