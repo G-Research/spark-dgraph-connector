@@ -1,2 +1,2 @@
 py4j
-pyspark==4.0.0.dev1
+pyspark==4.0.1
