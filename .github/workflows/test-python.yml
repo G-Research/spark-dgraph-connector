@@ -11,30 +11,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark-compat-version: ["3.5"]
-        scala-compat-version: ["2.12"]
-        dgraph-minor-version: ["21.12", "22.0", "23.0", "23.1", "24.0", "24.1", "25.0", "25.1"]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        spark-compat-version: ["4.1"]
+        scala-compat-version: ["2.13"]
+        dgraph-minor-version: ["21.12", "22.0", "23.1", "24.1", "25.1"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         include:
-          - spark-compat-version: '3.5'
-            spark-version: '3.5.7'
-            scala-compat-version: '2.12'
-            scala-version: '2.12.18'
+          - spark-compat-version: '4.1'
+            spark-version: '4.1.1'
+            scala-compat-version: '2.13'
+            scala-version: '2.13.17'
 
           - dgraph-minor-version: "21.12"
             dgraph-version: "21.12.0"
           - dgraph-minor-version: "22.0"
             dgraph-version: "22.0.2"
-          - dgraph-minor-version: "23.0"
-            dgraph-version: "23.0.1"
           - dgraph-minor-version: "23.1"
-            dgraph-version: "23.1.1"
-          - dgraph-minor-version: "24.0"
             dgraph-version: "24.0.5"
           - dgraph-minor-version: "24.1"
             dgraph-version: "24.1.2"
-          - dgraph-minor-version: "25.0"
-            dgraph-version: "25.0.0"
           - dgraph-minor-version: "25.1"
             dgraph-version: "25.1.0"
 
