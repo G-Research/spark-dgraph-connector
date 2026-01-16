@@ -15,129 +15,37 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark-version: [
-            # we test latest patch version of EOL minor releases
-            "3.0.3",
-            "3.1.3",
-            "3.2.4",
-            "3.3.4",
-            # we test all patch version of current supported minor releases
-            "3.4.0", "3.4.1", "3.4.2", "3.4.3", "3.4.4",
-            # latest patch version tested in test-dgraph, not testes here again
-            "3.5.0", "3.5.1", "3.5.2", "3.5.3", "3.5.4", "3.5.5", "3.5.6",
-            "4.0.0", "4.0.1",
-            "4.1.0", "4.1.1",
-            "4.2.0-preview1"
-        ]
         include:
-          - spark-version: "3.0.3"
-            spark-compat-version: "3.0"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.10"
-            java-version: 11
-
-          - spark-version: "3.1.3"
-            spark-compat-version: "3.1"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.10"
-            java-version: 11
-
           - spark-version: "3.2.4"
             spark-compat-version: "3.2"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
+            scala-compat-version: "2.13"
+            scala-version: "2.13.5"
             java-version: 11
-
           - spark-version: "3.3.4"
             spark-compat-version: "3.3"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.15"
-            java-version: 11
-
-          - spark-version: "3.4.0"
-            spark-compat-version: "3.4"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.17"
-            java-version: 11
-          - spark-version: "3.4.1"
-            spark-compat-version: "3.4"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.17"
-            java-version: 11
-          - spark-version: "3.4.2"
-            spark-compat-version: "3.4"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.17"
-            java-version: 11
-          - spark-version: "3.4.3"
-            spark-compat-version: "3.4"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.17"
+            scala-compat-version: "2.13"
+            scala-version: "2.13.8"
             java-version: 11
           - spark-version: "3.4.4"
             spark-compat-version: "3.4"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.17"
-            java-version: 11
-
-          - spark-version: "3.5.0"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.1"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.2"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.3"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.4"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.5"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-          - spark-version: "3.5.6"
-            spark-compat-version: "3.5"
-            scala-compat-version: "2.12"
-            scala-version: "2.12.18"
-            java-version: 11
-
-          - spark-version: "4.0.0"
-            spark-compat-version: "4.0"
             scala-compat-version: "2.13"
-            scala-version: "2.13.16"
-            java-version: 17
+            scala-version: "2.13.8"
+            java-version: 11
+          - spark-version: "3.5.7"
+            spark-compat-version: "3.5"
+            scala-compat-version: "2.13"
+            scala-version: "2.13.8"
+            java-version: 11
           - spark-version: "4.0.1"
             spark-compat-version: "4.0"
             scala-compat-version: "2.13"
             scala-version: "2.13.16"
-            java-version: 17
-
-          - spark-version: "4.1.0"
-            spark-compat-version: "4.1"
-            scala-compat-version: "2.13"
-            scala-version: "2.13.17"
             java-version: 17
           - spark-version: "4.1.1"
             spark-compat-version: "4.1"
             scala-compat-version: "2.13"
             scala-version: "2.13.17"
             java-version: 17
-
           - spark-version: "4.2.0-preview1"
             spark-compat-version: "4.2"
             scala-compat-version: "2.13"

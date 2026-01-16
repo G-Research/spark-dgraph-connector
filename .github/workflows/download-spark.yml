@@ -18,13 +18,17 @@ jobs:
           - spark-version: '3.1.3'
             hadoop-version: '2.7'
           - spark-version: '3.2.4'
-            hadoop-version: '2.7'
+            hadoop-version: '3.2'
+            scala-version-prefix: '2.13'
           - spark-version: '3.3.4'
             hadoop-version: '3'
+            scala-version-prefix: '2.13'
           - spark-version: '3.4.4'
             hadoop-version: '3'
+            scala-version-prefix: '2.13'
           - spark-version: '3.5.7'
             hadoop-version: '3'
+            scala-version-prefix: '2.13'
           - spark-version: '4.0.1'
             hadoop-version: '3'
           - spark-version: '4.1.1'
@@ -41,7 +45,7 @@ jobs:
 
       - name: Setup Spark Binaries
         env:
-          SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop${{ matrix.hadoop-version }}.tgz
+          SPARK_PACKAGE: spark-${{ matrix.spark-version }}/spark-${{ matrix.spark-version }}-bin-hadoop${{ matrix.hadoop-version }}${{ matrix.scala-version-prefix && format('-scala{0}', matrix.scala-version-prefix) }}.tgz
         run: |
           if [[ ! -e ~/spark ]]
           then
