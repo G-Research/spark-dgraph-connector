@@ -164,6 +164,7 @@ package object connector {
 
   val TargetOption: String = "dgraph.target"
   val TargetsOption: String = "dgraph.targets"
+  val ConnectionStringOption: String = "dgraph.connectionString"
 
   val TriplesModeOption: String = "dgraph.triples.mode"
   val TriplesModeStringOption: String = "string"

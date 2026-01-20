@@ -136,6 +136,23 @@ class TestNodeSource
       doTestLoadTypedNodes(() => reader.dgraph.nodes(dgraph.target))
     }
 
+    it("should load nodes via connection string") {
+      doTestLoadTypedNodes(() =>
+        reader
+          .format(NodesSource)
+          .load(dgraph.connectionString)
+      )
+    }
+
+    it("should load nodes via connection string option") {
+      doTestLoadTypedNodes(() =>
+        reader
+          .format(NodesSource)
+          .option(ConnectionStringOption, dgraph.connectionString)
+          .load()
+      )
+    }
+
     it("should load typed nodes") {
       doTestLoadTypedNodes(() =>
         reader
