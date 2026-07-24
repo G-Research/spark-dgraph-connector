@@ -77,8 +77,8 @@ jobs:
           - dgraph-version: "21.12.0"
           - dgraph-version: "22.0.2"
           - dgraph-version: "23.1.1"
-          - dgraph-version: "24.1.2"
-          - dgraph-version: "25.1.0"
+          - dgraph-version: "24.1.9"
+          - dgraph-version: "25.2.0"
     uses: "./.github/workflows/test-spark.yml"
     with:
       dgraph-version: ${{ matrix.dgraph-version }}
@@ -88,7 +88,7 @@ jobs:
     needs: build
     uses: "./.github/workflows/test-scala.yml"
     with:
-      dgraph-version: "25.1.0"
+      dgraph-version: "25.2.0"
 
   test-python:
     name: "Test Python"

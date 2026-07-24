@@ -31,22 +31,22 @@ jobs:
             scala-compat-version: "2.13"
             scala-version: "2.13.8"
             java-version: 11
-          - spark-version: "3.5.7"
+          - spark-version: "3.5.9"
             spark-compat-version: "3.5"
             scala-compat-version: "2.13"
             scala-version: "2.13.8"
             java-version: 11
-          - spark-version: "4.0.1"
+          - spark-version: "4.0.4"
             spark-compat-version: "4.0"
             scala-compat-version: "2.13"
             scala-version: "2.13.16"
             java-version: 17
-          - spark-version: "4.1.1"
+          - spark-version: "4.1.3"
             spark-compat-version: "4.1"
             scala-compat-version: "2.13"
             scala-version: "2.13.17"
             java-version: 17
-          - spark-version: "4.2.0-preview1"
+          - spark-version: "4.2.0"
             spark-compat-version: "4.2"
             scala-compat-version: "2.13"
             scala-version: "2.13.18"

@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spark-compat-version: ["4.1"]
+        spark-compat-version: ["4.2"]
         dgraph-version: [
             "20.03.7",
             "20.07.3",
@@ -23,14 +23,15 @@ jobs:
             "24.0.5",
             "24.1.5",
             "25.0.0",
-            "25.1.0"
+            "25.1.0",
+            "25.2.0"
         ]
         scala-compat-version: ["2.13"]
         include:
-          - spark-compat-version: '4.1'
-            spark-version: '4.1.1'
+          - spark-compat-version: '4.2'
+            spark-version: '4.2.0'
             scala-compat-version: '2.13'
-            scala-version: '2.13.17'
+            scala-version: '2.13.18'
 
     steps:
       - name: Checkout
