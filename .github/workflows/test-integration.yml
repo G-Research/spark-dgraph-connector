@@ -21,7 +21,7 @@ jobs:
             java-version: 11
             dgraph-minor-version: "25.1"
             dgraph-version: "25.1.0"
-            hadoop-version: '2.7'
+            hadoop-version: '3.2'
 
           - spark-compat-version: '3.3'
             spark-version: '3.3.4'
