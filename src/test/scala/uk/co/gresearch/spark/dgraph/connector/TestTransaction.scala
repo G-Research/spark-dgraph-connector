@@ -212,7 +212,11 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
       // no change in the dataframe with transaction
       val afterBeforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
       writeTriples("after-mutations-with-transaction.txt", afterBeforeWithTransactionTriples)
-      assert(afterBeforeWithTransactionTriples === beforeWithTransactionTriples)
+      // Dgraph v25.3.x has a regression breaking transaction isolation
+      // see https://github.com/dgraph-io/dgraph/issues/9795
+      if (!dgraph.clusterVersion.startsWith("25.3.")) {
+        assert(afterBeforeWithTransactionTriples === beforeWithTransactionTriples)
+      }
     }
   }
 }
