@@ -12,15 +12,15 @@ jobs:
       fail-fast: false
       matrix:
         spark-compat-version: ["3.4", "3.5", "4.0", "4.1", "4.2"]
-        dgraph-minor-version: ["20.11", "21.12", "22.0", "23.1", "24.1", "25.2"]
+        dgraph-minor-version: ["20.11", "21.12", "22.0", "23.1", "24.1", "25.4"]
         include:
           - spark-compat-version: '3.2'
             spark-version: '3.2.4'
             scala-compat-version: '2.13'
             scala-version: '2.13.5'
             java-version: 11
-            dgraph-minor-version: "25.2"
-            dgraph-version: "25.2.0"
+            dgraph-minor-version: "25.4"
+            dgraph-version: "25.4.0"
             hadoop-version: '3.2'
 
           - spark-compat-version: '3.3'
@@ -28,8 +28,8 @@ jobs:
             scala-compat-version: '2.13'
             scala-version: '2.13.8'
             java-version: 11
-            dgraph-minor-version: "25.2"
-            dgraph-version: "25.2.0"
+            dgraph-minor-version: "25.4"
+            dgraph-version: "25.4.0"
             hadoop-version: '3'
 
           - spark-compat-version: '3.4'
@@ -73,8 +73,8 @@ jobs:
             dgraph-version: "23.1.1"
           - dgraph-minor-version: "24.1"
             dgraph-version: "24.1.9"
-          - dgraph-minor-version: "25.2"
-            dgraph-version: "25.2.0"
+          - dgraph-minor-version: "25.4"
+            dgraph-version: "25.4.0"
 
     steps:
       - name: Checkout

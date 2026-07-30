@@ -21,10 +21,12 @@ import io.dgraph.DgraphClient
 import io.dgraph.DgraphProto.Mutation
 import io.dgraph.dgraph4j.shaded.io.grpc.ManagedChannel
 import org.scalatest.funspec.AnyFunSpec
-import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster
-import uk.co.gresearch.spark.dgraph.connector.sources.{TestTriplesSource, TriplesSourceExpecteds}
+import uk.co.gresearch.spark.dgraph.connector.sources.TriplesSourceExpecteds
 import uk.co.gresearch.spark.dgraph.connector.sources.TestTriplesSource.removeDgraphTriples
+
+import java.nio.file.{Files, Paths}
+import java.nio.charset.StandardCharsets
 
 class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with DgraphTestCluster {
 
@@ -32,6 +34,9 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
 
   // we want a fresh cluster that we can mutate, definitively not one that is always running and used by all tests
   override val clusterAlwaysStartUp: Boolean = true
+
+  // for debugging purposes, write triples to files
+  val writeTriplesFiles = true
 
   describe("Connector") {
 
@@ -90,6 +95,29 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
       }
     }
 
+    def toString(triple: TypedTriple): String = {
+      val value = triple.objectType match {
+        case "uid"       => s"<${triple.objectUid.get}>"
+        case "string"    => s""""${triple.objectString.get}""""
+        case "long"      => triple.objectLong.get.toString
+        case "double"    => triple.objectDouble.get.toString
+        case "timestamp" => s""""${triple.objectTimestamp.get}""""
+        case "boolean"   => triple.objectBoolean.get.toString
+        case "geo"       => s""""${triple.objectGeo.get}""""
+        case "password"  => "********"
+        case "default"   => "default"
+        case _           => "unknown"
+      }
+      s"<${triple.subject}> <${triple.predicate}> $value ."
+    }
+
+    def writeTriples(file: String, triples: Set[TypedTriple]): Unit = {
+      if (writeTriplesFiles) {
+        val content = triples.toList.map(toString).sorted.mkString("\n")
+        Files.write(Paths.get(file), content.getBytes(StandardCharsets.UTF_8))
+      }
+    }
+
     it("should read in transaction") {
       // the graph before any mutations, read with transaction ...
       val beforeWithTransaction = removeDgraphTriples(
@@ -125,7 +153,7 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
               .find(t => t.subject == dgraph.leia && t.predicate == "name")
               .map(_.copy(objectString = Some("Princess Leia Organa")))
               .get,
-            // plus insterted
+            // plus inserted
             TypedTriple(
               dgraph.highestUid + 1,
               "dgraph.type",
@@ -166,17 +194,29 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
               "uid"
             )
           ).toSet
+      writeTriples("after-mutations-expected.txt", expectedAfterTriples)
+
+      writeTriples("before-mutations.txt", beforeWithoutTransactionTriples)
+
+      // changes in the dataframe without transaction
+      val afterBeforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
+      writeTriples("after-mutations-without-transaction.txt", afterBeforeWithoutTransactionTriples)
+      assert(afterBeforeWithoutTransactionTriples !== beforeWithoutTransactionTriples)
+      assert(afterBeforeWithoutTransactionTriples === expectedAfterTriples)
+
+      // same content as in dataframe created after mutation
+      writeTriples("after-mutations.txt", afterTriples)
+      assert(afterTriples !== beforeWithTransactionTriples)
+      assert(afterTriples === expectedAfterTriples)
 
       // no change in the dataframe with transaction
       val afterBeforeWithTransactionTriples = beforeWithTransaction.as[TypedTriple].collect().toSet
-      assert(afterBeforeWithTransactionTriples === beforeWithTransactionTriples)
-      // changes in the dataframe without transaction
-      val afterBeforeWithoutTransactionTriples = beforeWithoutTransaction.as[TypedTriple].collect().toSet
-      assert(afterBeforeWithoutTransactionTriples !== beforeWithoutTransactionTriples)
-      assert(afterBeforeWithoutTransactionTriples === expectedAfterTriples)
-      // same content as in dataframe created after mutation
-      assert(afterTriples !== beforeWithTransactionTriples)
-      assert(afterTriples === expectedAfterTriples)
+      writeTriples("after-mutations-with-transaction.txt", afterBeforeWithTransactionTriples)
+      // Dgraph v25.3.x has a regression breaking transaction isolation
+      // see https://github.com/dgraph-io/dgraph/issues/9795
+      if (!dgraph.clusterVersion.startsWith("25.3.")) {
+        assert(afterBeforeWithTransactionTriples === beforeWithTransactionTriples)
+      }
     }
   }
 }
