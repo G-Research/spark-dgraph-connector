@@ -36,7 +36,7 @@ class TestTransaction extends AnyFunSpec with ConnectorSparkTestSession with Dgr
   override val clusterAlwaysStartUp: Boolean = true
 
   // for debugging purposes, write triples to files
-  val writeTriplesFiles = true
+  val writeTriplesFiles = false
 
   describe("Connector") {
 
