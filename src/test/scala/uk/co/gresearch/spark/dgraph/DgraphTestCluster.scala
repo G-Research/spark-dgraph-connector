@@ -28,7 +28,11 @@ import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
-import uk.co.gresearch.spark.dgraph.connector.sources.{EdgesSourceExpecteds, NodesSourceExpecteds, TriplesSourceExpecteds}
+import uk.co.gresearch.spark.dgraph.connector.sources.{
+  EdgesSourceExpecteds,
+  NodesSourceExpecteds,
+  TriplesSourceExpecteds
+}
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Logging, Target, Transaction, Uid}
 
 import java.nio.file.Paths
@@ -527,22 +531,22 @@ object DgraphTestCluster extends Logging with SparkTestSession {
     println(s"target-local-ip=${dgraph.targetLocalIp}")
 
     // write expected dataframes to files
-    write(NodesSourceExpecteds(dgraph).getExpectedTypedNodeDf(spark), pathToWrite, "expected-nodes-source-typed-node")
-    write(NodesSourceExpecteds(dgraph).getExpectedWideNodeDf(spark), pathToWrite, "expected-nodes-source-wide-node")
-    write(EdgesSourceExpecteds(dgraph).getExpectedEdgeDf(spark), pathToWrite, "expected-edges-source-edge")
-    write(TriplesSourceExpecteds(dgraph).getExpectedStringTripleDf(spark), pathToWrite, "expected-triples-source-string-triple")
-    write(TriplesSourceExpecteds(dgraph).getExpectedTypedTripleDf(spark), pathToWrite, "expected-triples-source-typed-triple")
+    def write(df: DataFrame, file: String): Unit = {
+      val filename = s"$pathToWrite/$file"
+      println(s"writing expected dataframe: $filename")
+      df.write.mode(SaveMode.Overwrite).parquet(filename)
+    }
+
+    write(NodesSourceExpecteds(dgraph).getExpectedTypedNodeDf(spark), "expected-nodes-source-typed-node")
+    write(NodesSourceExpecteds(dgraph).getExpectedWideNodeDf(spark), "expected-nodes-source-wide-node")
+    write(EdgesSourceExpecteds(dgraph).getExpectedEdgeDf(spark), "expected-edges-source-edge")
+    write(TriplesSourceExpecteds(dgraph).getExpectedStringTripleDf(spark), "expected-triples-source-string-triple")
+    write(TriplesSourceExpecteds(dgraph).getExpectedTypedTripleDf(spark), "expected-triples-source-typed-triple")
 
     println("Dgraph cluster is running. Press ENTER to stop.")
     StdIn.readLine()
     spark.stop()
     dgraph.stop()
-  }
-
-  def write(df: DataFrame, path: String, file: String): Unit = {
-    val filename = s"$path/$file"
-    println(s"writing expected dataframe: $filename")
-    df.write.mode(SaveMode.Overwrite).parquet(filename)
   }
 
   def run(cmd: String*): Int = {
