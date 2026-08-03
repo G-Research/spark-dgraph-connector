@@ -252,7 +252,7 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
-      <!-- enable scalatest -->
+      <!-- configure scalatest for explicit invocation -->
       <plugin>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
@@ -268,14 +268,6 @@
             --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
           </argLine>
         </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
