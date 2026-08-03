@@ -308,9 +308,13 @@
         <executions>
           <execution>
             <id>attach-tests</id>
+            <phase>package</phase>
             <goals>
               <goal>test-jar</goal>
             </goals>
+            <configuration>
+              <classifier>tests</classifier>
+            </configuration>
           </execution>
         </executions>
       </plugin>
