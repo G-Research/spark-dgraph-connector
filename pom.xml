@@ -235,6 +235,7 @@
               <goal>testCompile</goal>
             </goals>
             <configuration>
+              <skip>false</skip>
               <args>
                 <arg>-dependencyfile</arg>
                 <arg>${project.build.directory}/.scala_dependencies</arg>

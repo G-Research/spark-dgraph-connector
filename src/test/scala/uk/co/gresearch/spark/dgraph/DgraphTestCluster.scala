@@ -18,19 +18,28 @@ package uk.co.gresearch.spark.dgraph
 
 import com.google.gson.{Gson, JsonArray, JsonObject}
 import io.dgraph.DgraphProto.TxnContext
+import org.apache.spark.sql.{DataFrame, SaveMode}
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types.StructType
 import org.scalatest.{BeforeAndAfterAll, Suite}
 import requests.{RequestBlob, Response}
+import uk.co.gresearch.spark.SparkTestSession
 import uk.co.gresearch.spark.dgraph.DgraphTestCluster.isDgraphClusterRunning
 import uk.co.gresearch.spark.dgraph.connector.encoder.{JsonNodeInternalRowEncoder, NoColumnInfo}
 import uk.co.gresearch.spark.dgraph.connector.executor.DgraphExecutor
+import uk.co.gresearch.spark.dgraph.connector.sources.{
+  EdgesSourceExpecteds,
+  NodesSourceExpecteds,
+  TriplesSourceExpecteds
+}
 import uk.co.gresearch.spark.dgraph.connector.{ClusterStateProvider, GraphQl, Logging, Target, Transaction, Uid}
 
 import java.nio.file.Paths
 import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
+import scala.io.StdIn
 import scala.jdk.CollectionConverters._
 import scala.sys.process.{Process, ProcessLogger}
 
@@ -501,12 +510,44 @@ case class DgraphDockerContainer(name: String, version: String) extends Logging 
 
 }
 
-object DgraphTestCluster extends Logging {
+object DgraphTestCluster extends Logging with SparkTestSession {
 
   lazy val isDgraphClusterRunning: Boolean =
     new ClusterStateProvider {}.getClusterState(Target("localhost:9080")).isDefined
 
   lazy val isDockerInstalled: Boolean = run("docker", "--version") == 0
+
+  def main(args: Array[String]): Unit = {
+    if (args.length != 2) {
+      println(s"Provide path to inserted JSON file and boolean indicating always-start-up (${args.length}).")
+      System.exit(1)
+    }
+    val pathToWrite = args(0)
+
+    println("Starting Dgraph cluster.")
+    val dgraph = new DgraphCluster(pathToWrite, args(1).toBoolean)
+    dgraph.start()
+    println(s"target=${dgraph.target}")
+    println(s"target-local-ip=${dgraph.targetLocalIp}")
+
+    // write expected dataframes to files
+    def write(df: DataFrame, file: String): Unit = {
+      val filename = s"$pathToWrite/$file"
+      println(s"writing expected dataframe: $filename")
+      df.write.mode(SaveMode.Overwrite).parquet(filename)
+    }
+
+    write(NodesSourceExpecteds(dgraph).getExpectedTypedNodeDf(spark), "expected-nodes-source-typed-node")
+    write(NodesSourceExpecteds(dgraph).getExpectedWideNodeDf(spark), "expected-nodes-source-wide-node")
+    write(EdgesSourceExpecteds(dgraph).getExpectedEdgeDf(spark), "expected-edges-source-edge")
+    write(TriplesSourceExpecteds(dgraph).getExpectedStringTripleDf(spark), "expected-triples-source-string-triple")
+    write(TriplesSourceExpecteds(dgraph).getExpectedTypedTripleDf(spark), "expected-triples-source-typed-triple")
+
+    println("Dgraph cluster is running. Press ENTER to stop.")
+    StdIn.readLine()
+    spark.stop()
+    dgraph.stop()
+  }
 
   def run(cmd: String*): Int = {
     val lines = mutable.Queue.empty[String]
