@@ -40,16 +40,36 @@ class DgraphClusterTest(SparkTest):
         super(DgraphClusterTest, cls).setUpClass()
         logging.info('launching Dgraph')
 
-        jvm = cls.spark._jvm
-        cls._jdgraph = jvm.uk.co.gresearch.spark.dgraph.DgraphCluster(DgraphClusterTest.get_pom_path(), False)
-        cls._jdgraph.start()
+        import subprocess
 
-        cls.dgraph = Object()
-        cls.dgraph.target = cls._jdgraph.target()
-        cls.dgraph.targetLocalIp = cls._jdgraph.targetLocalIp()
+        # Start 'mvn' as a separate process and capture its stdin and stdout
+        cls.dgraph = subprocess.Popen(
+            ['mvn', '--batch-mode', '-Dspotless.check.skip', '-DskipTests', '-Dmaven.test.skip=true', 'exec:java', '-Dexec.classpathScope=test', '-Dexec.mainClass=uk.co.gresearch.spark.dgraph.DgraphTestCluster', f'-Dexec.args={DgraphClusterTest.get_pom_path()} false'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        # determine target and local ip target of dgraph instance
+        cls.dgraph.target = None
+        cls.dgraph.targetLocalIp = None
+        line = cls.dgraph.stdout.readline()
+        while line:
+            print(line, end='')
+            if line.startswith("target="):
+                cls.dgraph.target = line.split("=")[1].strip()
+            if line.startswith("target-local-ip="):
+                cls.dgraph.targetLocalIp = line.split("=")[1].strip()
+
+            if line.strip() == "Dgraph cluster is running. Press ENTER to stop.":
+                if cls.dgraph.target is None or cls.dgraph.targetLocalIp is None:
+                    raise RuntimeError("Could not determine target or local ip of Dgraph instance")
+                break
+            line = cls.dgraph.stdout.readline()
 
     @classmethod
     def tearDownClass(cls):
         logging.info('stopping Dgraph')
-        cls._jdgraph.stop()
+        cls.dgraph.communicate(input='\n')
         super(DgraphClusterTest, cls).tearDownClass()
