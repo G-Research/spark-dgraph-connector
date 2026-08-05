@@ -151,6 +151,11 @@ runs:
         ${SPARK_HOME}/bin/spark-submit --packages uk.co.gresearch.spark:${ARTIFACT_ID}:${VERSION},org.scalactic:scalactic_2.12:3.2.15 --class uk.co.gresearch.spark.dgraph.connector.example.SparseApp examples/scala/target/spark-dgraph-connector-examples_*.jar
       shell: bash
 
+    - name: Check shaded dgraph4j has no dependencies
+      run: |
+        ./examples/scala/check-dgraph4j-shading.sh
+      shell: bash
+
 branding:
   icon: 'check-circle'
   color: 'green'
