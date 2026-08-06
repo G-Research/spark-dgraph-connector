@@ -63,11 +63,14 @@ jobs:
         with:
           java-version: ${{ matrix.params.java-version }}
           distribution: zulu
-          server-id: ossrh
+          server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Inspect GPG
+        run: gpg -k
 
       - name: Cache Maven packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -82,30 +85,16 @@ jobs:
           version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g" -e "s/-SNAPSHOT//" -e "s/-[0-9.]+//g")
           find ~/.m2 ~/.ivy2 -type f -name "*spark-dgraph-connector_*-$version-*-SNAPSHOT.jar" -delete 2>/dev/null || true
 
-      - name: Start Dgraph test instance
-        id: dgraph
+      - name: Publish snapshot
         run: |
-          echo "docker=$(./dgraph-instance.background.sh)" >> "$GITHUB_OUTPUT"
-          sleep 10
-          ./dgraph-instance.drop-all.sh
-          ./dgraph-instance.schema.sh
-          ./dgraph-instance.insert.sh
-
-      - name: Publish snapshot and test it
+          ./set-version.sh ${{ matrix.params.spark-version }} ${{ matrix.params.scala-version }}
+          mvn clean deploy -Dsign -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          SPARK_LOCAL_IP: 127.0.0.1
-        run: |
-          ./set-version.sh ${{ matrix.params.spark-version }} ${{ matrix.params.scala-version }}
-          mvn --batch-mode clean deploy -Dsign -Dspotless.check.skip
-          ./test-release.sh
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE}}
 
-      - name: Stop Dgraph test instance
-        if: always()
+      - name: Test snapshot
+        id: test-package
         run: |
-          if [ -n "${{ steps.dgraph.outputs.docker }}" ]
-          then
-            docker stop "${{ steps.dgraph.outputs.docker }}"
-          fi
+          ./test-release.sh
