@@ -1,0 +1,115 @@
+name: Publish release
+
+on:
+  workflow_dispatch:
+    inputs:
+      versions:
+        required: true
+        type: string
+        description: 'Example: {"include": [{"params": {"spark-version": "3.5.9","scala-version": "2.12.18","java-version": "11"}}]}'
+        default: |
+          {
+            "include": [
+              {"params": {"spark-version": "3.0.3", "scala-version": "2.12.10", "java-version": "11"}},
+              {"params": {"spark-version": "3.1.3", "scala-version": "2.12.10", "java-version": "11"}},
+              {"params": {"spark-version": "3.2.4", "scala-version": "2.12.15", "java-version": "11"}},
+              {"params": {"spark-version": "3.3.4", "scala-version": "2.12.15", "java-version": "11"}},
+              {"params": {"spark-version": "3.4.4", "scala-version": "2.12.17", "java-version": "11"}},
+              {"params": {"spark-version": "3.5.3", "scala-version": "2.12.18", "java-version": "11"}},
+              {"params": {"spark-version": "3.2.4", "scala-version": "2.13.5", "java-version": "11"}},
+              {"params": {"spark-version": "3.3.4", "scala-version": "2.13.8", "java-version": "11"}},
+              {"params": {"spark-version": "3.4.4", "scala-version": "2.13.8", "java-version": "11"}},
+              {"params": {"spark-version": "3.5.3", "scala-version": "2.13.8", "java-version": "11"}}
+            ]
+          }
+
+jobs:
+  get-version:
+    name: Get version
+    runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.versions.outputs.release-tag }}
+      is-snapshot: ${{ steps.versions.outputs.is-snapshot }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Get versions
+        id: versions
+        run: |
+          version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g" -e "s/-SNAPSHOT//" -e "s/-[0-9.]+//g")
+          is_snapshot=$(if grep -q "<version>.*-SNAPSHOT</version>" pom.xml; then echo "true"; else echo "false"; fi)
+
+          echo "release-tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "is-snapshot=$is_snapshot" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag setup
+        run: |
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]
+          then
+            echo "This workflow must be run on a tag, not $GITHUB_REF"
+            exit 1
+          fi
+
+          if [ "${{ steps.versions.outputs.is-snapshot }}" == "true" ]
+          then
+            echo "This is a tagged SNAPSHOT version. This is not allowed for release!"
+            exit 1
+          fi
+
+          if [ "${{ github.ref_name }}" != "${{ steps.versions.outputs.release-tag }}" ]
+          then
+            echo "The version in the pom.xml is ${{ steps.versions.outputs.release-tag }}"
+            echo "This tag is ${{ github.ref_name }}, which is different!"
+            exit 1
+          fi
+
+      - name: Show matrix
+        run: |
+          echo '${{ github.event.inputs.versions }}' | jq .
+
+  maven-release:
+    name: Publish release (Spark ${{ matrix.params.spark-version }} Scala ${{ matrix.params.scala-version }})
+    runs-on: ubuntu-latest
+    needs: get-version
+    if: (! github.event.repository.fork)
+    environment:
+      name: release
+      url: https://github.com/G-Research/spark-dgraph-connector?version=${{ needs.get-version.outputs.release-tag }}&spark=${{ matrix.params.spark-version }}&scala=${{ matrix.params.scala-version }}
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(github.event.inputs.versions) }}
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK and publish to Sonatype
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          java-version: ${{ matrix.params.java-version }}
+          distribution: zulu
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-mvn-release-${{ matrix.params.spark-version }}-${{ matrix.params.scala-version }}-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-mvn-release-${{ matrix.params.spark-version }}-${{ matrix.params.scala-version }}-
+
+      - name: Publish release artifacts
+        run: |
+          ./set-version.sh ${{ matrix.params.spark-version }} ${{ matrix.params.scala-version }}
+          mvn --batch-mode clean deploy -Dsign -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true
+          mvn --batch-mode nexus-staging:release
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}

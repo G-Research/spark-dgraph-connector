@@ -5,7 +5,13 @@ for a number of Spark and Scala environments, but all from the same git tag. Rel
 that is set in the `pom.xml` and create a tag. On success, release from that tag for all other environments
 as described below.
 
-Use the `release.sh` script to test and release all versions. Or execute the following steps manually.
+Use the GitHub Actions workflows to automate the release process:
+
+- `publish-snapshot` publishes and tests SNAPSHOT builds for all release variants.
+- `prepare-release` updates release metadata, tags the release and bumps the next SNAPSHOT version.
+- `publish-release` publishes the tagged release for all release variants.
+
+The shell scripts in the repository remain the manual equivalent of these steps.
 
 ## Testing main for all environments
 
