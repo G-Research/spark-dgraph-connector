@@ -94,7 +94,24 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE}}
 
+      - name: Start Dgraph test instance
+        id: dgraph
+        run: |
+          echo "docker=$(./dgraph-instance.background.sh)" >> "$GITHUB_OUTPUT"
+          sleep 10
+          ./dgraph-instance.drop-all.sh
+          ./dgraph-instance.schema.sh
+          ./dgraph-instance.insert.sh
+
       - name: Test snapshot
         id: test-package
         run: |
           ./test-release.sh
+
+      - name: Stop Dgraph test instance
+        if: always()
+        run: |
+          if [ -n "${{ steps.dgraph.outputs.docker }}" ]
+          then
+            docker stop "${{ steps.dgraph.outputs.docker }}"
+          fi
