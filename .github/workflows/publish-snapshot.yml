@@ -69,6 +69,19 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
+      - name: Cache Maven packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-mvn-snapshot-${{ matrix.params.spark-version }}-${{ matrix.params.scala-version }}-${{ hashFiles('pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-mvn-snapshot-${{ matrix.params.spark-version }}-${{ matrix.params.scala-version }}-
+
+      - name: Remove cached connector snapshots
+        run: |
+          version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g" -e "s/-SNAPSHOT//" -e "s/-[0-9.]+//g")
+          find ~/.m2 ~/.ivy2 -type f -name "*spark-dgraph-connector_*-$version-*-SNAPSHOT.jar" -delete 2>/dev/null || true
+
       - name: Start Dgraph test instance
         id: dgraph
         run: |

@@ -26,7 +26,10 @@ on:
 jobs:
   get-version:
     name: Get version
+    if: (! github.event.repository.fork)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       release-tag: ${{ steps.versions.outputs.release-tag }}
       is-snapshot: ${{ steps.versions.outputs.is-snapshot }}
