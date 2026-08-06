@@ -73,7 +73,7 @@ runs:
 
     - name: Prepare Integration Tests
       run: |
-        mvn --batch-mode -Dspotless.check.skip -DskipTests install
+        mvn --batch-mode -Dspotless.check.skip -DskipTests -Dgpg.skip install
         (cd examples/scala && mvn --batch-mode -Dspotless.check.skip package)
       shell: bash
 
