@@ -37,7 +37,7 @@
     <dependency>
       <groupId>org.scalactic</groupId>
       <artifactId>scalactic_${scala.compat.version}</artifactId>
-      <version>3.2.15</version>
+      <version>3.3.0-SNAP4</version>
     </dependency>
 
     <dependency>
