@@ -1,0 +1,177 @@
+name: Prepare release
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_release_latest:
+        description: Make the created GitHub release the latest
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  get-version:
+    name: Get version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release-tag: ${{ steps.versions.outputs.release-tag }}
+      is-snapshot: ${{ steps.versions.outputs.is-snapshot }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Get versions
+        id: versions
+        run: |
+          version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g" -e "s/-SNAPSHOT//" -e "s/-[0-9.]+//g")
+          is_snapshot=$(if grep -q "<version>.*-SNAPSHOT</version>" pom.xml; then echo "true"; else echo "false"; fi)
+
+          echo "release-tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "is-snapshot=$is_snapshot" >> "$GITHUB_OUTPUT"
+
+  prepare-release:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    if: (! github.event.repository.fork)
+    needs: get-version
+    permissions:
+      contents: read
+    environment:
+      name: tagged
+      url: https://github.com/G-Research/spark-dgraph-connector?version=${{ needs.get-version.outputs.release-tag }}
+
+    steps:
+      - name: Create GitHub App token
+        uses: actions/create-github-app-token@f8d387b68d61c58ab83c6c016672934102569859 # v3.0.0
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Get GitHub App user ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Check branch setup
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]] && [[ "$GITHUB_REF" != refs/heads/branch-* ]]
+          then
+            echo "This workflow must be run on main or branch-* branch, not $GITHUB_REF"
+            exit 1
+          fi
+
+      - name: Check version setup
+        run: |
+          if [ "${{ needs.get-version.outputs.is-snapshot }}" != "true" ]
+          then
+            echo "This workflow must be run on a SNAPSHOT version"
+            exit 1
+          fi
+
+      - name: Tag and bump version
+        run: |
+          readarray -t changes < <(awk '
+            /^## \[UNRELEASED\] - YYYY-MM-DD$/ { in_unreleased=1; next }
+            /^## / && in_unreleased { exit }
+            in_unreleased && /^-/ { print }
+          ' CHANGELOG.md)
+          if [ ${#changes[@]} -eq 0 ]
+          then
+            echo "Did not find any changes in CHANGELOG.md under '## [UNRELEASED] - YYYY-MM-DD'"
+            exit 1
+          fi
+
+          latest=$(grep --max-count=1 "<version>.*</version>" README.md | sed -E -e "s/\s*<[^>]+>//g" -e "s/-[0-9.]+//g")
+          version=$(grep --max-count=1 "<version>.*</version>" pom.xml | sed -E -e "s/\s*<[^>]+>//g" -e "s/-SNAPSHOT//" -e "s/-[0-9.]+//g")
+
+          echo "Releasing ${#changes[@]} changes as version $version:"
+          for (( i=0; i<${#changes[@]}; i++ )); do echo "${changes[$i]}" ; done
+
+          sed -i "s/## \[UNRELEASED\] - YYYY-MM-DD/## [$version] - $(date +%Y-%m-%d)/" CHANGELOG.md
+          sed -i -e "s/$latest-/$version-/g" -e "s/$latest\./$version./g" README.md
+          ./set-version.sh $version
+
+          git config --global user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config --global user.email "${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+          git add pom.xml examples/scala/pom.xml CHANGELOG.md README.md
+          git commit -m "Releasing $version"
+          git tag -a "v${version}" -m "Release v${version}"
+
+          function next_version {
+            local version=$1
+            local branch=$2
+
+            patch=${version/*./}
+            majmin=${version%.${patch}}
+
+            if [[ $branch == "main" ]]
+            then
+              if [[ $version != *".0" ]]
+              then
+                echo "version is patch version, should be M.m.0: $version" >&2
+                exit 1
+              fi
+              maj=${version/.*/}
+              min=${majmin#${maj}.}
+              next=${maj}.$((min+1)).0
+              echo "$next"
+            else
+              next=${majmin}.$((patch+1))
+              echo "$next"
+            fi
+          }
+
+          pkg_version="${version/-*/}"
+          branch=$(git rev-parse --abbrev-ref HEAD)
+          next_pkg_version="$(next_version "$pkg_version" "$branch")"
+
+          ./set-version.sh $next_pkg_version-SNAPSHOT
+          git commit -a -m "Post-release version bump to $next_pkg_version-SNAPSHOT"
+
+          git push origin "$GITHUB_REF_NAME" "v${version}" --tags
+
+  github-release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+    needs:
+      - get-version
+      - prepare-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.get-version.outputs.release-tag }}
+
+      - name: Extract release notes
+        id: release-notes
+        run: |
+          awk '/^## /{seen++; if(seen > 1) exit; next} seen == 1' CHANGELOG.md > ./release-notes.txt
+          name=$(grep -m 1 "^## " CHANGELOG.md | sed "s/^## //")
+          echo "release_name=$name" >> "$GITHUB_OUTPUT"
+          echo "release_notes_path=release-notes.txt" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        with:
+          name: ${{ steps.release-notes.outputs.release_name }}
+          bodyFile: ${{ steps.release-notes.outputs.release_notes_path }}
+          makeLatest: ${{ inputs.github_release_latest }}
+          tag: ${{ needs.get-version.outputs.release-tag }}
+          token: ${{ github.token }}

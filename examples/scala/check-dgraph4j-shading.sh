@@ -5,7 +5,7 @@ set -euo pipefail
 base="$(cd "$(dirname "$0")"; pwd)"
 
 # install spark-dgraph-connector
-(cd "$base/../.."; mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true install)
+(cd "$base/../.."; mvn --batch-mode -Dspotless.check.skip -DskipTests -Dmaven.test.skip=true -Dgpg.skip install)
 
 # extract dependency tree
 (cd "$base"; mvn org.apache.maven.plugins:maven-dependency-plugin:3.7.0:tree -DoutputType=json -DoutputFile=dependency-tree.json)
